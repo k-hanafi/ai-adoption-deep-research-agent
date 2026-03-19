@@ -1,5 +1,1 @@
-"""Stage 2: Perplexity Sonar research (Stages 2A, 2B, and 3)."""
-
-from .perplexity_client import PerplexityClient, PerplexityResponse, ResearchResult
-
-__all__ = ["PerplexityClient", "PerplexityResponse", "ResearchResult"]
+"""Stage 2: Deep research via Perplexity Agent API."""

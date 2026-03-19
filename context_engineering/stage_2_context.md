@@ -20,7 +20,7 @@ Stage 1 scored ~44k US startups from Crunchbase using Tavily web search + GPT-5-
 Priority 4+5 companies (~9.4k total) are the deep-research candidates.
 
 - Extracted from Stage 1 results joined with Crunchbase metadata.
-- Written to `outputs/stage2/stage2_input_dataset.jsonl`.
+- Written to `crunchbase_data/stage2_input_dataset_p4_p5.jsonl`.
 - Fields per record: `rcid`, `name`, `homepage_url`, `short_description`, `research_priority_score`, `online_presence_score`, `category_list`.
 
 ## Overarching Goal

@@ -54,7 +54,7 @@ class ResultRecord:
             genai_adoption_found=bool(d.get("genai_adoption_found", False)),
             findings=d.get("findings", []),
             no_finding_reason=d.get("no_finding_reason"),
-            cost=d.get("cost"),
+            cost=d.get("cost_usd", d.get("cost")),
             duration_seconds=d.get("duration_seconds"),
             error=d.get("error"),
         )

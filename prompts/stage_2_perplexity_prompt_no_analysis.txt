@@ -71,18 +71,16 @@ Respond with valid JSON only. Do not include any text outside the JSON object.
       "source_type": "free text describing the source type"
     }}
   ],
-  "no_finding_reason": "limited_online_presence" | "has_presence_no_evidence" | null,
-  "no_finding_analysis": "3-5 sentences: what sources were checked, what was observed, and why no finding qualified" | null
+  "no_finding_reason": "limited_online_presence" | "has_presence_no_evidence" | null
 }}
 
 Rules:
 - finding_id: sequential integer starting at 1 for each finding.
 - If genai_adoption_found is false, findings must be an empty array [].
-- If genai_adoption_found is true, set no_finding_reason and no_finding_analysis to null.
+- If genai_adoption_found is true, set no_finding_reason to null.
 - If genai_adoption_found is false, set no_finding_reason to one of:
   - "limited_online_presence": Company has a weak digital footprint — The company simply does not have enough public content to determine internal GenAI adoption.
   - "has_presence_no_evidence": Company has a meaningful online presence (active website, blog, job postings, press coverage, LinkedIn, etc.) but thorough search found no verifiable evidence of internal GenAI tool adoption.
-- If genai_adoption_found is false, set no_finding_analysis to 3-5 sentences explaining: what source types were checked (website, blog, job postings, news, LinkedIn, etc.), what was found or not found, any indirect signals that almost qualified, and the overall assessment. Be specific and comprehensive — this analysis will be used to decide whether a deeper follow-up investigation is warranted.
 - Each finding must have a source_url. No source = no finding.
 
 == FEW-SHOT EXAMPLES ==
@@ -103,8 +101,7 @@ Rules:
       "source_type": "company engineering blog"
     }}
   ],
-  "no_finding_reason": null,
-  "no_finding_analysis": null
+  "no_finding_reason": null
 }}
 
 --- EXAMPLE B: Finding from indirect evidence ---
@@ -123,8 +120,7 @@ Rules:
       "source_type": "LinkedIn job posting"
     }}
   ],
-  "no_finding_reason": null,
-  "no_finding_analysis": null
+  "no_finding_reason": null
 }}
 
 --- EXAMPLE C: No evidence found (solid online presence) ---
@@ -133,8 +129,7 @@ Rules:
   "company_name": "Summit Ridge Construction",
   "genai_adoption_found": false,
   "findings": [],
-  "no_finding_reason": "has_presence_no_evidence",
-  "no_finding_analysis": "Summit Ridge has an active company website with a blog (15+ posts in 2025), a LinkedIn page with 200+ employees, and several news articles covering recent projects. Job postings on their careers page list standard construction management tools (Procore, Bluebeam) but no AI-related requirements. Their engineering blog discusses BIM workflows and sustainability initiatives but makes no mention of generative AI tools. One TechCrunch article from 2025 profiles the company but focuses on their growth strategy with no AI references."
+  "no_finding_reason": "has_presence_no_evidence"
 }}
 
 --- EXAMPLE D: Company SELLS AI but no evidence of internal USE ---
@@ -143,8 +138,7 @@ Rules:
   "company_name": "NeuralFlow AI",
   "genai_adoption_found": false,
   "findings": [],
-  "no_finding_reason": "has_presence_no_evidence",
-  "no_finding_analysis": "NeuralFlow has extensive online presence: company website, active blog, press coverage in VentureBeat and TechCrunch, and 50+ LinkedIn employees. However, all content describes their AI-powered workflow automation product for customers. Job postings for engineers mention Python and ML frameworks but not external GenAI tools like Copilot or ChatGPT. No employee LinkedIn posts or conference talks reference internal use of third-party GenAI tools for their own operations. The company clearly builds AI but no evidence of using GenAI tools internally was found."
+  "no_finding_reason": "has_presence_no_evidence"
 }}
 
 --- EXAMPLE E: Minimal online presence ---
@@ -153,6 +147,5 @@ Rules:
   "company_name": "Greenfield Micro Devices",
   "genai_adoption_found": false,
   "findings": [],
-  "no_finding_reason": "limited_online_presence",
-  "no_finding_analysis": "Company website exists but contains only a single landing page with a contact form and no other content. No blog, no careers page, and no job postings found on LinkedIn or Indeed. The LinkedIn company page has 3 followers and no posts. One brief mention in a local business directory confirms the company exists but provides no operational details. There is simply not enough public content to determine whether GenAI tools are used internally."
+  "no_finding_reason": "limited_online_presence"
 }}

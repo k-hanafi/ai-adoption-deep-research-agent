@@ -31,6 +31,8 @@ STAGE2_TEST_RUNS_DIR = STAGE2_OUTPUT_DIR / "test_runs"
 STAGE2_RUNS_DIR = STAGE2_OUTPUT_DIR / "runs"
 STAGE2_MASTER_JSONL = STAGE2_OUTPUT_DIR / "production_results.jsonl"
 STAGE2_MASTER_CSV = STAGE2_OUTPUT_DIR / "production_results.csv"
+# Stage 2 input dataset (priority=4+5) lives with the Crunchbase source data
+STAGE2_INPUT_DATASET_PATH = DATA_DIR / "stage2_input_dataset_p4_p5.jsonl"
 STAGE3_OUTPUT_DIR = OUTPUT_DIR / "stage3"
 
 # Ensure directories exist

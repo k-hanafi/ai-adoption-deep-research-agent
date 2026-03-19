@@ -40,7 +40,7 @@ from pathlib import Path
 from typing import Optional
 
 # Ensure src is importable
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from src.config import (
     PROCESSING, STAGE1_OUTPUT_DIR, STAGE1_GPT_DIR, LOG_DIR,

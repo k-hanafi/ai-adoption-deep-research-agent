@@ -49,8 +49,9 @@ from perplexity.types.output_item import MessageOutputItem, SearchResultsOutputI
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from src.config import (
-    STAGE2_OUTPUT_DIR, STAGE2_RUNS_DIR,
+    STAGE2_RUNS_DIR,
     STAGE2_MASTER_JSONL, STAGE2_MASTER_CSV,
+    STAGE2_INPUT_DATASET_PATH,
     PROMPTS_DIR, APIKeys,
 )
 from src.common import AsyncRateLimiter, AsyncJSONLWriter
@@ -59,17 +60,19 @@ from src.common import AsyncRateLimiter, AsyncJSONLWriter
 # CONSTANTS
 # ─────────────────────────────────────────────────────────────────────────────
 
-DATASET_PATH = STAGE2_OUTPUT_DIR / "stage2_input_dataset.jsonl"
+DATASET_PATH = STAGE2_INPUT_DATASET_PATH
 PROMPT_FILE = PROMPTS_DIR / "stage_2_perplexity_prompt.txt"
 
 DEFAULT_SEED = 2026
 DEFAULT_TIMEOUT = 300.0
+DEFAULT_MAX_STEPS = 7   # Without this, calls average 19min and 50% error rate
 RPM_LIMIT = 150  # Agent API Tier 1: 150 req/min, 3 QPS
 QPS_LIMIT = 3    # Agent API Tier 1: 3 queries per second
 MAX_RETRIES = 3
 RETRY_BASE_DELAY = 5.0  # seconds; doubles each retry (5s, 10s, 20s)
 AUTH_RETRY_DELAY = 30.0  # seconds; for quota reload waits (30s, 60s, 120s)
 DEFAULT_PRESET = "deep-research"
+EMPTY_RESPONSE_RETRIES = 1  # Extra retry for completed-but-empty responses
 
 logger = logging.getLogger("production_agent_runner")
 
@@ -178,10 +181,13 @@ RESPONSE_SCHEMA = {
                 "no_finding_reason": {
                     "type": ["string", "null"],
                 },
+                "no_finding_analysis": {
+                    "type": ["string", "null"],
+                },
             },
             "required": [
                 "company_id", "company_name", "genai_adoption_found",
-                "findings", "no_finding_reason",
+                "findings", "no_finding_reason", "no_finding_analysis",
             ],
             "additionalProperties": False,
         },
@@ -343,7 +349,7 @@ async def _call_api_with_retry(
         response_format=RESPONSE_SCHEMA,
         timeout=DEFAULT_TIMEOUT,
     )
-    if max_steps is not None:
+    if max_steps:
         kwargs["max_steps"] = max_steps
 
     for attempt in range(MAX_RETRIES + 1):
@@ -395,41 +401,56 @@ async def research_company(
 
     content = ""
     try:
-        response = await _call_api_with_retry(client, company, preset, max_steps=max_steps)
+        empty_retries_left = EMPTY_RESPONSE_RETRIES
 
-        result.response_id = response.id
-        result.model_used = response.model
-        result.response_status = response.status
+        while True:
+            response = await _call_api_with_retry(client, company, preset, max_steps=max_steps)
 
-        if response.usage:
-            result.input_tokens = response.usage.input_tokens
-            result.output_tokens = response.usage.output_tokens
-            result.total_tokens = response.usage.total_tokens
-            if response.usage.cost:
-                result.cost_usd = response.usage.cost.total_cost
+            result.response_id = response.id
+            result.model_used = response.model
+            result.response_status = response.status
 
-        for item in response.output:
-            if isinstance(item, SearchResultsOutputItem):
-                for sr in (item.results or []):
-                    result.citations.append(sr.url)
-        result.search_results_count = len(result.citations)
+            if response.usage:
+                result.input_tokens = response.usage.input_tokens
+                result.output_tokens = response.usage.output_tokens
+                result.total_tokens = response.usage.total_tokens
+                if response.usage.cost:
+                    cost = response.usage.cost.total_cost
+                    result.cost_usd = (result.cost_usd or 0) + cost if result.cost_usd else cost
 
-        if response.status == "failed":
-            err = response.error
-            error_detail = f"{err.type}: {err.message}" if err else "unknown"
-            raise ValueError(f"Response failed: {error_detail}")
+            for item in response.output:
+                if isinstance(item, SearchResultsOutputItem):
+                    for sr in (item.results or []):
+                        result.citations.append(sr.url)
+            result.search_results_count = len(result.citations)
 
-        content = response.output_text
-        if not content:
-            content = _extract_text_fallback(response.output)
+            if response.status == "failed":
+                err = response.error
+                error_detail = f"{err.type}: {err.message}" if err else "unknown"
+                raise ValueError(f"Response failed: {error_detail}")
 
-        content = (content or "").strip()
-        if not content:
-            output_types = [type(item).__name__ for item in response.output]
-            raise ValueError(
-                f"Empty response content (model={response.model}, "
-                f"status={response.status}, output_types={output_types})"
-            )
+            content = response.output_text
+            if not content:
+                content = _extract_text_fallback(response.output)
+
+            content = (content or "").strip()
+            if not content and empty_retries_left > 0:
+                empty_retries_left -= 1
+                logger.warning(
+                    "  %s (rcid=%d): empty response (status=%s), retrying (%d left)",
+                    company.name, company.rcid, response.status, empty_retries_left,
+                )
+                await asyncio.sleep(RETRY_BASE_DELAY)
+                continue
+
+            if not content:
+                output_types = [type(item).__name__ for item in response.output]
+                raise ValueError(
+                    f"Empty response content (model={response.model}, "
+                    f"status={response.status}, output_types={output_types})"
+                )
+
+            break
 
         result.raw_content_preview = content[:500]
         parsed = json.loads(content)
@@ -790,7 +811,7 @@ def print_banner(args: argparse.Namespace) -> None:
     print("  PRODUCTION DEEP RESEARCH RUNNER")
     print("-" * w)
     print(f"  Preset:      {args.preset}")
-    print(f"  Max steps:   {args.max_steps or 'preset default (10)'}")
+    print(f"  Max steps:   {args.max_steps if args.max_steps else 'preset default (~10)'}")
     print(f"  Concurrency: {args.concurrency}")
     print(f"  Budget cap:  ${args.budget_cap:.0f}")
     print(f"  Seed:        {args.seed}")
@@ -992,12 +1013,16 @@ Examples:
         help=f"Path to input dataset JSONL (default: {DATASET_PATH})",
     )
     parser.add_argument(
-        "--max-steps", type=int, default=None,
-        help="Override preset max_steps (deep-research default: 10). Lower = fewer reasoning iterations = cheaper.",
+        "--max-steps", type=int, default=DEFAULT_MAX_STEPS,
+        help=f"Max reasoning steps per call (default: {DEFAULT_MAX_STEPS}). Lower = cheaper/faster. Set 0 to use preset default (~10).",
     )
     parser.add_argument(
         "--dry-run", action="store_true",
         help="Validate setup and show what would be processed, without calling the API",
+    )
+    parser.add_argument(
+        "--compact", action="store_true",
+        help="Deduplicate the master JSONL and rebuild the CSV, then exit (no API calls)",
     )
     parser.add_argument(
         "--verbose", action="store_true",
@@ -1221,6 +1246,20 @@ async def async_main(args: argparse.Namespace) -> None:
 
 def main() -> None:
     args = parse_args()
+
+    if args.compact:
+        records = _deduplicate_jsonl(STAGE2_MASTER_JSONL)
+        if not records:
+            print("Master JSONL is empty, nothing to compact.")
+            return
+        with open(STAGE2_MASTER_JSONL, "w") as f:
+            for rec in records:
+                f.write(json.dumps(rec) + "\n")
+        csv_rows = _write_csv_from_jsonl(STAGE2_MASTER_JSONL, STAGE2_MASTER_CSV)
+        print(f"Compacted: {len(records)} unique records in {STAGE2_MASTER_JSONL}")
+        print(f"CSV rebuilt: {csv_rows} rows in {STAGE2_MASTER_CSV}")
+        return
+
     asyncio.run(async_main(args))
 
 

@@ -36,10 +36,10 @@ from perplexity.types.output_item import MessageOutputItem, SearchResultsOutputI
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-from src.config import STAGE2_OUTPUT_DIR, STAGE2_TEST_RUNS_DIR, PROMPTS_DIR, LOG_DIR, APIKeys
+from src.config import STAGE2_TEST_RUNS_DIR, STAGE2_INPUT_DATASET_PATH, PROMPTS_DIR, LOG_DIR, APIKeys
 
 
-DATASET_PATH = STAGE2_OUTPUT_DIR / "stage2_input_dataset.jsonl"
+DATASET_PATH = STAGE2_INPUT_DATASET_PATH
 PROMPT_FILE = PROMPTS_DIR / "stage_2_perplexity_prompt.txt"
 
 DEFAULT_SEED = 2026
@@ -134,10 +134,13 @@ RESPONSE_SCHEMA = {
                 "no_finding_reason": {
                     "type": ["string", "null"],
                 },
+                "no_finding_analysis": {
+                    "type": ["string", "null"],
+                },
             },
             "required": [
                 "company_id", "company_name", "genai_adoption_found",
-                "findings", "no_finding_reason",
+                "findings", "no_finding_reason", "no_finding_analysis",
             ],
             "additionalProperties": False,
         },
