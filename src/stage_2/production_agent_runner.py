@@ -1,9 +1,10 @@
 """
 Production deep-research runner for Stage 2.
 
-Processes companies from the Stage 2 input dataset using the Perplexity
-Agent API (deep-research preset). Results accumulate in a single master
-JSONL file across runs; a master CSV is regenerated after each run.
+Processes all P4+P5 companies from the Stage 2 input dataset using the
+Perplexity Agent API (deep-research preset). Results accumulate in a
+single master JSONL file across runs; a master CSV is regenerated after
+each run.
 
 Features:
 - Async concurrency with configurable parallelism
@@ -13,19 +14,16 @@ Features:
 - Budget cap: stops new calls when cumulative spend reaches the limit
 
 Usage:
-    # Statistical test: 200 per priority
+    # Full scale run
     python -m src.stage_2.production_agent_runner \\
-        --sample-size 200 --priorities 5 4 \\
-        --concurrency 5 --budget-cap 200
+        --concurrency 10 --budget-cap 3000
 
-    # Scale to all remaining companies
+    # Test with a small sample
     python -m src.stage_2.production_agent_runner \\
-        --sample-size 0 --priorities 5 4 \\
-        --concurrency 10 --budget-cap 1500
+        --sample-size 50 --budget-cap 50
 
     # Dry run (no API calls)
-    python -m src.stage_2.production_agent_runner \\
-        --sample-size 200 --priorities 5 4 --dry-run
+    python -m src.stage_2.production_agent_runner --dry-run
 """
 
 import argparse
@@ -43,7 +41,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from perplexity import AsyncPerplexity, AuthenticationError, RateLimitError, InternalServerError, APITimeoutError
+import httpx
+from perplexity import (
+    AsyncPerplexity,
+    AuthenticationError, RateLimitError, InternalServerError,
+    APITimeoutError, APIConnectionError,
+)
 from perplexity.types.output_item import MessageOutputItem, SearchResultsOutputItem
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -65,9 +68,9 @@ PROMPT_FILE = PROMPTS_DIR / "stage_2_perplexity_prompt.txt"
 
 DEFAULT_SEED = 2026
 DEFAULT_TIMEOUT = 300.0
-DEFAULT_MAX_STEPS = 7   # Without this, calls average 19min and 50% error rate
-RPM_LIMIT = 150  # Agent API Tier 1: 150 req/min, 3 QPS
-QPS_LIMIT = 3    # Agent API Tier 1: 3 queries per second
+DEFAULT_MAX_STEPS = 10   
+RPM_LIMIT = 2000  # 2000 req/min
+QPS_LIMIT = 33    # 33 queries per second
 MAX_RETRIES = 3
 RETRY_BASE_DELAY = 5.0  # seconds; doubles each retry (5s, 10s, 20s)
 AUTH_RETRY_DELAY = 30.0  # seconds; for quota reload waits (30s, 60s, 120s)
@@ -76,7 +79,7 @@ EMPTY_RESPONSE_RETRIES = 1  # Extra retry for completed-but-empty responses
 
 logger = logging.getLogger("production_agent_runner")
 
-RETRYABLE_EXCEPTIONS = (RateLimitError, InternalServerError, APITimeoutError)
+RETRYABLE_EXCEPTIONS = (RateLimitError, InternalServerError, APITimeoutError, APIConnectionError)
 QUOTA_EXCEPTIONS = (AuthenticationError,)  # retried with longer backoff, fatal if exhausted
 
 
@@ -219,24 +222,19 @@ def load_dataset(path: Path) -> list[Company]:
     return companies
 
 
-def sample_companies(
+def sample_dataset(
     companies: list[Company],
-    priority: int,
     sample_size: int,
     seed: int,
 ) -> list[Company]:
-    """Return a deterministic sample for a priority level.
+    """Return a deterministic sample from the dataset.
 
-    sample_size=0 means return all companies at this priority.
+    sample_size=0 means return all companies.
     """
-    filtered = [c for c in companies if c.research_priority_score == priority]
-    if not filtered:
-        logger.warning("No companies with priority=%d found", priority)
-        return []
-    if sample_size == 0 or sample_size >= len(filtered):
-        return filtered
+    if sample_size == 0 or sample_size >= len(companies):
+        return companies
     rng = random.Random(seed)
-    return rng.sample(filtered, sample_size)
+    return rng.sample(companies, sample_size)
 
 
 def load_completed_rcids(master_path: Path, preset: str) -> set[int]:
@@ -347,7 +345,6 @@ async def _call_api_with_retry(
         preset=preset,
         input=build_prompt(company),
         response_format=RESPONSE_SCHEMA,
-        timeout=DEFAULT_TIMEOUT,
     )
     if max_steps:
         kwargs["max_steps"] = max_steps
@@ -357,7 +354,7 @@ async def _call_api_with_retry(
             return await client.responses.create(**kwargs)
         except QUOTA_EXCEPTIONS as e:
             if attempt < MAX_RETRIES:
-                delay = AUTH_RETRY_DELAY * (2 ** attempt)
+                delay = AUTH_RETRY_DELAY * (2 ** attempt) + random.uniform(0, 2)
                 logger.warning(
                     "  %s (rcid=%d): quota exceeded on attempt %d/%d — "
                     "waiting %.0fs for credit reload...",
@@ -369,9 +366,9 @@ async def _call_api_with_retry(
                 raise
         except RETRYABLE_EXCEPTIONS as e:
             if attempt < MAX_RETRIES:
-                delay = RETRY_BASE_DELAY * (2 ** attempt)
+                delay = RETRY_BASE_DELAY * (2 ** attempt) + random.uniform(0, 1)
                 logger.warning(
-                    "  %s (rcid=%d): %s on attempt %d/%d, retrying in %.0fs",
+                    "  %s (rcid=%d): %s on attempt %d/%d, retrying in %.1fs",
                     company.name, company.rcid,
                     type(e).__name__, attempt + 1, MAX_RETRIES + 1, delay,
                 )
@@ -453,7 +450,10 @@ async def research_company(
             break
 
         result.raw_content_preview = content[:500]
-        parsed = json.loads(content)
+        try:
+            parsed = json.loads(content)
+        except json.JSONDecodeError:
+            parsed = json.loads(_extract_json_from_text(content))
 
         result.genai_adoption_found = parsed.get("genai_adoption_found", False)
         result.findings = parsed.get("findings") or []
@@ -858,35 +858,19 @@ def print_stats_bar(tracker: ProgressTracker) -> None:
     print(f"        --- {tracker.status_line()} ---")
 
 
-def print_summary(
-    overall: ProgressTracker,
-    priority_trackers: dict[int, ProgressTracker],
-) -> None:
+def print_summary(tracker: ProgressTracker) -> None:
     w = 62
     print("\n" + "=" * w)
     print("  RUN SUMMARY")
     print("=" * w)
 
-    for priority in sorted(priority_trackers.keys(), reverse=True):
-        pt = priority_trackers[priority]
-        s = pt.summary_dict()
-        if s["processed"] == 0:
-            continue
-        print(f"\n  Priority {priority}:")
-        print(f"    Processed:  {s['processed']}  ({s['errors']} errors)")
-        print(f"    Hit rate:   {s['hit_rate_pct']}%  ({s['total_findings']} findings / {s['processed']} startups)")
-        print(f"    Findings:   {s['total_findings']}  ({s['companies_with_findings']} companies with findings)")
-        print(f"    Cost:       ${s['total_cost_usd']:.2f}  (avg ${s['avg_cost_usd']:.4f}  min ${s['min_cost_usd']:.4f}  max ${s['max_cost_usd']:.4f})")
-        print(f"    Avg time:   {s['avg_duration_s']:.1f}s per call")
-
-    s = overall.summary_dict()
-    print(f"\n  Overall:")
-    print(f"    Processed:  {s['processed']}  ({s['errors']} errors)")
-    print(f"    Hit rate:   {s['hit_rate_pct']}%  ({s['total_findings']} findings / {s['processed']} startups)")
-    print(f"    Findings:   {s['total_findings']}")
-    print(f"    Cost:       ${s['total_cost_usd']:.2f}  (avg ${s['avg_cost_usd']:.4f}  min ${s['min_cost_usd']:.4f}  max ${s['max_cost_usd']:.4f})")
-    print(f"    Avg time:   {s['avg_duration_s']:.1f}s per call")
-    print(f"    Wall clock: {s['elapsed_seconds']:.0f}s  ({s['elapsed_seconds']/60:.1f}min)")
+    s = tracker.summary_dict()
+    print(f"\n  Processed:  {s['processed']}  ({s['errors']} errors)")
+    print(f"  Hit rate:   {s['hit_rate_pct']}%  ({s['total_findings']} findings / {s['processed']} startups)")
+    print(f"  Findings:   {s['total_findings']}  ({s['companies_with_findings']} companies with findings)")
+    print(f"  Cost:       ${s['total_cost_usd']:.2f}  (avg ${s['avg_cost_usd']:.4f}  min ${s['min_cost_usd']:.4f}  max ${s['max_cost_usd']:.4f})")
+    print(f"  Avg time:   {s['avg_duration_s']:.1f}s per call")
+    print(f"  Wall clock: {s['elapsed_seconds']:.0f}s  ({s['elapsed_seconds']/60:.1f}min)")
 
     if s["successful"] > 0 and s["total_cost_usd"] > 0:
         projected = int(4000 / s["avg_cost_usd"])
@@ -908,7 +892,6 @@ def write_run_meta(
         "started_at": datetime.now().astimezone().isoformat(),
         "args": {
             "sample_size": args.sample_size,
-            "priorities": args.priorities,
             "preset": args.preset,
             "max_steps": args.max_steps,
             "seed": args.seed,
@@ -972,25 +955,21 @@ def parse_args() -> argparse.Namespace:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Statistical test: 200 per priority
+  # Full scale run
   python -m src.stage_2.production_agent_runner \\
-      --sample-size 200 --priorities 5 4 --concurrency 5 --budget-cap 200
+      --concurrency 10 --budget-cap 3000
 
-  # Scale to all remaining
+  # Test with a small sample
   python -m src.stage_2.production_agent_runner \\
-      --sample-size 0 --priorities 5 4 --concurrency 10 --budget-cap 1500
+      --sample-size 50 --budget-cap 50
 
   # Dry run
-  python -m src.stage_2.production_agent_runner --sample-size 200 --dry-run
+  python -m src.stage_2.production_agent_runner --dry-run
 """,
     )
     parser.add_argument(
-        "--sample-size", type=int, default=200,
-        help="Companies to sample per priority level. 0 = all. (default: 200)",
-    )
-    parser.add_argument(
-        "--priorities", nargs="+", type=int, default=[5, 4],
-        help="Priority levels to process (default: 5 4)",
+        "--sample-size", type=int, default=0,
+        help="Random subset to process. 0 = all remaining. (default: 0)",
     )
     parser.add_argument(
         "--preset", default=DEFAULT_PRESET,
@@ -1053,18 +1032,12 @@ async def async_main(args: argparse.Namespace) -> None:
         print(f"  Already completed: {len(completed):,} (preset={args.preset})")
     logger.info("Completed rcids in master: %d", len(completed))
 
-    # ── Build work queues per priority ──
-    work_queue: list[Company] = []
-    priority_queues: dict[int, list[Company]] = {}
-
-    for priority in args.priorities:
-        sample = sample_companies(all_companies, priority, args.sample_size, args.seed)
-        remaining = [c for c in sample if c.rcid not in completed]
-        priority_queues[priority] = remaining
-        work_queue.extend(remaining)
-        done = len(sample) - len(remaining)
-        print(f"  Priority {priority}: {len(remaining)} to process  ({len(sample)} sampled, {done} already done)")
-        logger.info("Priority %d: %d sampled, %d done, %d remaining", priority, len(sample), done, len(remaining))
+    # ── Build work queue ──
+    sampled = sample_dataset(all_companies, args.sample_size, args.seed)
+    work_queue = [c for c in sampled if c.rcid not in completed]
+    done_count = len(sampled) - len(work_queue)
+    print(f"  Remaining: {len(work_queue)} to process  ({done_count} already done)")
+    logger.info("Sampled %d, done %d, remaining %d", len(sampled), done_count, len(work_queue))
 
     if not work_queue:
         print(f"\nAll requested companies already processed. Nothing to do.")
@@ -1080,13 +1053,10 @@ async def async_main(args: argparse.Namespace) -> None:
     # ── Dry run? ──
     if args.dry_run:
         print(f"\n--- DRY RUN (no API calls) ---")
-        for priority in sorted(priority_queues.keys(), reverse=True):
-            q = priority_queues[priority]
-            print(f"\n  Priority {priority} — {len(q)} companies:")
-            for c in q[:10]:
-                print(f"    {c.name}  (rcid={c.rcid})")
-            if len(q) > 10:
-                print(f"    ... and {len(q) - 10} more")
+        for c in work_queue[:20]:
+            print(f"    {c.name}  (rcid={c.rcid}, p={c.research_priority_score})")
+        if len(work_queue) > 20:
+            print(f"    ... and {len(work_queue) - 20} more")
         print()
         return
 
@@ -1097,7 +1067,19 @@ async def async_main(args: argparse.Namespace) -> None:
         print("  Set in credentials/perplexity_api_key.txt or PERPLEXITY_API_KEY env var.")
         sys.exit(1)
 
-    client = AsyncPerplexity(api_key=keys.perplexity)
+    http_client = httpx.AsyncClient(
+        limits=httpx.Limits(
+            max_connections=args.concurrency + 20,
+            max_keepalive_connections=args.concurrency,
+            keepalive_expiry=60.0,
+        ),
+        timeout=httpx.Timeout(connect=5.0, read=DEFAULT_TIMEOUT, write=10.0, pool=30.0),
+    )
+    client = AsyncPerplexity(
+        api_key=keys.perplexity,
+        max_retries=0,
+        http_client=http_client,
+    )
 
     # ── Rebuild CSV from existing JSONL (clean state for incremental append) ──
     csv_appender = CSVAppender(STAGE2_MASTER_CSV, STAGE2_MASTER_JSONL)
@@ -1113,10 +1095,13 @@ async def async_main(args: argparse.Namespace) -> None:
     stdin_task = asyncio.create_task(stdin_listener(controller))
 
     # ── Process ──
-    overall_tracker = ProgressTracker(total=len(work_queue))
-    priority_trackers: dict[int, ProgressTracker] = {}
+    tracker = ProgressTracker(total=len(work_queue))
     budget_exceeded = False
     fatal_error_hit = False
+
+    sem = asyncio.Semaphore(args.concurrency)
+    rate_limiter = AsyncRateLimiter(rpm=RPM_LIMIT, name="perplexity")
+    qps_limiter = QPSLimiter(qps=QPS_LIMIT)
 
     print(
         "\n" + "-" * 62 + "\n"
@@ -1126,104 +1111,82 @@ async def async_main(args: argparse.Namespace) -> None:
 
     try:
         async with AsyncJSONLWriter(STAGE2_MASTER_JSONL) as jsonl_writer:
-            for priority in sorted(priority_queues.keys(), reverse=True):
-                queue = priority_queues[priority]
-                if not queue or controller.should_stop or budget_exceeded or fatal_error_hit:
-                    continue
 
-                print(f"\n{'=' * 62}")
-                print(f"  Processing Priority {priority}  ({len(queue)} companies)")
-                print(f"{'=' * 62}")
+            async def process_one(company: Company) -> None:
+                nonlocal budget_exceeded, fatal_error_hit
 
-                pt = ProgressTracker(total=len(queue))
-                priority_trackers[priority] = pt
+                await controller.wait_if_paused()
+                if controller.should_stop or budget_exceeded or fatal_error_hit:
+                    return
 
-                sem = asyncio.Semaphore(args.concurrency)
-                rate_limiter = AsyncRateLimiter(rpm=RPM_LIMIT, name="perplexity")
-                qps_limiter = QPSLimiter(qps=QPS_LIMIT)
-
-                async def process_one(
-                    company: Company,
-                    _pt: ProgressTracker = pt,
-                ) -> None:
-                    nonlocal budget_exceeded, fatal_error_hit
-
+                async with sem:
                     await controller.wait_if_paused()
                     if controller.should_stop or budget_exceeded or fatal_error_hit:
                         return
 
-                    async with sem:
-                        await controller.wait_if_paused()
-                        if controller.should_stop or budget_exceeded or fatal_error_hit:
-                            return
+                    await rate_limiter.acquire()
+                    await qps_limiter.acquire()
+                    await controller.track_in_flight(1)
 
-                        await rate_limiter.acquire()
-                        await qps_limiter.acquire()
-                        await controller.track_in_flight(1)
-
-                        logger.info(
-                            "START %s (rcid=%d, p=%d)",
-                            company.name, company.rcid, company.research_priority_score,
-                        )
-                        result = await research_company(
-                            client, company, args.preset, run_dir.name,
-                            max_steps=args.max_steps,
-                        )
-
-                        await controller.track_in_flight(-1)
-
-                    # Write to master JSONL
-                    result_dict = asdict(result)
-                    await jsonl_writer.write(result_dict)
-
-                    # Append to CSV immediately
-                    await csv_appender.append_result(result_dict)
-
-                    # Update trackers
-                    await _pt.record(result)
-                    await overall_tracker.record(result)
-
-                    # Log to file (always detailed)
                     logger.info(
-                        "DONE %s (rcid=%d): found=%s findings=%d cost=%s time=%.1fs error=%s",
-                        company.name, company.rcid,
-                        result.genai_adoption_found, result.findings_count,
-                        f"${result.cost_usd:.4f}" if result.cost_usd else "N/A",
-                        result.duration_seconds,
-                        result.error or "none",
+                        "START %s (rcid=%d, p=%d)",
+                        company.name, company.rcid, company.research_priority_score,
+                    )
+                    result = await research_company(
+                        client, company, args.preset, run_dir.name,
+                        max_steps=args.max_steps,
                     )
 
-                    # Terminal output
-                    print_result(result, overall_tracker)
-                    print_stats_bar(overall_tracker)
+                    await controller.track_in_flight(-1)
 
-                    # Fatal error check (quota exceeded, bad API key, etc.)
-                    if result.fatal:
-                        fatal_error_hit = True
-                        print(
-                            f"\n  FATAL ERROR — halting all dispatches:\n"
-                            f"  {result.error}"
-                        )
-                        logger.error("Fatal error, stopping run: %s", result.error)
-                        return
+                # Write to master JSONL
+                result_dict = asdict(result)
+                await jsonl_writer.write(result_dict)
 
-                    # Budget check
-                    if overall_tracker.total_cost >= args.budget_cap:
-                        budget_exceeded = True
-                        print(
-                            f"\n  BUDGET CAP REACHED: ${overall_tracker.total_cost:.2f} "
-                            f">= ${args.budget_cap:.2f}"
-                        )
-                        logger.warning(
-                            "Budget cap reached: $%.2f >= $%.2f",
-                            overall_tracker.total_cost, args.budget_cap,
-                        )
+                # Append to CSV immediately
+                await csv_appender.append_result(result_dict)
 
-                tasks = [asyncio.create_task(process_one(c)) for c in queue]
-                await asyncio.gather(*tasks, return_exceptions=True)
+                # Update tracker
+                await tracker.record(result)
 
-                if controller.should_stop or budget_exceeded or fatal_error_hit:
-                    break
+                # Log to file (always detailed)
+                logger.info(
+                    "DONE %s (rcid=%d): found=%s findings=%d cost=%s time=%.1fs error=%s",
+                    company.name, company.rcid,
+                    result.genai_adoption_found, result.findings_count,
+                    f"${result.cost_usd:.4f}" if result.cost_usd else "N/A",
+                    result.duration_seconds,
+                    result.error or "none",
+                )
+
+                # Terminal output
+                print_result(result, tracker)
+                print_stats_bar(tracker)
+
+                # Fatal error check (quota exceeded, bad API key, etc.)
+                if result.fatal:
+                    fatal_error_hit = True
+                    print(
+                        f"\n  FATAL ERROR — halting all dispatches:\n"
+                        f"  {result.error}"
+                    )
+                    logger.error("Fatal error, stopping run: %s", result.error)
+                    return
+
+                # Budget check
+                if tracker.total_cost >= args.budget_cap:
+                    budget_exceeded = True
+                    print(
+                        f"\n  BUDGET CAP REACHED: ${tracker.total_cost:.2f} "
+                        f">= ${args.budget_cap:.2f}"
+                    )
+                    logger.warning(
+                        "Budget cap reached: $%.2f >= $%.2f",
+                        tracker.total_cost, args.budget_cap,
+                    )
+
+            tasks = [asyncio.create_task(process_one(c)) for c in work_queue]
+            await asyncio.gather(*tasks, return_exceptions=True)
 
     finally:
         stdin_task.cancel()
@@ -1232,10 +1195,11 @@ async def async_main(args: argparse.Namespace) -> None:
         except asyncio.CancelledError:
             pass
         await client.close()
+        await http_client.aclose()
 
     # ── Summary ──
-    print_summary(overall_tracker, priority_trackers)
-    write_run_meta(run_dir, args, overall_tracker)
+    print_summary(tracker)
+    write_run_meta(run_dir, args, tracker)
 
     print(f"\n  Master JSONL: {STAGE2_MASTER_JSONL}")
     print(f"  Master CSV:   {STAGE2_MASTER_CSV}")
