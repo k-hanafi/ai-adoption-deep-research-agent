@@ -10,6 +10,8 @@
 
 **[View Production Dashboard →](presentation/production_results.html)**
 
+Other HTML decks in `presentation/` are earlier proposal / stage-result slides kept as portfolio artifacts. The production dashboard above is the source of truth for final results.
+
 ## Research Context & The Problem
 
 Conducted as part of my role as an AI student researcher at **UBC Sauder School of Business** under **Prof. Jan Bena**, supported by **$4K in research grants**. The research question: how is generative AI transforming the internal business processes of startups across the world?
@@ -42,7 +44,7 @@ flowchart LR
 
 **1. Hyperparameter Tuning**
 
-Before the production run, the Perplexity Agent API parameters were systematically tuned using a structured async A/B test framework (`src/tests/stage2/run_preset_test.py`). Parameters evaluated:
+Before the production run, the Perplexity Agent API parameters were systematically tuned using a structured async A/B test framework (`src/tests/stage_2/run_preset_test.py`). Parameters evaluated:
 
 - `preset` — selects the underlying model and reasoning configuration (`deep-research` vs `advanced-deep-research`, each backed by a different frontier model)
 - `max_steps` 
@@ -54,7 +56,7 @@ Before the production run, the Perplexity Agent API parameters were systematical
 
 **2. Prompt Engineering**
 
-Three prompt files drive the pipeline, each designed for a specific stage:
+Two prompt files drive the pipeline, each designed for a specific stage:
 
 - [`prompts/stage_1_classifier.txt`](prompts/stage_1_classifier.txt) — GPT-5 nano system + user prompt. Instructs the classifier to compare Crunchbase profile against Tavily search snippets and output a `research_priority_score` (0–5). Includes few-shot examples for edge cases (generic company names, AI product companies, minimal footprint).
 
@@ -99,12 +101,12 @@ Every agent response conforms to a strict JSON Schema enforced via Perplexity's 
 | Layer | Tools |
 |-------|-------|
 | Deep research agent | Perplexity Agent API (`deep-research` preset) |
-| Stage 1 classifier | OpenAI GPT-5 nano |
-| Web search / signal probe | Tavily API |
+| Stage 1 classifier | OpenAI GPT-5 nano (via `httpx`) |
+| Web search / signal probe | Tavily API (via `httpx`) |
 | Async runtime | Python `asyncio`, `httpx`, custom `AsyncRateLimiter` |
-| Schema validation | Pydantic, JSON Schema via `response_format` |
-| Data layer | Pandas, incremental JSONL, EDA-ready CSV |
-| Testing | pytest, async A/B hyperparameter comparison framework |
+| Schema | JSON Schema via Perplexity `response_format` |
+| Data layer | Incremental JSONL, EDA-ready CSV |
+| Tuning | Async A/B hyperparameter scripts under `src/tests/stage_2/` |
 
 ---
 
@@ -142,26 +144,29 @@ Integrated ChatGPT into clinical systems for biomarker analysis. Evidence source
 │   ├── stage_1/                   # Filter pipeline (Tavily + GPT scorer)
 │   │   ├── run_tavily_pass.py
 │   │   ├── run_gpt_pass.py
+│   │   ├── convert_tavily_to_csv.py
+│   │   ├── convert_gpt_to_csv.py
 │   │   ├── tavily.py
 │   │   ├── classifier.py
 │   │   └── website.py
 │   ├── stage_2/                   # Deep research agent
 │   │   └── production_agent_runner.py
-│   ├── tests/stage2/              # Hyperparameter tuning & analysis
+│   ├── tests/stage_2/             # Hyperparameter tuning & analysis
 │   │   ├── run_preset_test.py
 │   │   └── analyze_results.py
 │   ├── common/                    # Shared utilities
 │   │   ├── rate_limiter.py
 │   │   ├── retry.py
 │   │   └── jsonl_writer.py
-│   └── config.py                  # All constants, costs, thresholds
+│   └── config.py                  # Paths, API keys, processing settings
 ├── prompts/
 │   ├── stage_1_classifier.txt
 │   └── stage_2_perplexity_prompt.txt
+├── credentials/                   # *.txt.template tracked; real keys gitignored
+├── crunchbase_data/               # Input CSV + Stage 2 P4–P5 JSONL
 ├── outputs/                       # gitignored — pipeline outputs
 │   ├── stage1/                    # Tavily JSONL + GPT scores
 │   └── stage2/                    # Master JSONL, CSV, run logs
-├── context_engineering/           # For AI-assisted development
-└── presentation/                  # HTML dashboards for my presentations to the research team
+└── presentation/                  # Production dashboard + earlier research decks
 ```
 

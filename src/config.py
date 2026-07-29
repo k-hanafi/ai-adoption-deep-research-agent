@@ -33,13 +33,11 @@ STAGE2_MASTER_JSONL = STAGE2_OUTPUT_DIR / "production_results.jsonl"
 STAGE2_MASTER_CSV = STAGE2_OUTPUT_DIR / "production_results.csv"
 # Stage 2 input dataset (priority=4+5) lives with the Crunchbase source data
 STAGE2_INPUT_DATASET_PATH = DATA_DIR / "stage2_input_dataset_p4_p5.jsonl"
-STAGE3_OUTPUT_DIR = OUTPUT_DIR / "stage3"
 
 # Ensure directories exist
 for dir_path in [OUTPUT_DIR, LOG_DIR, CHECKPOINT_DIR,
                  STAGE1_OUTPUT_DIR, STAGE1_TAVILY_DIR, STAGE1_GPT_DIR,
-                 STAGE2_OUTPUT_DIR, STAGE2_TEST_RUNS_DIR, STAGE2_RUNS_DIR,
-                 STAGE3_OUTPUT_DIR]:
+                 STAGE2_OUTPUT_DIR, STAGE2_TEST_RUNS_DIR, STAGE2_RUNS_DIR]:
     dir_path.mkdir(exist_ok=True)
 
 
@@ -121,66 +119,6 @@ class APIKeys:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# COST TRACKING
-# ─────────────────────────────────────────────────────────────────────────────
-
-@dataclass(frozen=True)
-class CostEstimates:
-    """
-    Per-query cost estimates for budget tracking.
-    Values in USD.
-    
-    Note: These are conservative estimates. Actual costs depend on:
-    - API pricing tier (volume discounts available)
-    - Token usage (varies by company description length)
-    - Search result complexity
-    
-    Last updated: February 2026
-    """
-    # Stage 1: Tavily search + GPT-5-nano interpretation
-    # Tavily: ~$0.02/search (advanced depth, 2 credits)
-    # GPT-5-nano: ~$0.05/1M input tokens, ~$0.40/1M output tokens
-    tavily_search: float = 0.02       # Advanced depth = 2 credits
-    gpt5_nano_call: float = 0.0002    # ~800 input + ~600 completion (incl. reasoning)
-    stage_1_total: float = 0.020      # Tavily dominates the cost
-
-    # Stage 2A: Perplexity Sonar Base (llama-3.1-sonar-small)
-    # $0.20/1M input, $0.20/1M output + $5/1000 searches
-    sonar_base: float = 0.02
-
-    # Stage 2B: Perplexity Sonar Pro (llama-3.1-sonar-large)  
-    # $1/1M input, $1/1M output + $5/1000 searches
-    sonar_pro_min: float = 0.05
-    sonar_pro_max: float = 0.10
-
-    # Stage 3: Perplexity Deep Research
-    # Significantly more expensive - multiple searches + reasoning
-    deep_research_min: float = 0.41
-    deep_research_max: float = 1.19
-
-    # Budget constraints
-    target_avg_per_company: float = 0.10
-    hard_budget_limit_total: float = 5000.0  # $5k ceiling for 44k companies
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# ESCALATION THRESHOLDS
-# ─────────────────────────────────────────────────────────────────────────────
-
-@dataclass(frozen=True)
-class EscalationThresholds:
-    """
-    Decision thresholds for routing companies through the pipeline.
-    
-    Research priority score (0-5) determines routing:
-    - 0-2: No deep research (not worth it)
-    - 3-5: Proceed to deep research
-    """
-    # Research priority score threshold for deep research
-    deep_research_min_score: int = 3  # Score >= 3 triggers deep research
-
-
-# ─────────────────────────────────────────────────────────────────────────────
 # PROCESSING SETTINGS
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -210,62 +148,7 @@ class ProcessingConfig:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# FINDING TYPES
-# ─────────────────────────────────────────────────────────────────────────────
-
-FINDING_TYPES = [
-    # Customer-facing
-    "chatgpt_customer_support",
-    "ai_chatbot_general",
-
-    # Engineering & Development
-    "copilot_engineering",
-    "ai_code_generation",
-    "ai_testing_qa",
-
-    # Marketing & Content
-    "ai_content_generation",
-    "ai_marketing_automation",
-    "ai_copywriting",
-
-    # Operations
-    "ai_document_processing",
-    "ai_data_analysis",
-    "ai_workflow_automation",
-
-    # HR & Recruiting
-    "ai_recruiting_screening",
-    "ai_hr_operations",
-
-    # Sales
-    "ai_sales_outreach",
-    "ai_lead_scoring",
-
-    # Other
-    "ai_internal_tools_general",
-    "ai_adoption_unspecified",
-
-    # Negative
-    "no_adoption_found",
-    "insufficient_information",
-]
-
-
-# ─────────────────────────────────────────────────────────────────────────────
 # DEFAULT INSTANCES
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Create singleton instances for easy import
-COSTS = CostEstimates()
-THRESHOLDS = EscalationThresholds()
 PROCESSING = ProcessingConfig()
-
-
-def load_api_keys() -> APIKeys:
-    """Load and validate API keys from environment."""
-    keys = APIKeys()
-    missing = keys.validate()
-    if missing:
-        print(f"⚠️  Missing API keys: {', '.join(missing)}")
-        print("   Set them in .env or export as environment variables.")
-    return keys

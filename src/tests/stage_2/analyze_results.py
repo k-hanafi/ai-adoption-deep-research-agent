@@ -10,8 +10,8 @@ and reports:
   - Sample findings for manual quality review.
 
 Usage:
-    python -m src.tests.stage2.analyze_results outputs/stage2/pilot_*.jsonl
-    python -m src.tests.stage2.analyze_results results.jsonl --budget 4000 --csv summary.csv
+    python -m src.tests.stage_2.analyze_results outputs/stage2/pilot_*.jsonl
+    python -m src.tests.stage_2.analyze_results results.jsonl --budget 4000 --csv summary.csv
 """
 
 import argparse
@@ -375,9 +375,9 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=textwrap.dedent("""\
             Examples:
-              python -m src.tests.stage2.analyze_results outputs/stage2/pilot_*.jsonl
-              python -m src.tests.stage2.analyze_results results.jsonl --budget 4000 --csv summary.csv
-              python -m src.tests.stage2.analyze_results outputs/stage2/*.jsonl --sample-count 15
+              python -m src.tests.stage_2.analyze_results outputs/stage2/pilot_*.jsonl
+              python -m src.tests.stage_2.analyze_results results.jsonl --budget 4000 --csv summary.csv
+              python -m src.tests.stage_2.analyze_results outputs/stage2/*.jsonl --sample-count 15
         """),
     )
     parser.add_argument(

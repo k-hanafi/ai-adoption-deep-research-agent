@@ -1,16 +1,12 @@
 """
-AI-Enablement Deep Research Agent
+Deep Research AI Agent
 
-A cost-optimized pipeline for discovering GenAI adoption evidence
+Cost-optimized pipeline for discovering GenAI adoption evidence
 across 44k+ startups from Crunchbase.
 
 Architecture:
-    Stage 1: Presence Filter (~$0.002/company)
-    Stage 2A: Quick Check with Sonar Base (~$0.02)
-    Stage 2B: Deep Check with Sonar Pro (~$0.05-0.10)
-    Stage 3: Deep Research (selective, ~$0.41-1.19)
-
-Target: < $0.10 average per company
+    Stage 1: Presence filter (website check + Tavily + GPT-5 nano priority score)
+    Stage 2: Perplexity deep-research agent on priority 4–5 companies
 """
 
 __version__ = "0.1.0"
