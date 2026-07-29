@@ -47,6 +47,8 @@ build/
 outputs/**/*.csv
 outputs/**/*.json
 outputs/**/*.jsonl
+outputs/**/*.log
+outputs/**/latest
 !outputs/.gitkeep
 logs/*.log
 checkpoints/*.json

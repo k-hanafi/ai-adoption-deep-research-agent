@@ -8,12 +8,12 @@ and automatic CSV export.
 
 Usage:
     # Pilot: 5 companies per priority, both presets
-    python -m src.tests.stage2.run_preset_test \
+    python -m src.tests.stage_2.run_preset_test \
         --presets deep-research advanced-deep-research \
         --sample-size 5 --priorities 5 4 --phase pilot
 
     # Statistical: 100 priority=5 companies, single preset
-    python -m src.tests.stage2.run_preset_test \
+    python -m src.tests.stage_2.run_preset_test \
         --presets deep-research \
         --sample-size 100 --priorities 5 --phase statistical
 """
@@ -732,17 +732,17 @@ def parse_args() -> argparse.Namespace:
         epilog="""
 Examples:
   # Pilot: 5 companies per priority, both presets
-  python -m src.tests.stage2.run_preset_test \\
+  python -m src.tests.stage_2.run_preset_test \\
       --presets deep-research advanced-deep-research \\
       --sample-size 5 --priorities 5 4 --phase pilot
 
   # Statistical: 100 priority=5 companies, single preset
-  python -m src.tests.stage2.run_preset_test \\
+  python -m src.tests.stage_2.run_preset_test \\
       --presets deep-research \\
       --sample-size 100 --priorities 5 --phase statistical
 
   # Target specific companies by rcid (bypasses sampling)
-  python -m src.tests.stage2.run_preset_test \\
+  python -m src.tests.stage_2.run_preset_test \\
       --rcids 510536 59639 \\
       --presets deep-research advanced-deep-research --phase pilot
 """,
