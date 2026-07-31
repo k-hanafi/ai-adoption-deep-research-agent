@@ -48,12 +48,14 @@ def rank_signals(
         # Require a real boolean True. Loose JSON strings like "false" must not escalate.
         if signal.get("signal") is not True:
             continue
+        channel = str(signal.get("channel") or "").strip()
+        if not channel:
+            continue
         confidence = _as_float(signal.get("confidence"), default=0.0)
         if confidence < signal_threshold:
             continue
-        channel = str(signal.get("channel", ""))
         score = confidence * float(prior.get(channel, 0.5))
-        ranked.append({**signal, "rank_score": score})
+        ranked.append({**signal, "channel": channel, "rank_score": score})
     ranked.sort(key=lambda row: row["rank_score"], reverse=True)
     return ranked
 
@@ -86,20 +88,23 @@ def decide_gate(
         )
 
     top = ranked[0]
+    dig_1_channel = str(top["channel"])
     rescue_channel = None
     rescue_triggered = False
-    if (
-        rescue_enabled
-        and not dig_1_had_findings
-        and len(ranked) >= 2
-        and _as_float(ranked[1].get("confidence"), default=0.0) >= rescue_threshold
-    ):
-        rescue_channel = str(ranked[1]["channel"])
-        rescue_triggered = True
+    if rescue_enabled and not dig_1_had_findings:
+        # Rescue must target a different channel than dig_1 (locked second-channel policy).
+        for candidate in ranked[1:]:
+            channel = str(candidate.get("channel") or "")
+            if not channel or channel == dig_1_channel:
+                continue
+            if _as_float(candidate.get("confidence"), default=0.0) >= rescue_threshold:
+                rescue_channel = channel
+                rescue_triggered = True
+                break
 
     return GateDecision(
         stop_at_scouts=False,
-        dig_1_channel=str(top["channel"]),
+        dig_1_channel=dig_1_channel,
         dig_1_score=float(top["rank_score"]),
         rescue_channel=rescue_channel,
         rescue_triggered=rescue_triggered,

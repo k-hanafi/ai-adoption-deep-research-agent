@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional, Union
 
@@ -18,9 +18,11 @@ from evals.paths import EVAL_RUNS_DIR, FIXTURE_PANEL_PATH
 def _make_run_id(cli_key: str, k: int) -> str:
     # Date + architecture + k name the experiment. A short suffix keeps
     # same-day re-runs from silently overwriting prior artifact bundles.
-    stamp = datetime.now(timezone.utc).strftime("%H%M%S")
+    # Use one UTC clock for both date and time so midnight does not mix zones.
+    now = datetime.now(timezone.utc)
+    stamp = now.strftime("%H%M%S")
     suffix = uuid.uuid4().hex[:6]
-    return f"{date.today().isoformat()}_{cli_key}_k{k}_{stamp}_{suffix}"
+    return f"{now.date().isoformat()}_{cli_key}_k{k}_{stamp}_{suffix}"
 
 
 def run_panel(
@@ -142,6 +144,37 @@ def run_panel(
 
     dashboard_html = _stub_dashboard_html(spec.full_name, spec.cli_key, run_id, scored)
     (run_dir / "dashboard.html").write_text(dashboard_html, encoding="utf-8")
+
+    try:
+        ensure_landing_stub()
+        update_landing_index(
+            run_id=run_id,
+            architecture=spec.cli_key,
+            full_name=spec.full_name,
+            scored=scored,
+        )
+    except Exception as exc:
+        (run_dir / "status.json").write_text(
+            json.dumps(
+                {
+                    "status": "failed",
+                    "run_id": run_id,
+                    "error": f"{type(exc).__name__}: {exc}",
+                    "phase": "landing_index",
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        (run_dir / "run.log").write_text(
+            f"run_id={run_id}\narchitecture={spec.cli_key}\ndry_run={dry_run}\n"
+            f"companies={len(companies)}\npredictions={len(predictions)}\n"
+            f"status=failed\nerror={type(exc).__name__}: {exc}\n",
+            encoding="utf-8",
+        )
+        raise
+
     (run_dir / "run.log").write_text(
         f"run_id={run_id}\narchitecture={spec.cli_key}\ndry_run={dry_run}\n"
         f"companies={len(companies)}\npredictions={len(predictions)}\n"
@@ -151,14 +184,6 @@ def run_panel(
     (run_dir / "status.json").write_text(
         json.dumps({"status": "completed", "run_id": run_id}, indent=2) + "\n",
         encoding="utf-8",
-    )
-
-    ensure_landing_stub()
-    update_landing_index(
-        run_id=run_id,
-        architecture=spec.cli_key,
-        full_name=spec.full_name,
-        scored=scored,
     )
     return run_dir
 

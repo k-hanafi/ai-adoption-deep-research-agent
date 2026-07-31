@@ -32,10 +32,21 @@ class CompanyInput:
             name=str(data["name"]),
             homepage_url=data.get("homepage_url"),
             short_description=data.get("short_description"),
-            research_priority_score=int(data.get("research_priority_score", 0)),
-            online_presence_score=int(data.get("online_presence_score", 0)),
+            research_priority_score=_int_or_default(
+                data.get("research_priority_score"), 0
+            ),
+            online_presence_score=_int_or_default(
+                data.get("online_presence_score"), 0
+            ),
             category_list=data.get("category_list"),
         )
+
+
+def _int_or_default(value: Any, default: int) -> int:
+    """Coerce mapping ints. JSON null / missing become default."""
+    if value is None:
+        return default
+    return int(value)
 
 
 @dataclass

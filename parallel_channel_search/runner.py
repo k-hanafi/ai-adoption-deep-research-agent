@@ -73,8 +73,10 @@ def run(
         genai_adoption_found=False,
         no_finding_reason="phase1_stub",
         no_finding_analysis=(
-            "Parallel Channel Search Phase 1 stub: 3 equal-depth channel agents "
-            f"({', '.join(c.channel_id for c in configs)}) at preset={preset!r}. "
+            "Parallel Channel Search Phase 1 stub: "
+            f"{len(configs)} equal-depth channel agent(s) "
+            f"({', '.join(c.channel_id for c in configs) or 'none'}) "
+            f"at preset={preset!r}. "
             "No Perplexity Agent API call was made."
         ),
         traces={

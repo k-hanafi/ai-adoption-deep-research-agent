@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from contracts.types import Finding
 
 
@@ -22,6 +24,5 @@ def merge_findings(channel_findings: list[Finding]) -> list[Finding]:
             continue
         seen.add(key)
         merged.append(finding)
-    for i, finding in enumerate(merged, start=1):
-        finding.finding_id = i
-    return merged
+    # Copy on renumber so per-channel Finding objects stay unchanged.
+    return [replace(finding, finding_id=i) for i, finding in enumerate(merged, start=1)]

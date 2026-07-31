@@ -18,4 +18,10 @@ def load_panel(panel_path: Path | None = None) -> dict[str, Any]:
 
 def load_panel_companies(panel_path: Path | None = None) -> list[CompanyInput]:
     panel = load_panel(panel_path)
-    return [CompanyInput.from_mapping(row) for row in panel.get("companies", [])]
+    # JSON null for "companies" makes dict.get return None, not the default.
+    companies = panel.get("companies") or []
+    if not isinstance(companies, list):
+        raise ValueError(
+            f"Panel companies must be a list, got {type(companies).__name__}"
+        )
+    return [CompanyInput.from_mapping(row) for row in companies]

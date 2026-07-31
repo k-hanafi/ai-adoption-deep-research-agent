@@ -56,6 +56,8 @@ def preview_cost(
     spec = resolve_architecture(architecture)
     if n_companies is None:
         n_companies = len(load_panel_companies(FIXTURE_PANEL_PATH))
+    if n_companies < 1:
+        raise ValueError(f"n_companies must be >= 1, got {n_companies}")
 
     if spec.cli_key == "parallel-channel-search":
         components = [
