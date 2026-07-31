@@ -28,7 +28,8 @@ def default_channel_configs(
     preset: str = DEFAULT_EQUAL_DEPTH_PRESET,
     enabled_channels: Optional[tuple[str, ...]] = None,
 ) -> list[ChannelConfig]:
-    enabled = set(enabled_channels or CHANNEL_IDS)
+    # None means all channels. An explicit empty tuple means none enabled.
+    enabled = set(CHANNEL_IDS if enabled_channels is None else enabled_channels)
     hints = {
         "jobs": "Search job postings and careers pages for specific GenAI tool requirements.",
         "owned": "Search company-owned media (site, blog, docs) for internal GenAI tool use.",
