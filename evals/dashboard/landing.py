@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -71,8 +72,11 @@ def update_landing_index(
     }
     catalog = [row for row in catalog if row.get("run_id") != run_id]
     catalog.insert(0, entry)
+    # Write the visible index first so a failed catalog write cannot leave
+    # catalog.json ahead of a stale/missing landing page.
+    index_html = _render_index(catalog)
+    LANDING_INDEX_PATH.write_text(index_html, encoding="utf-8")
     _catalog_path().write_text(json.dumps(catalog, indent=2) + "\n", encoding="utf-8")
-    LANDING_INDEX_PATH.write_text(_render_index(catalog), encoding="utf-8")
     return LANDING_INDEX_PATH
 
 
@@ -85,14 +89,20 @@ def _render_index(catalog: list[dict[str, Any]]) -> str:
     else:
         parts: list[str] = []
         for row in catalog:
-            href = row.get("dashboard_relpath", "#")
+            href = html.escape(str(row.get("dashboard_relpath") or "#"), quote=True)
+            run_id = html.escape(str(row.get("run_id") or ""))
+            full_name = html.escape(str(row.get("full_name") or ""))
+            architecture = html.escape(str(row.get("architecture") or ""))
+            n_companies = html.escape(str(row.get("n_companies") or ""))
+            total_findings = html.escape(str(row.get("total_findings") or ""))
+            total_cost = html.escape(str(row.get("total_cost_usd") or ""))
             parts.append(
                 "<tr>"
-                f"<td><a href='{href}'>{row.get('run_id')}</a></td>"
-                f"<td>{row.get('full_name')} (<code>{row.get('architecture')}</code>)</td>"
-                f"<td>{row.get('n_companies')}</td>"
-                f"<td>{row.get('total_findings')}</td>"
-                f"<td>{row.get('total_cost_usd')}</td>"
+                f"<td><a href='{href}'>{run_id}</a></td>"
+                f"<td>{full_name} (<code>{architecture}</code>)</td>"
+                f"<td>{n_companies}</td>"
+                f"<td>{total_findings}</td>"
+                f"<td>{total_cost}</td>"
                 "</tr>"
             )
         rows_html = "\n".join(parts)

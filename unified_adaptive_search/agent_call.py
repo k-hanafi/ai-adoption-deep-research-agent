@@ -29,6 +29,7 @@ def build_request_kwargs(
         "input": build_company_prompt(company),
         "response_format": RESPONSE_SCHEMA,
     }
-    if max_steps is not None:
+    # Match March production: omit falsy max_steps (including 0).
+    if max_steps:
         kwargs["max_steps"] = max_steps
     return kwargs

@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Optional
+from pathlib import Path
+from typing import Any, Optional, Union
 
 from evals.architectures import resolve_architecture
 from evals.panel import load_panel_companies
@@ -50,12 +51,14 @@ def preview_cost(
     *,
     k: int = 1,
     n_companies: Optional[int] = None,
+    panel: Optional[Union[Path, str]] = None,
 ) -> CostPreview:
     if k < 1:
         raise ValueError(f"k must be >= 1, got {k}")
     spec = resolve_architecture(architecture)
     if n_companies is None:
-        n_companies = len(load_panel_companies(FIXTURE_PANEL_PATH))
+        panel_path = Path(panel) if panel else FIXTURE_PANEL_PATH
+        n_companies = len(load_panel_companies(panel_path))
     if n_companies < 1:
         raise ValueError(f"n_companies must be >= 1, got {n_companies}")
 

@@ -71,7 +71,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--n",
         type=int,
         default=None,
-        help="Override company count (default: fixture panel size, must be >= 1)",
+        help="Override company count (default: panel size, must be >= 1)",
+    )
+    cost_p.add_argument(
+        "--panel",
+        type=Path,
+        default=None,
+        help="Optional panel JSON path for company count (default: fixture panel)",
     )
 
     dash_p = sub.add_parser(
@@ -109,7 +115,12 @@ def main(argv: list[str] | None = None) -> int:
             parser.error("--k must be >= 1")
         if args.n is not None and args.n < 1:
             parser.error("--n must be >= 1")
-        preview = preview_cost(args.architecture, k=args.k, n_companies=args.n)
+        preview = preview_cost(
+            args.architecture,
+            k=args.k,
+            n_companies=args.n,
+            panel=args.panel,
+        )
         print(json.dumps(preview.to_dict(), indent=2))
         return 0
 
