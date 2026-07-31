@@ -27,9 +27,12 @@ class CompanyInput:
 
     @classmethod
     def from_mapping(cls, data: dict[str, Any]) -> CompanyInput:
+        name = data.get("name")
+        if name is None:
+            raise ValueError("company name is required and cannot be null")
         return cls(
             rcid=int(data["rcid"]),
-            name=str(data["name"]),
+            name=str(name),
             homepage_url=data.get("homepage_url"),
             short_description=data.get("short_description"),
             research_priority_score=_int_or_default(

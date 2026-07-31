@@ -51,6 +51,9 @@ def run_panel(
         panel_meta = load_panel(panel_path)
         companies = load_panel_companies(panel_path)
 
+    if len(companies) < 1:
+        raise ValueError("panel must contain at least one company")
+
     run_id = run_id or _make_run_id(spec.cli_key, k)
     run_dir = EVAL_RUNS_DIR / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -150,6 +153,9 @@ def run_panel(
     dashboard_html = _stub_dashboard_html(spec.full_name, spec.cli_key, run_id, scored)
     (run_dir / "dashboard.html").write_text(dashboard_html, encoding="utf-8")
 
+    # Core artifacts already succeeded. Landing failures must not rewrite status
+    # to failed, but they still surface to the caller.
+    landing_error: Optional[str] = None
     try:
         ensure_landing_stub()
         update_landing_index(
@@ -159,37 +165,24 @@ def run_panel(
             scored=scored,
         )
     except Exception as exc:
-        (run_dir / "status.json").write_text(
-            json.dumps(
-                {
-                    "status": "failed",
-                    "run_id": run_id,
-                    "error": f"{type(exc).__name__}: {exc}",
-                    "phase": "landing_index",
-                },
-                indent=2,
-            )
-            + "\n",
-            encoding="utf-8",
-        )
-        (run_dir / "run.log").write_text(
-            f"run_id={run_id}\narchitecture={spec.cli_key}\ndry_run={dry_run}\n"
-            f"companies={len(companies)}\npredictions={len(predictions)}\n"
-            f"status=failed\nerror={type(exc).__name__}: {exc}\n",
-            encoding="utf-8",
-        )
-        raise
+        landing_error = f"{type(exc).__name__}: {exc}"
 
+    status_payload: dict[str, Any] = {"status": "completed", "run_id": run_id}
+    if landing_error:
+        status_payload["landing_error"] = landing_error
     (run_dir / "run.log").write_text(
         f"run_id={run_id}\narchitecture={spec.cli_key}\ndry_run={dry_run}\n"
         f"companies={len(companies)}\npredictions={len(predictions)}\n"
-        f"status=completed\n",
+        f"status=completed\n"
+        + (f"landing_error={landing_error}\n" if landing_error else ""),
         encoding="utf-8",
     )
     (run_dir / "status.json").write_text(
-        json.dumps({"status": "completed", "run_id": run_id}, indent=2) + "\n",
+        json.dumps(status_payload, indent=2) + "\n",
         encoding="utf-8",
     )
+    if landing_error:
+        raise RuntimeError(f"eval run artifacts written, but landing update failed: {landing_error}")
     return run_dir
 
 

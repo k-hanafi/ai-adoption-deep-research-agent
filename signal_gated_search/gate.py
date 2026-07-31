@@ -105,16 +105,18 @@ def decide_gate(
     dig_1_channel = str(top["channel"])
     rescue_channel = None
     rescue_triggered = False
-    if rescue_enabled and not dig_1_had_findings:
-        # Rescue must target a different channel than dig_1 (locked second-channel policy).
-        for candidate in ranked[1:]:
-            channel = str(candidate.get("channel") or "")
-            if not channel or channel == dig_1_channel:
-                continue
-            if _as_float(candidate.get("confidence"), default=0.0) >= rescue_threshold:
-                rescue_channel = channel
-                rescue_triggered = True
-                break
+    if rescue_enabled and not dig_1_had_findings and len(ranked) >= 2:
+        # Locked policy: rescue only when the true runner-up (ranked[1]) is a
+        # different channel and clears the rescue confidence bar.
+        runner_up = ranked[1]
+        runner_up_channel = str(runner_up.get("channel") or "")
+        if (
+            runner_up_channel
+            and runner_up_channel != dig_1_channel
+            and _as_float(runner_up.get("confidence"), default=0.0) >= rescue_threshold
+        ):
+            rescue_channel = runner_up_channel
+            rescue_triggered = True
 
     return GateDecision(
         stop_at_scouts=False,
