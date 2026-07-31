@@ -43,7 +43,11 @@ def run_panel(
 
     spec = resolve_architecture(architecture)
     if isinstance(panel, list):
-        companies = panel
+        # Normalize before creating run artifacts so bad rows fail cleanly.
+        companies = [
+            row if isinstance(row, CompanyInput) else CompanyInput.from_mapping(row)
+            for row in panel
+        ]
         panel_meta = {"panel_id": "inline", "reference_kind": "soft"}
         panel_path = None
     else:
