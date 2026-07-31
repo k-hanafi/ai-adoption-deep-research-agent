@@ -56,9 +56,16 @@ def preview_cost(
     if k < 1:
         raise ValueError(f"k must be >= 1, got {k}")
     spec = resolve_architecture(architecture)
+    panel_path = Path(panel) if panel is not None else FIXTURE_PANEL_PATH
+    # Always open the panel when a path is supplied so a bad --panel fails even
+    # if --n overrides the company count.
+    panel_count = len(load_panel_companies(panel_path)) if panel is not None else None
     if n_companies is None:
-        panel_path = Path(panel) if panel else FIXTURE_PANEL_PATH
-        n_companies = len(load_panel_companies(panel_path))
+        n_companies = (
+            panel_count
+            if panel_count is not None
+            else len(load_panel_companies(FIXTURE_PANEL_PATH))
+        )
     if n_companies < 1:
         raise ValueError(f"n_companies must be >= 1, got {n_companies}")
 
@@ -120,7 +127,9 @@ def preview_cost(
 
     per_company = sum(float(c["expected_usd"]) for c in components)
     total = per_company * n_companies * k
-    notes.append("Phase 1 preview uses fixture panel size unless --n is set.")
+    notes.append(
+        "Phase 1 preview uses fixture panel size unless --panel or --n is set."
+    )
     notes.append("Estimates are planning priors, not quotes. Metered bill comes from usage.")
 
     return CostPreview(

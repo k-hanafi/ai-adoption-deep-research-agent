@@ -89,12 +89,7 @@ def run_panel(
 
     predictions: list[dict[str, Any]] = []
     try:
-        for panel_index, company in enumerate(companies):
-            company_input = (
-                company
-                if isinstance(company, CompanyInput)
-                else CompanyInput.from_mapping(company)
-            )
+        for panel_index, company_input in enumerate(companies):
             for repeat in range(1, k + 1):
                 result = run_company(spec.cli_key, company_input, dry_run=dry_run)
                 row = result.to_dict()
@@ -138,12 +133,18 @@ def run_panel(
         for row in predictions:
             f.write(json.dumps(row) + "\n")
 
+    # North-star findings yield is single-pass (repeat 1). Spend still sums all repeats.
+    first_pass = [r for r in predictions if int(r.get("repeat") or 1) == 1]
     scored = {
         "architecture": spec.cli_key,
         "panel_id": panel_meta.get("panel_id"),
         "n_companies": len(companies),
         "n_predictions": len(predictions),
-        "total_findings": sum(r.get("findings_count", 0) for r in predictions),
+        "k": k,
+        "total_findings": sum(r.get("findings_count", 0) for r in first_pass),
+        "total_findings_all_repeats": sum(
+            r.get("findings_count", 0) for r in predictions
+        ),
         "total_cost_usd": sum(r.get("cost_usd", 0.0) or 0.0 for r in predictions),
         "component_cost_means": _component_means(predictions),
         "phase": "phase1_scaffolding",

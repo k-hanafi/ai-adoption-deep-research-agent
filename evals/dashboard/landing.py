@@ -39,13 +39,13 @@ def _load_catalog(*, strict: bool = True) -> list[dict[str, Any]]:
 
 def ensure_landing_stub() -> Path:
     EVAL_INSTANCES_DIR.mkdir(parents=True, exist_ok=True)
-    if not LANDING_INDEX_PATH.exists():
-        # Rebuild from catalog when only index.html was deleted.
-        # Soft-load so open-dashboard still works if catalog.json is corrupt.
-        LANDING_INDEX_PATH.write_text(
-            _render_index(_load_catalog(strict=False)),
-            encoding="utf-8",
-        )
+    # Always rebuild from catalog so open-dashboard stays aligned even if
+    # index.html was deleted or left stale after a partial write.
+    # Soft-load so a corrupt catalog still yields an empty landing page.
+    LANDING_INDEX_PATH.write_text(
+        _render_index(_load_catalog(strict=False)),
+        encoding="utf-8",
+    )
     return LANDING_INDEX_PATH
 
 
@@ -56,7 +56,7 @@ def update_landing_index(
     full_name: str,
     scored: dict[str, Any],
 ) -> Path:
-    ensure_landing_stub()
+    EVAL_INSTANCES_DIR.mkdir(parents=True, exist_ok=True)
     catalog = _load_catalog(strict=True)
 
     entry = {
@@ -72,11 +72,10 @@ def update_landing_index(
     }
     catalog = [row for row in catalog if row.get("run_id") != run_id]
     catalog.insert(0, entry)
-    # Write the visible index first so a failed catalog write cannot leave
-    # catalog.json ahead of a stale/missing landing page.
-    index_html = _render_index(catalog)
-    LANDING_INDEX_PATH.write_text(index_html, encoding="utf-8")
+    # Persist catalog first. Index is derived from catalog, and
+    # ensure_landing_stub / open-dashboard always rebuild from it.
     _catalog_path().write_text(json.dumps(catalog, indent=2) + "\n", encoding="utf-8")
+    LANDING_INDEX_PATH.write_text(_render_index(catalog), encoding="utf-8")
     return LANDING_INDEX_PATH
 
 
