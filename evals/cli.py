@@ -35,7 +35,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Run one architecture against the panel (Phase 1: dry/stub).",
     )
     run_p.add_argument("architecture", help=_architecture_help())
-    run_p.add_argument("--k", type=int, default=1, help="Repeat count (default 1)")
+    run_p.add_argument(
+        "--k",
+        type=int,
+        default=1,
+        help="Repeat count (default 1, must be >= 1)",
+    )
     run_p.add_argument(
         "--panel",
         type=Path,
@@ -45,7 +50,10 @@ def build_parser() -> argparse.ArgumentParser:
     run_p.add_argument(
         "--live",
         action="store_true",
-        help="Attempt live API mode (Phase 1 UAS raises NotImplementedError)",
+        help=(
+            "Attempt live API mode "
+            "(Phase 1 architectures raise NotImplementedError)"
+        ),
     )
 
     cost_p = sub.add_parser(
@@ -53,7 +61,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Estimate spend before a paid run (no API calls).",
     )
     cost_p.add_argument("architecture", help=_architecture_help())
-    cost_p.add_argument("--k", type=int, default=1, help="Repeat count (default 1)")
+    cost_p.add_argument(
+        "--k",
+        type=int,
+        default=1,
+        help="Repeat count (default 1, must be >= 1)",
+    )
     cost_p.add_argument(
         "--n",
         type=int,
@@ -79,6 +92,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "run-evals":
+        if args.k < 1:
+            parser.error("--k must be >= 1")
         run_dir = run_panel(
             args.architecture,
             panel=args.panel,
@@ -90,6 +105,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "cost-preview":
+        if args.k < 1:
+            parser.error("--k must be >= 1")
         preview = preview_cost(args.architecture, k=args.k, n_companies=args.n)
         print(json.dumps(preview.to_dict(), indent=2))
         return 0

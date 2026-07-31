@@ -39,6 +39,12 @@ def run(
 
     Phase 1: stub only. No scout/dig Agent API calls.
     """
+    if not dry_run:
+        raise NotImplementedError(
+            "Signal Gated Search live Agent API calls are Phase 2. "
+            "Use dry_run=True for scaffolding."
+        )
+
     company_input = (
         company
         if isinstance(company, CompanyInput)
@@ -124,6 +130,6 @@ def run(
             "rescue_enabled": rescue_enabled,
         },
         stub=True,
-        dry_run=dry_run,
+        dry_run=True,
         preset=dig_preset,
     )

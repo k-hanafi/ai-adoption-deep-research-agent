@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import json
-from datetime import date
+import uuid
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Optional, Union
 
@@ -15,7 +16,11 @@ from evals.paths import EVAL_RUNS_DIR, FIXTURE_PANEL_PATH
 
 
 def _make_run_id(cli_key: str, k: int) -> str:
-    return f"{date.today().isoformat()}_{cli_key}_k{k}"
+    # Date + architecture + k name the experiment. A short suffix keeps
+    # same-day re-runs from silently overwriting prior artifact bundles.
+    stamp = datetime.now(timezone.utc).strftime("%H%M%S")
+    suffix = uuid.uuid4().hex[:6]
+    return f"{date.today().isoformat()}_{cli_key}_k{k}_{stamp}_{suffix}"
 
 
 def run_panel(
@@ -31,6 +36,9 @@ def run_panel(
     Phase 1: fixture panel + dry/stub runners. Writes predictions and a stub
     dashboard.html under outputs/evals/runs/<run_id>/.
     """
+    if k < 1:
+        raise ValueError(f"k must be >= 1, got {k}")
+
     spec = resolve_architecture(architecture)
     if isinstance(panel, list):
         companies = panel
@@ -65,19 +73,51 @@ def run_panel(
         json.dumps(panel_meta, indent=2) + "\n",
         encoding="utf-8",
     )
+    (run_dir / "status.json").write_text(
+        json.dumps({"status": "running", "run_id": run_id}, indent=2) + "\n",
+        encoding="utf-8",
+    )
 
     predictions: list[dict[str, Any]] = []
-    for company in companies:
-        for repeat in range(1, k + 1):
-            result = run_company(spec.cli_key, company, dry_run=dry_run)
-            row = result.to_dict()
-            row["repeat"] = repeat
-            predictions.append(row)
-            trace_path = run_dir / "traces" / f"{company.rcid}_r{repeat}.json"
-            trace_path.write_text(
-                json.dumps(result.traces, indent=2) + "\n",
-                encoding="utf-8",
+    try:
+        for panel_index, company in enumerate(companies):
+            for repeat in range(1, k + 1):
+                result = run_company(spec.cli_key, company, dry_run=dry_run)
+                row = result.to_dict()
+                row["repeat"] = repeat
+                row["panel_index"] = panel_index
+                predictions.append(row)
+                # panel_index keeps duplicate rcids from clobbering traces.
+                trace_path = (
+                    run_dir
+                    / "traces"
+                    / f"{panel_index:03d}_{company.rcid}_r{repeat}.json"
+                )
+                trace_path.write_text(
+                    json.dumps(result.traces, indent=2) + "\n",
+                    encoding="utf-8",
+                )
+    except Exception as exc:
+        (run_dir / "status.json").write_text(
+            json.dumps(
+                {
+                    "status": "failed",
+                    "run_id": run_id,
+                    "error": f"{type(exc).__name__}: {exc}",
+                    "predictions_written": len(predictions),
+                },
+                indent=2,
             )
+            + "\n",
+            encoding="utf-8",
+        )
+        (run_dir / "run.log").write_text(
+            f"run_id={run_id}\narchitecture={spec.cli_key}\ndry_run={dry_run}\n"
+            f"status=failed\nerror={type(exc).__name__}: {exc}\n"
+            f"predictions_partial={len(predictions)}\n",
+            encoding="utf-8",
+        )
+        raise
 
     predictions_path = run_dir / "predictions.jsonl"
     with predictions_path.open("w", encoding="utf-8") as f:
@@ -104,7 +144,12 @@ def run_panel(
     (run_dir / "dashboard.html").write_text(dashboard_html, encoding="utf-8")
     (run_dir / "run.log").write_text(
         f"run_id={run_id}\narchitecture={spec.cli_key}\ndry_run={dry_run}\n"
-        f"companies={len(companies)}\npredictions={len(predictions)}\n",
+        f"companies={len(companies)}\npredictions={len(predictions)}\n"
+        f"status=completed\n",
+        encoding="utf-8",
+    )
+    (run_dir / "status.json").write_text(
+        json.dumps({"status": "completed", "run_id": run_id}, indent=2) + "\n",
         encoding="utf-8",
     )
 
@@ -119,13 +164,14 @@ def run_panel(
 
 
 def _component_means(predictions: list[dict[str, Any]]) -> dict[str, float]:
+    """Mean cost per component name, matching CostLedger (ran=True only)."""
     totals: dict[str, float] = {}
     counts: dict[str, int] = {}
     for row in predictions:
         ledger = row.get("cost_ledger") or {}
         for component in ledger.get("components") or []:
             name = component.get("name")
-            if not name:
+            if not name or not component.get("ran"):
                 continue
             totals[name] = totals.get(name, 0.0) + float(component.get("cost_usd") or 0.0)
             counts[name] = counts.get(name, 0) + 1

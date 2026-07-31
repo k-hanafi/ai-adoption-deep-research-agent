@@ -8,7 +8,18 @@ Migration note (Phase 1 scaffolding):
 - Prefer `python -m evals …` for architecture experiments going forward.
 """
 
-# Compatibility re-export for the new public runner contract.
-from unified_adaptive_search.runner import run as unified_adaptive_search_run
+from __future__ import annotations
+
+from typing import Any
 
 __all__ = ["unified_adaptive_search_run"]
+
+
+def __getattr__(name: str) -> Any:
+    # Lazy re-export so `python -m src.stage_2.production_agent_runner`
+    # does not import the new packages unless callers ask for the shim.
+    if name == "unified_adaptive_search_run":
+        from unified_adaptive_search.runner import run as unified_adaptive_search_run
+
+        return unified_adaptive_search_run
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

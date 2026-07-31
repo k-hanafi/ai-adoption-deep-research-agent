@@ -36,6 +36,12 @@ def run(
     Phase 1: stub only. Returns empty findings and a zeroed cost ledger that
     still lists the three equal-depth channel components for dashboard wiring.
     """
+    if not dry_run:
+        raise NotImplementedError(
+            "Parallel Channel Search live Agent API calls are Phase 2. "
+            "Use dry_run=True for scaffolding."
+        )
+
     company_input = (
         company
         if isinstance(company, CompanyInput)
@@ -79,6 +85,6 @@ def run(
             "domain_filters": "deferred_empty",
         },
         stub=True,
-        dry_run=dry_run,
+        dry_run=True,
         preset=preset,
     )

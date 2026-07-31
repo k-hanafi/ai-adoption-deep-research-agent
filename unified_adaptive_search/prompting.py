@@ -16,7 +16,9 @@ PROMPTS_DIR = PROJECT_ROOT / "prompts"
 DEFAULT_PROMPT_FILE = PROMPTS_DIR / "stage_2_perplexity_prompt.txt"
 UAS_OVERRIDE_DIR = PROMPTS_DIR / "unified_adaptive_search"
 
-_prompt_template: Optional[str] = None
+# Cache keyed by resolved path so a later override file, or a one-off custom
+# path, does not leave callers stuck on a stale default template.
+_prompt_templates: dict[str, str] = {}
 
 
 def resolve_prompt_path(prompt_path: Optional[Union[str, Path]] = None) -> Path:
@@ -29,14 +31,14 @@ def resolve_prompt_path(prompt_path: Optional[Union[str, Path]] = None) -> Path:
 
 
 def get_prompt_template(prompt_path: Optional[Union[str, Path]] = None) -> str:
-    global _prompt_template
     path = resolve_prompt_path(prompt_path)
-    if _prompt_template is None or prompt_path is not None:
-        text = path.read_text(encoding="utf-8")
-        if prompt_path is None:
-            _prompt_template = text
-        return text
-    return _prompt_template
+    key = str(path.resolve())
+    cached = _prompt_templates.get(key)
+    if cached is not None:
+        return cached
+    text = path.read_text(encoding="utf-8")
+    _prompt_templates[key] = text
+    return text
 
 
 def build_company_prompt(

@@ -45,9 +45,10 @@ def rank_signals(
     prior = channel_prior or DEFAULT_CHANNEL_PRIOR
     ranked: list[dict[str, Any]] = []
     for signal in signals:
-        if not signal.get("signal"):
+        # Require a real boolean True. Loose JSON strings like "false" must not escalate.
+        if signal.get("signal") is not True:
             continue
-        confidence = float(signal.get("confidence", 0.0))
+        confidence = _as_float(signal.get("confidence"), default=0.0)
         if confidence < signal_threshold:
             continue
         channel = str(signal.get("channel", ""))
@@ -55,6 +56,16 @@ def rank_signals(
         ranked.append({**signal, "rank_score": score})
     ranked.sort(key=lambda row: row["rank_score"], reverse=True)
     return ranked
+
+
+def _as_float(value: Any, *, default: float = 0.0) -> float:
+    """Coerce scout numeric fields. null / missing become default."""
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
 
 
 def decide_gate(
@@ -81,7 +92,7 @@ def decide_gate(
         rescue_enabled
         and not dig_1_had_findings
         and len(ranked) >= 2
-        and float(ranked[1].get("confidence", 0.0)) >= rescue_threshold
+        and _as_float(ranked[1].get("confidence"), default=0.0) >= rescue_threshold
     ):
         rescue_channel = str(ranked[1]["channel"])
         rescue_triggered = True

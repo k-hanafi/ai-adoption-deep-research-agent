@@ -51,6 +51,8 @@ def preview_cost(
     k: int = 1,
     n_companies: Optional[int] = None,
 ) -> CostPreview:
+    if k < 1:
+        raise ValueError(f"k must be >= 1, got {k}")
     spec = resolve_architecture(architecture)
     if n_companies is None:
         n_companies = len(load_panel_companies(FIXTURE_PANEL_PATH))

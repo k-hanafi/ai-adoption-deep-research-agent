@@ -10,10 +10,36 @@ from typing import Any
 from evals.paths import EVAL_INSTANCES_DIR, LANDING_INDEX_PATH
 
 
+def _catalog_path() -> Path:
+    return EVAL_INSTANCES_DIR / "catalog.json"
+
+
+def _load_catalog() -> list[dict[str, Any]]:
+    catalog_path = _catalog_path()
+    if not catalog_path.exists():
+        return []
+    try:
+        data = json.loads(catalog_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"Corrupt eval catalog at {catalog_path}: {exc}. "
+            "Fix or remove catalog.json before updating the landing index."
+        ) from exc
+    if not isinstance(data, list):
+        raise ValueError(
+            f"Corrupt eval catalog at {catalog_path}: expected a JSON list."
+        )
+    return data
+
+
 def ensure_landing_stub() -> Path:
     EVAL_INSTANCES_DIR.mkdir(parents=True, exist_ok=True)
     if not LANDING_INDEX_PATH.exists():
-        LANDING_INDEX_PATH.write_text(_render_index([]), encoding="utf-8")
+        # Rebuild from catalog when only index.html was deleted.
+        LANDING_INDEX_PATH.write_text(
+            _render_index(_load_catalog()),
+            encoding="utf-8",
+        )
     return LANDING_INDEX_PATH
 
 
@@ -25,13 +51,7 @@ def update_landing_index(
     scored: dict[str, Any],
 ) -> Path:
     ensure_landing_stub()
-    catalog_path = EVAL_INSTANCES_DIR / "catalog.json"
-    catalog: list[dict[str, Any]] = []
-    if catalog_path.exists():
-        try:
-            catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError:
-            catalog = []
+    catalog = _load_catalog()
 
     entry = {
         "run_id": run_id,
@@ -46,7 +66,7 @@ def update_landing_index(
     }
     catalog = [row for row in catalog if row.get("run_id") != run_id]
     catalog.insert(0, entry)
-    catalog_path.write_text(json.dumps(catalog, indent=2) + "\n", encoding="utf-8")
+    _catalog_path().write_text(json.dumps(catalog, indent=2) + "\n", encoding="utf-8")
     LANDING_INDEX_PATH.write_text(_render_index(catalog), encoding="utf-8")
     return LANDING_INDEX_PATH
 
