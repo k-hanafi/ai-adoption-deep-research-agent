@@ -1,0 +1,14 @@
+name: Unified Adaptive Search
+cli_key: unified-adaptive-search
+package: unified_adaptive_search
+preset: medium
+max_steps: 10
+reasoning_effort: medium
+budget:
+  max_usd_per_company: 0.40
+  max_usd_per_experiment: 5.0
+eval:
+  k: 1
+  panel: fixture_panel_v0
+  dry_run: true
+notes: "Phase 1 scaffolding config. Single medium call; adaptive = hyperparameters."

@@ -1,0 +1,37 @@
+{
+  "panel_id": "fixture_panel_v0",
+  "reference_kind": "soft",
+  "note": "Tiny Phase 1 fixture only. Anchor Panel v1 membership is not frozen yet.",
+  "companies": [
+    {
+      "rcid": 100001,
+      "name": "Fixture Labs",
+      "homepage_url": "https://example.com/fixture-labs",
+      "short_description": "Example startup used to wire the eval harness without paid API calls.",
+      "research_priority_score": 5,
+      "online_presence_score": 4,
+      "category_list": "Software",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": ["GitHub Copilot"],
+        "channels": ["owned"]
+      }
+    },
+    {
+      "rcid": 100002,
+      "name": "Anchor Demo Co",
+      "homepage_url": "https://example.com/anchor-demo",
+      "short_description": "Second fixture company for dry-run panel loops.",
+      "research_priority_score": 4,
+      "online_presence_score": 3,
+      "category_list": "Healthcare",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": []
+      }
+    }
+  ]
+}

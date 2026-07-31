@@ -48,10 +48,15 @@ outputs/**/*.csv
 outputs/**/*.json
 outputs/**/*.jsonl
 outputs/**/*.log
+outputs/**/*.html
 outputs/**/latest
 !outputs/.gitkeep
+!outputs/evals/runs/.gitkeep
 logs/*.log
 checkpoints/*.json
+presentation/eval_instances/catalog.json
+presentation/eval_instances/index.html
+!presentation/eval_instances/.gitkeep
 
 # ─────────────────────────────────────────────────────────────────────────────
 # OS

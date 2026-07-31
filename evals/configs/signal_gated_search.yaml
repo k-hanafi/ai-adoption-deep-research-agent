@@ -1,0 +1,19 @@
+name: Signal Gated Search
+cli_key: signal-gated-search
+package: signal_gated_search
+scout_preset: fast
+dig_preset: medium
+rescue_dig_preset: low
+rescue_enabled: true
+max_digs_per_company: 2
+escalate_all_signaled: false
+signal_threshold: 0.5
+rescue_threshold: 0.7
+budget:
+  max_usd_per_company: 0.40
+  max_usd_per_experiment: 5.0
+eval:
+  k: 1
+  panel: fixture_panel_v0
+  dry_run: true
+notes: "Phase 1 scaffolding config. Ranked Top-1 Dig + optional rescue."
