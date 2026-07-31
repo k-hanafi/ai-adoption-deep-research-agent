@@ -8,7 +8,15 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
-from signal_gated_search.channels import DEFAULT_CHANNEL_PRIOR
+from signal_gated_search.channels import CHANNEL_IDS, DEFAULT_CHANNEL_PRIOR
+
+# Owned > jobs > third_party when confidence×prior ties (locked March order).
+_CHANNEL_TIEBREAK = {
+    channel: index
+    for index, channel in enumerate(
+        sorted(DEFAULT_CHANNEL_PRIOR, key=DEFAULT_CHANNEL_PRIOR.get, reverse=True)
+    )
+}
 
 
 @dataclass
@@ -43,20 +51,26 @@ def rank_signals(
 ) -> list[dict[str, Any]]:
     """Rank signaled channels by confidence × channel_prior."""
     prior = channel_prior or DEFAULT_CHANNEL_PRIOR
+    known_channels = set(CHANNEL_IDS)
     ranked: list[dict[str, Any]] = []
     for signal in signals:
         # Require a real boolean True. Loose JSON strings like "false" must not escalate.
         if signal.get("signal") is not True:
             continue
-        channel = str(signal.get("channel") or "").strip()
-        if not channel:
+        channel = str(signal.get("channel") or "").strip().lower()
+        if channel not in known_channels:
             continue
         confidence = _as_float(signal.get("confidence"), default=0.0)
         if confidence < signal_threshold:
             continue
-        score = confidence * float(prior.get(channel, 0.5))
+        score = confidence * float(prior.get(channel, 0.0))
         ranked.append({**signal, "channel": channel, "rank_score": score})
-    ranked.sort(key=lambda row: row["rank_score"], reverse=True)
+    ranked.sort(
+        key=lambda row: (
+            -row["rank_score"],
+            _CHANNEL_TIEBREAK.get(row["channel"], len(_CHANNEL_TIEBREAK)),
+        )
+    )
     return ranked
 
 

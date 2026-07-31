@@ -83,8 +83,13 @@ def run_panel(
     predictions: list[dict[str, Any]] = []
     try:
         for panel_index, company in enumerate(companies):
+            company_input = (
+                company
+                if isinstance(company, CompanyInput)
+                else CompanyInput.from_mapping(company)
+            )
             for repeat in range(1, k + 1):
-                result = run_company(spec.cli_key, company, dry_run=dry_run)
+                result = run_company(spec.cli_key, company_input, dry_run=dry_run)
                 row = result.to_dict()
                 row["repeat"] = repeat
                 row["panel_index"] = panel_index
@@ -93,7 +98,7 @@ def run_panel(
                 trace_path = (
                     run_dir
                     / "traces"
-                    / f"{panel_index:03d}_{company.rcid}_r{repeat}.json"
+                    / f"{panel_index:03d}_{company_input.rcid}_r{repeat}.json"
                 )
                 trace_path.write_text(
                     json.dumps(result.traces, indent=2) + "\n",

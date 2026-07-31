@@ -14,21 +14,25 @@ def _catalog_path() -> Path:
     return EVAL_INSTANCES_DIR / "catalog.json"
 
 
-def _load_catalog() -> list[dict[str, Any]]:
+def _load_catalog(*, strict: bool = True) -> list[dict[str, Any]]:
     catalog_path = _catalog_path()
     if not catalog_path.exists():
         return []
     try:
         data = json.loads(catalog_path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
-        raise ValueError(
-            f"Corrupt eval catalog at {catalog_path}: {exc}. "
-            "Fix or remove catalog.json before updating the landing index."
-        ) from exc
+        if strict:
+            raise ValueError(
+                f"Corrupt eval catalog at {catalog_path}: {exc}. "
+                "Fix or remove catalog.json before updating the landing index."
+            ) from exc
+        return []
     if not isinstance(data, list):
-        raise ValueError(
-            f"Corrupt eval catalog at {catalog_path}: expected a JSON list."
-        )
+        if strict:
+            raise ValueError(
+                f"Corrupt eval catalog at {catalog_path}: expected a JSON list."
+            )
+        return []
     return data
 
 
@@ -36,8 +40,9 @@ def ensure_landing_stub() -> Path:
     EVAL_INSTANCES_DIR.mkdir(parents=True, exist_ok=True)
     if not LANDING_INDEX_PATH.exists():
         # Rebuild from catalog when only index.html was deleted.
+        # Soft-load so open-dashboard still works if catalog.json is corrupt.
         LANDING_INDEX_PATH.write_text(
-            _render_index(_load_catalog()),
+            _render_index(_load_catalog(strict=False)),
             encoding="utf-8",
         )
     return LANDING_INDEX_PATH
@@ -51,7 +56,7 @@ def update_landing_index(
     scored: dict[str, Any],
 ) -> Path:
     ensure_landing_stub()
-    catalog = _load_catalog()
+    catalog = _load_catalog(strict=True)
 
     entry = {
         "run_id": run_id,

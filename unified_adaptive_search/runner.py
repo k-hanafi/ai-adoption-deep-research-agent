@@ -99,7 +99,7 @@ def run(
             "prompt_lineage": "prompts/stage_2_perplexity_prompt.txt",
             "source_patterns": "src/stage_2/production_agent_runner.py",
         },
-        stub=False,
+        stub=True,
         dry_run=True,
         preset=preset,
     )
