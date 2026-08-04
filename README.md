@@ -139,34 +139,58 @@ Integrated ChatGPT into clinical systems for biomarker analysis. Evidence source
 
 ## Repo Structure
 
+The Stage 2 research line is migrating off a `src/`-centric layout into
+standalone architecture packages plus an eval harness. March production
+outputs under `outputs/stage2/` stay readable. `src/` remains as the Stage 1
+pipeline home and a temporary Stage 2 compatibility shim.
+
 ```
-├── src/
-│   ├── stage_1/                   # Filter pipeline (Tavily + GPT scorer)
-│   │   ├── run_tavily_pass.py
-│   │   ├── run_gpt_pass.py
-│   │   ├── convert_tavily_to_csv.py
-│   │   ├── convert_gpt_to_csv.py
-│   │   ├── tavily.py
-│   │   ├── classifier.py
-│   │   └── website.py
-│   ├── stage_2/                   # Deep research agent
-│   │   └── production_agent_runner.py
-│   ├── tests/stage_2/             # Hyperparameter tuning & analysis
-│   │   ├── run_preset_test.py
-│   │   └── analyze_results.py
-│   ├── common/                    # Shared utilities
-│   │   ├── rate_limiter.py
-│   │   ├── retry.py
-│   │   └── jsonl_writer.py
-│   └── config.py                  # Paths, API keys, processing settings
+├── parallel_channel_search/       # PCS — 3 equal-depth channel agents (Phase 1 stub)
+├── signal_gated_search/           # SGS — scouts → ranked dig (+ rescue) (Phase 1 stub)
+├── unified_adaptive_search/       # UAS — single medium call (extracted from Stage 2 patterns)
+├── evals/                         # Harness CLI: run-evals, cost-preview, open-dashboard
+├── contracts/                     # Shared Finding + component cost ledger types
 ├── prompts/
 │   ├── stage_1_classifier.txt
-│   └── stage_2_perplexity_prompt.txt
+│   ├── stage_2_perplexity_prompt.txt
+│   ├── shared/                    # Shared prompt blocks (growing)
+│   └── <architecture>/            # Optional per-system overrides
+├── src/                           # Stage 1 + legacy Stage 2 production runner (shim during migration)
+│   ├── stage_1/                   # Filter pipeline (Tavily + GPT scorer)
+│   ├── stage_2/                   # production_agent_runner.py (March batch path)
+│   ├── tests/stage_2/             # Prior hyperparameter tuning scripts
+│   ├── common/
+│   └── config.py
 ├── credentials/                   # *.txt.template tracked; real keys gitignored
 ├── crunchbase_data/               # Input CSV + Stage 2 P4–P5 JSONL
-├── outputs/                       # gitignored — pipeline outputs
-│   ├── stage1/                    # Tavily JSONL + GPT scores
-│   └── stage2/                    # Master JSONL, CSV, run logs
-└── presentation/                  # Production dashboard + earlier research decks
+├── outputs/                       # gitignored — pipeline + eval run artifacts
+│   ├── stage1/
+│   ├── stage2/                    # March master JSONL/CSV (keep readable)
+│   └── evals/runs/                # New eval instance bundles
+└── presentation/
+    ├── production_results.html    # March production dashboard
+    └── eval_instances/            # Eval landing index (Phase 1 stub)
 ```
+
+### Eval CLI (architecture playground)
+
+Architecture keys (kebab-case): `parallel-channel-search`, `signal-gated-search`,
+`unified-adaptive-search` (aliases: `pcs`, `sgs`, `uas`).
+
+```bash
+# Estimate spend before a paid run (no API calls)
+python -m evals cost-preview unified-adaptive-search
+
+# Dry/stub panel run → writes outputs/evals/runs/<run_id>/ + stub dashboard
+python -m evals run-evals unified-adaptive-search
+python -m evals run-evals parallel-channel-search
+python -m evals run-evals signal-gated-search
+
+# Open the landing index of prior eval instances
+python -m evals open-dashboard
+```
+
+Phase 1 wires packages and the CLI. PCS/SGS are stubs. UAS builds the real
+single-call request shape from the Stage 2 prompt lineage but defaults to
+dry-run (no paid Agent API). Live panel evals and tabbed dashboards are Phase 2.
 

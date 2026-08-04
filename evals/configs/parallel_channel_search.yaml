@@ -1,0 +1,18 @@
+name: Parallel Channel Search
+cli_key: parallel-channel-search
+package: parallel_channel_search
+preset: low
+enabled_channels:
+  - jobs
+  - owned
+  - third_party
+max_steps: null
+search_domain_filter: []  # deferred
+budget:
+  max_usd_per_company: 0.40
+  max_usd_per_experiment: 5.0
+eval:
+  k: 1
+  panel: fixture_panel_v0
+  dry_run: true
+notes: "Phase 1 scaffolding config. Equal-depth low across 3 channels."
