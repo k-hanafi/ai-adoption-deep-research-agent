@@ -25,6 +25,23 @@ def _make_run_id(cli_key: str, k: int) -> str:
     return f"{now.date().isoformat()}_{cli_key}_k{k}_{stamp}_{suffix}"
 
 
+def _validate_run_id(run_id: str) -> str:
+    """Reject run_ids that could escape EVAL_RUNS_DIR via path traversal."""
+    if not run_id or run_id in {".", ".."}:
+        raise ValueError(f"invalid run_id: {run_id!r}")
+    # Single segment only: no separators, no parent refs.
+    if "/" in run_id or "\\" in run_id or ".." in run_id:
+        raise ValueError(
+            "run_id must be a single path segment "
+            f"(no separators or '..'), got {run_id!r}"
+        )
+    run_dir = (EVAL_RUNS_DIR / run_id).resolve()
+    runs_root = EVAL_RUNS_DIR.resolve()
+    if not run_dir.is_relative_to(runs_root):
+        raise ValueError(f"run_id escapes eval runs directory: {run_id!r}")
+    return run_id
+
+
 def run_panel(
     architecture: str,
     panel: Optional[Union[Path, str, list[CompanyInput]]] = None,
@@ -58,7 +75,7 @@ def run_panel(
     if len(companies) < 1:
         raise ValueError("panel must contain at least one company")
 
-    run_id = run_id or _make_run_id(spec.cli_key, k)
+    run_id = _validate_run_id(run_id or _make_run_id(spec.cli_key, k))
     run_dir = EVAL_RUNS_DIR / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
     (run_dir / "raw").mkdir(exist_ok=True)
@@ -106,11 +123,18 @@ def run_panel(
                     json.dumps(result.traces, indent=2) + "\n",
                     encoding="utf-8",
                 )
-    except Exception as exc:
+    except BaseException as exc:
+        # BaseException covers KeyboardInterrupt/SystemExit so status is not
+        # left as "running" when the process is interrupted mid-panel.
+        status = (
+            "interrupted"
+            if isinstance(exc, (KeyboardInterrupt, SystemExit))
+            else "failed"
+        )
         (run_dir / "status.json").write_text(
             json.dumps(
                 {
-                    "status": "failed",
+                    "status": status,
                     "run_id": run_id,
                     "error": f"{type(exc).__name__}: {exc}",
                     "predictions_written": len(predictions),
@@ -122,7 +146,7 @@ def run_panel(
         )
         (run_dir / "run.log").write_text(
             f"run_id={run_id}\narchitecture={spec.cli_key}\ndry_run={dry_run}\n"
-            f"status=failed\nerror={type(exc).__name__}: {exc}\n"
+            f"status={status}\nerror={type(exc).__name__}: {exc}\n"
             f"predictions_partial={len(predictions)}\n",
             encoding="utf-8",
         )
@@ -133,7 +157,9 @@ def run_panel(
         for row in predictions:
             f.write(json.dumps(row) + "\n")
 
-    # North-star findings yield is single-pass (repeat 1). Spend still sums all repeats.
+    # North-star findings yield is single-pass (repeat 1). Component means use
+    # the same repeat-1 rows so per-company component spend is not diluted by k.
+    # total_cost_usd still sums all repeats (full experiment spend).
     first_pass = [r for r in predictions if int(r.get("repeat") or 1) == 1]
     scored = {
         "architecture": spec.cli_key,
@@ -146,7 +172,7 @@ def run_panel(
             r.get("findings_count", 0) for r in predictions
         ),
         "total_cost_usd": sum(r.get("cost_usd", 0.0) or 0.0 for r in predictions),
-        "component_cost_means": _component_means(predictions),
+        "component_cost_means": _component_means(first_pass),
         "phase": "phase1_scaffolding",
         "note": "Scoring is a placeholder summary. Full metrics arrive in Phase 2.",
     }
