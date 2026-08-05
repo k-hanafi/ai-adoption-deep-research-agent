@@ -106,13 +106,17 @@ def build_request_kwargs(
 
 
 def _extract_text_fallback(output: list) -> str:
-    """Walk message content parts for text (production_agent_runner pattern)."""
+    """Walk MessageOutputItem content parts for text (production_agent_runner pattern)."""
+    # Lazy import: dry-run never loads the Perplexity SDK.
+    from perplexity.types.output_item import MessageOutputItem
+
     texts: list[str] = []
     for item in output:
-        for part in getattr(item, "content", None) or []:
-            text = getattr(part, "text", None)
-            if text:
-                texts.append(text)
+        if isinstance(item, MessageOutputItem):
+            for part in getattr(item, "content", None) or []:
+                text = getattr(part, "text", None)
+                if text:
+                    texts.append(text)
     return "".join(texts)
 
 
@@ -225,11 +229,7 @@ def execute_agent_call(
                 if getattr(sr, "url", None):
                     citations.append(sr.url)
 
-    if response.status == "failed":
-        err = response.error
-        detail = f"{err.type}: {err.message}" if err else "unknown"
-        raise RuntimeError(f"Agent API response failed: {detail}")
-
+    # Build meta before failure/empty checks so metered usage is never dropped.
     meta = {
         "response_id": response.id,
         "model_used": response.model,
@@ -246,6 +246,12 @@ def execute_agent_call(
         "no_finding_analysis": None,
         "error": None,
     }
+
+    if response.status == "failed":
+        err = response.error
+        detail = f"{err.type}: {err.message}" if err else "unknown"
+        meta["error"] = f"Agent API response failed: {detail}"
+        return meta
 
     content = (response.output_text or "").strip()
     if not content:
