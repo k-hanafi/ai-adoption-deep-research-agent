@@ -76,10 +76,7 @@ def _render_section(kind: str, rows: list[dict[str, Any]]) -> str:
             arch = row.get("architecture") or "n/a"
             mode = "dry" if row.get("dry_run", True) else "live"
             stub = "stub · " if row.get("stub") else ""
-            sha = row.get("git_sha") or "—"
-            # Use ASCII hyphen in meta if sha unknown; avoid em dash in product copy.
-            if sha == "—":
-                sha = "unknown"
+            sha = row.get("git_sha") or "unknown"
             meta = (
                 f"{stub}{html.escape(str(arch))} · {html.escape(mode)} · "
                 f"commit {html.escape(str(sha))}"
