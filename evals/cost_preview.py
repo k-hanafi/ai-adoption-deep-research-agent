@@ -8,10 +8,10 @@ from typing import Any, Optional, Union
 
 from evals.architectures import resolve_architecture
 from evals.panel import load_panel_companies
-from evals.paths import FIXTURE_PANEL_PATH
+from evals.paths import FIXTURE_PANEL_PATH, TUNING_PANEL_PATH
+from evals.tune.matrix import LUNA_BASELINE_PRIOR_USD, stage_a_screen_arms
 
 # Illustrative priors for preview math only (not billed values).
-# March empirical medium ≈ $0.32/company; widget medians understate real depth.
 PRIOR_USD = {
     "fast": 0.02,
     "low": 0.08,
@@ -31,9 +31,10 @@ class CostPreview:
     estimated_total_usd: float
     components: list[dict[str, Any]]
     notes: list[str]
+    matrix: Optional[dict[str, Any]] = None
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        payload = {
             "architecture": self.architecture,
             "full_name": self.full_name,
             "n_companies": self.n_companies,
@@ -44,6 +45,28 @@ class CostPreview:
             "components": self.components,
             "notes": self.notes,
         }
+        if self.matrix is not None:
+            payload["matrix"] = self.matrix
+        return payload
+
+
+def _resolve_n(
+    *,
+    n_companies: Optional[int],
+    panel: Optional[Union[Path, str]],
+    default_panel: Path,
+) -> int:
+    panel_path = Path(panel) if panel is not None else default_panel
+    panel_count = len(load_panel_companies(panel_path)) if panel is not None else None
+    if n_companies is None:
+        n_companies = (
+            panel_count
+            if panel_count is not None
+            else len(load_panel_companies(default_panel))
+        )
+    if n_companies < 1:
+        raise ValueError(f"n_companies must be >= 1, got {n_companies}")
+    return n_companies
 
 
 def preview_cost(
@@ -56,18 +79,11 @@ def preview_cost(
     if k < 1:
         raise ValueError(f"k must be >= 1, got {k}")
     spec = resolve_architecture(architecture)
-    panel_path = Path(panel) if panel is not None else FIXTURE_PANEL_PATH
-    # Always open the panel when a path is supplied so a bad --panel fails even
-    # if --n overrides the company count.
-    panel_count = len(load_panel_companies(panel_path)) if panel is not None else None
-    if n_companies is None:
-        n_companies = (
-            panel_count
-            if panel_count is not None
-            else len(load_panel_companies(FIXTURE_PANEL_PATH))
-        )
-    if n_companies < 1:
-        raise ValueError(f"n_companies must be >= 1, got {n_companies}")
+    n_companies = _resolve_n(
+        n_companies=n_companies,
+        panel=panel,
+        default_panel=FIXTURE_PANEL_PATH,
+    )
 
     if spec.cli_key == "parallel-channel-search":
         components = [
@@ -128,7 +144,7 @@ def preview_cost(
     per_company = sum(float(c["expected_usd"]) for c in components)
     total = per_company * n_companies * k
     notes.append(
-        "Phase 1 preview uses fixture panel size unless --panel or --n is set."
+        "Preview uses fixture panel size unless --panel or --n is set."
     )
     notes.append("Estimates are planning priors, not quotes. Metered bill comes from usage.")
 
@@ -142,4 +158,69 @@ def preview_cost(
         estimated_total_usd=round(total, 4),
         components=components,
         notes=notes,
+    )
+
+
+def preview_matrix(
+    architecture: str,
+    *,
+    matrix: str = "screen",
+    k: int = 1,
+    n_companies: Optional[int] = None,
+    panel: Optional[Union[Path, str]] = None,
+) -> CostPreview:
+    """Estimate spend for a tuning matrix (Stage A screen)."""
+    if matrix != "screen":
+        raise ValueError("Only --matrix screen is supported in this MVP")
+    if k < 1:
+        raise ValueError(f"k must be >= 1, got {k}")
+
+    spec = resolve_architecture(architecture)
+    if spec.cli_key != "unified-adaptive-search":
+        raise ValueError("Matrix preview MVP supports UAS only")
+
+    n_companies = _resolve_n(
+        n_companies=n_companies,
+        panel=panel,
+        default_panel=TUNING_PANEL_PATH,
+    )
+    arms = stage_a_screen_arms()
+    arm_rows: list[dict[str, Any]] = []
+    total = 0.0
+    for arm in arms:
+        per = LUNA_BASELINE_PRIOR_USD * arm.dry_cost_scale
+        arm_total = per * n_companies * k
+        total += arm_total
+        arm_rows.append(
+            {
+                "arm_id": arm.arm_id,
+                "estimated_usd_per_company": round(per, 4),
+                "estimated_total_usd": round(arm_total, 4),
+                "knobs": arm.runner_kwargs(),
+            }
+        )
+
+    mean_per = total / (len(arms) * n_companies * k) if arms else 0.0
+    notes = [
+        "Matrix preview uses Luna-ish dry cost priors (not March $0.32 medium).",
+        f"Stage A screen: {len(arms)} OFAT arms × {n_companies} companies × k={k}.",
+        "Approve spend before any future --live matrix.",
+    ]
+    return CostPreview(
+        architecture=spec.cli_key,
+        full_name=spec.full_name,
+        n_companies=n_companies,
+        k=k,
+        expected_calls_per_company=1.0,
+        estimated_usd_per_company=round(mean_per, 4),
+        estimated_total_usd=round(total, 4),
+        components=[
+            {
+                "name": "matrix_arms",
+                "preset": "medium",
+                "expected_usd": round(total, 4),
+            }
+        ],
+        notes=notes,
+        matrix={"stage": "screen", "arms": arm_rows},
     )

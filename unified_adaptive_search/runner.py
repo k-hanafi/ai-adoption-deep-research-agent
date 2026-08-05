@@ -1,13 +1,4 @@
-"""Public UAS entrypoint: `run(company) -> ArchitectureResult`.
-
-Adapted from src/stage_2/production_agent_runner.py:
-- one Agent API call shape per company
-- Stage 2 prompt + RESPONSE_SCHEMA lineage
-- component cost ledger with a single `unified_call` row
-
-Phase 1 default is dry_run=True (no paid API). Pass dry_run=False later
-when the live client path is wired for panel evals.
-"""
+"""Public UAS entrypoint: `run(company) -> ArchitectureResult`."""
 
 from __future__ import annotations
 
@@ -22,6 +13,8 @@ from contracts.types import (
 from unified_adaptive_search.agent_call import (
     DEFAULT_MAX_STEPS,
     DEFAULT_PRESET,
+    DEFAULT_REASONING_EFFORT,
+    DEFAULT_WEB_SEARCH_DEPTH,
     build_request_kwargs,
 )
 
@@ -35,11 +28,13 @@ def run(
     dry_run: bool = True,
     preset: str = DEFAULT_PRESET,
     max_steps: Optional[int] = DEFAULT_MAX_STEPS,
+    reasoning_effort: str = DEFAULT_REASONING_EFFORT,
+    web_search_depth: str = DEFAULT_WEB_SEARCH_DEPTH,
 ) -> ArchitectureResult:
     """Run UAS for one company.
 
-    Phase 1: dry-run / wiring path. Builds the real request kwargs snapshot
-    and returns a structured placeholder result with a `unified_call` ledger.
+    Dry-run builds the request kwargs snapshot (including effort + search depth)
+    and returns a structured placeholder with a `unified_call` ledger.
     """
     company_input = (
         company
@@ -50,14 +45,14 @@ def run(
         company_input,
         preset=preset,
         max_steps=max_steps,
+        reasoning_effort=reasoning_effort,
+        web_search_depth=web_search_depth,
     )
 
     if not dry_run:
-        # Live Agent API path intentionally not implemented in Phase 1.
-        # Production batch runs remain on src.stage_2.production_agent_runner.
         raise NotImplementedError(
-            "Unified Adaptive Search live Agent API calls are Phase 2. "
-            "Use dry_run=True for scaffolding, or "
+            "Unified Adaptive Search live Agent API calls are not wired yet. "
+            "Use dry_run=True, or "
             "python -m src.stage_2.production_agent_runner for March-style batch runs."
         )
 
@@ -68,7 +63,7 @@ def run(
                 preset=preset,
                 cost_usd=0.0,
                 ran=False,
-                skipped_reason="phase1_dry_run_no_api",
+                skipped_reason="dry_run_no_api",
             )
         ]
     )
@@ -80,11 +75,12 @@ def run(
         findings=[],
         cost_ledger=ledger,
         genai_adoption_found=False,
-        no_finding_reason="phase1_dry_run",
+        no_finding_reason="dry_run",
         no_finding_analysis=(
-            "Unified Adaptive Search Phase 1 dry-run: single "
-            f"preset={preset!r} call shape (max_steps={max_steps}). "
-            "Request kwargs were built from the Stage 2 prompt lineage. "
+            "Unified Adaptive Search dry-run: single "
+            f"preset={preset!r} call "
+            f"(max_steps={max_steps}, reasoning.effort={reasoning_effort!r}, "
+            f"web_search_depth={web_search_depth!r}). "
             "No Perplexity Agent API call was made."
         ),
         traces={
@@ -93,6 +89,8 @@ def run(
             "request_snapshot": {
                 "preset": request_kwargs.get("preset"),
                 "max_steps": request_kwargs.get("max_steps"),
+                "reasoning": request_kwargs.get("reasoning"),
+                "tools": request_kwargs.get("tools"),
                 "has_response_format": "response_format" in request_kwargs,
                 "input_chars": len(request_kwargs.get("input") or ""),
             },

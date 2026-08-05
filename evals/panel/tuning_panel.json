@@ -1,0 +1,67 @@
+{
+  "panel_id": "tuning_panel_v0",
+  "reference_kind": "soft",
+  "note": "Held-out tuning panel v0 (placeholders). Never use bake-off / Phase 3 IDs here.",
+  "companies": [
+    {
+      "rcid": 200001,
+      "name": "Tune Found Alpha",
+      "homepage_url": "https://example.com/tune-found-alpha",
+      "short_description": "Soft-positive fixture for dry Stage A screens.",
+      "research_priority_score": 5,
+      "online_presence_score": 4,
+      "category_list": "Software",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 2,
+        "tools": ["GitHub Copilot", "ChatGPT"],
+        "channels": ["owned", "jobs"]
+      }
+    },
+    {
+      "rcid": 200002,
+      "name": "Tune Found Beta",
+      "homepage_url": "https://example.com/tune-found-beta",
+      "short_description": "Second soft-positive fixture.",
+      "research_priority_score": 4,
+      "online_presence_score": 3,
+      "category_list": "Healthcare",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": ["Microsoft Copilot"],
+        "channels": ["third_party"]
+      }
+    },
+    {
+      "rcid": 200003,
+      "name": "Tune Empty Gamma",
+      "homepage_url": "https://example.com/tune-empty-gamma",
+      "short_description": "Soft-negative fixture (no March findings).",
+      "research_priority_score": 5,
+      "online_presence_score": 4,
+      "category_list": "Fintech",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": []
+      }
+    },
+    {
+      "rcid": 200004,
+      "name": "Tune Empty Delta",
+      "homepage_url": "https://example.com/tune-empty-delta",
+      "short_description": "Second soft-negative fixture.",
+      "research_priority_score": 4,
+      "online_presence_score": 2,
+      "category_list": "Retail",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": []
+      }
+    }
+  ]
+}

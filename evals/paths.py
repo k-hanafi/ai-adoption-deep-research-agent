@@ -16,6 +16,11 @@ EVAL_RUNS_DIR = EVALS_PACKAGE_DIR / "runs"
 
 # Tiny fixture used until Anchor / tuning panel membership is frozen.
 FIXTURE_PANEL_PATH = PANEL_DIR / "fixture_panel.json"
+TUNING_PANEL_PATH = PANEL_DIR / "tuning_panel.json"
+TUNING_CONFIGS_DIR = CONFIGS_DIR / "tuning"
+
+# Mean $/company feasibility cutoff for tuning (drop arms above this).
+COST_CONSTRAINT_USD = 0.105
 
 KINDS = ("tuning", "benchmark", "verification")
 KIND_LABELS = {
