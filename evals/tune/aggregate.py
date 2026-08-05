@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+import json
+from pathlib import Path
+from typing import Any, Optional, Union
 
 from evals.paths import COST_CONSTRAINT_USD
 from evals.tune.matrix import LUNA_BASELINE_PRIOR_USD, TuneArm
@@ -43,6 +45,38 @@ def score_arm_dry(
         },
         "dry_cost_scale": arm.dry_cost_scale,
         "dry_findings_scale": arm.dry_findings_scale,
+    }
+
+
+def score_arm_live(
+    arm: TuneArm,
+    *,
+    run_dir: Union[Path, str],
+    n_companies: int,
+) -> dict[str, Any]:
+    """Score an arm from a paid panel run's scored.json (metered cost + findings)."""
+    scored_path = Path(run_dir) / "scored.json"
+    scored = json.loads(scored_path.read_text(encoding="utf-8"))
+    n = int(scored.get("n_companies") or n_companies or 1)
+    if n < 1:
+        n = 1
+    mean_cost = round(float(scored.get("total_cost_usd") or 0.0) / n, 4)
+    mean_findings = round(float(scored.get("total_findings") or 0.0) / n, 4)
+    feasible = mean_cost <= COST_CONSTRAINT_USD
+    return {
+        "arm_id": arm.arm_id,
+        "label": arm.label,
+        "factor": arm.factor,
+        "knobs": arm.runner_kwargs(),
+        "n_companies": n,
+        "mean_cost_usd": mean_cost,
+        "mean_findings": mean_findings,
+        "feasible": feasible,
+        "metric_source": {
+            "cost": "metered_usage",
+            "findings": "live_predictions",
+        },
+        "run_dir": str(run_dir),
     }
 
 

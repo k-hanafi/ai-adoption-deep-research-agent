@@ -51,7 +51,7 @@ def build_parser() -> argparse.ArgumentParser:
     tune_p.add_argument(
         "--live",
         action="store_true",
-        help="Paid matrix (not wired; dry is default)",
+        help="Paid UAS matrix (metered Agent API; requires key; dry is default)",
     )
 
     bench_p = sub.add_parser(

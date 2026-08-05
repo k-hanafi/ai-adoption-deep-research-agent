@@ -53,7 +53,7 @@ def run_panel(
     """Run one architecture against a panel and write a run artifact bundle.
 
     Writes predictions under evals/runs/<run_id>/. Optional runner_kwargs are
-    forwarded to the architecture run() (preset, max_steps, etc.).
+    forwarded to the architecture run() (model, max_steps, reasoning_effort, etc.).
     """
     if k < 1:
         raise ValueError(f"k must be >= 1, got {k}")
