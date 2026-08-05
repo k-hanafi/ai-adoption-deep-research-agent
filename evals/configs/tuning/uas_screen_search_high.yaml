@@ -1,0 +1,7 @@
+arm_id: uas_screen_search_high
+cli_key: unified-adaptive-search
+preset: medium
+max_steps: 10
+reasoning_effort: medium
+web_search_depth: high
+notes: Stage A OFAT web_search depth

@@ -10,8 +10,9 @@ from pathlib import Path
 
 from evals.archive import create_stub_instance
 from evals.architectures import ARCHITECTURES, ALIASES, resolve_architecture
-from evals.cost_preview import preview_cost
+from evals.cost_preview import preview_cost, preview_matrix
 from evals.dashboard.landing import ensure_landing_stub
+from evals.tune import run_tuning
 
 
 def _architecture_help() -> str:
@@ -32,7 +33,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     tune_p = sub.add_parser(
         "run-tuning",
-        help="Archive a tuning instance (PR2: stub dashboard; Stage A in next PR).",
+        help="Run a tuning stage and archive a Tuning instance dashboard.",
     )
     tune_p.add_argument("architecture", help=_architecture_help())
     tune_p.add_argument(
@@ -42,9 +43,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Tuning stage (default: screen)",
     )
     tune_p.add_argument(
+        "--panel",
+        type=Path,
+        default=None,
+        help="Optional tuning panel JSON (default: evals/panel/tuning_panel.json)",
+    )
+    tune_p.add_argument(
         "--live",
         action="store_true",
-        help="Mark instance as live (paid path not wired yet)",
+        help="Paid matrix (not wired; dry is default)",
     )
 
     bench_p = sub.add_parser(
@@ -95,7 +102,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--panel",
         type=Path,
         default=None,
-        help="Optional panel JSON path for company count (default: fixture panel)",
+        help="Optional panel JSON path for company count",
+    )
+    cost_p.add_argument(
+        "--matrix",
+        choices=("screen",),
+        default=None,
+        help="Preview a tuning matrix instead of a single architecture prior",
     )
 
     dash_p = sub.add_parser(
@@ -114,7 +127,7 @@ def build_parser() -> argparse.ArgumentParser:
 def _cli_summary(argv: list[str] | None) -> str:
     if argv is None:
         argv = sys.argv[1:]
-    return "python -m evals " + " ".join(argv)
+    return "python -m evals " + " ".join(str(a) for a in argv)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -123,16 +136,19 @@ def main(argv: list[str] | None = None) -> int:
     cli = _cli_summary(argv)
 
     if args.command == "run-tuning":
-        spec = resolve_architecture(args.architecture)
-        instance_dir = create_stub_instance(
-            kind="tuning",
-            cli=cli,
-            architecture=spec.cli_key,
-            full_name=spec.full_name,
-            dry_run=not args.live,
-            notes=f"PR2 stub. Stage={args.stage}. Real Stage A screen lands next.",
-            extra={"stage": args.stage},
-        )
+        try:
+            instance_dir = run_tuning(
+                args.architecture,
+                stage=args.stage,
+                dry_run=not args.live,
+                panel=args.panel,
+                cli=cli,
+            )
+        except NotImplementedError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+        except ValueError as exc:
+            parser.error(str(exc))
         print(f"Wrote tuning instance to: {instance_dir}")
         print(f"Dashboard: {instance_dir / 'dashboard.html'}")
         return 0
@@ -145,7 +161,7 @@ def main(argv: list[str] | None = None) -> int:
             architecture=spec.cli_key,
             full_name=spec.full_name,
             dry_run=not args.live,
-            notes="PR2 stub. Paired bake-off not wired.",
+            notes="Stub. Paired bake-off not wired.",
         )
         print(f"Wrote benchmark instance to: {instance_dir}")
         print(f"Dashboard: {instance_dir / 'dashboard.html'}")
@@ -164,7 +180,7 @@ def main(argv: list[str] | None = None) -> int:
             architecture=architecture,
             full_name=full_name,
             dry_run=not args.live,
-            notes="PR2 stub. Stage 3 judge not wired.",
+            notes="Stub. Stage 3 judge not wired.",
         )
         print(f"Wrote verification instance to: {instance_dir}")
         print(f"Dashboard: {instance_dir / 'dashboard.html'}")
@@ -175,12 +191,21 @@ def main(argv: list[str] | None = None) -> int:
             parser.error("--k must be >= 1")
         if args.n is not None and args.n < 1:
             parser.error("--n must be >= 1")
-        preview = preview_cost(
-            args.architecture,
-            k=args.k,
-            n_companies=args.n,
-            panel=args.panel,
-        )
+        if args.matrix:
+            preview = preview_matrix(
+                args.architecture,
+                matrix=args.matrix,
+                k=args.k,
+                n_companies=args.n,
+                panel=args.panel,
+            )
+        else:
+            preview = preview_cost(
+                args.architecture,
+                k=args.k,
+                n_companies=args.n,
+                panel=args.panel,
+            )
         print(json.dumps(preview.to_dict(), indent=2))
         return 0
 

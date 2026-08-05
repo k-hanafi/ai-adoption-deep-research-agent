@@ -182,8 +182,11 @@ Architecture keys (kebab-case): `parallel-channel-search`, `signal-gated-search`
 # Estimate spend before a paid run (no API calls)
 python -m evals cost-preview unified-adaptive-search
 
-# Archive an instance (stubs until tuning/benchmark/verification dashboards land)
+# Dry Stage A hyperparam screen (UAS) → Tuning instance dashboard
 python -m evals run-tuning uas --stage screen
+python -m evals cost-preview uas --matrix screen
+
+# Stub archive rows for later phases
 python -m evals run-benchmarks uas
 python -m evals run-verification
 
@@ -191,6 +194,6 @@ python -m evals run-verification
 python -m evals open-dashboard
 ```
 
-Eval artifacts stay under `evals/` so the harness is standalone. Tuning Stage A
-screen is next; benchmark bake-off and Stage 3 verification remain stubs.
+Eval artifacts stay under `evals/` so the harness is standalone. Benchmark bake-off
+and Stage 3 verification remain stubs.
 

@@ -10,11 +10,13 @@ import tempfile
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Iterator, Optional
+from typing import Any, Callable, Iterator, Optional
 
 from evals.dashboard.landing import format_local_wall_time, rebuild_landing
 from evals.dashboard.stubs import render_stub_dashboard
 from evals.paths import EVAL_INSTANCES_DIR, KIND_LABELS, KINDS
+
+DashboardRenderer = Callable[[str, dict[str, Any]], str]
 
 
 def _catalog_path() -> Path:
@@ -136,17 +138,19 @@ def _format_title(kind: str, n: int, when: datetime) -> str:
     return f"{label} #{n} · {stamp}"
 
 
-def create_stub_instance(
+def create_instance(
     *,
     kind: str,
     cli: str,
     architecture: Optional[str] = None,
     full_name: Optional[str] = None,
     dry_run: bool = True,
+    stub: bool = True,
     notes: Optional[str] = None,
     extra: Optional[dict[str, Any]] = None,
+    dashboard_renderer: Optional[DashboardRenderer] = None,
 ) -> Path:
-    """Allocate per-kind #n, write stub dashboard, update catalog + landing."""
+    """Allocate per-kind #n, write dashboard, update catalog + landing."""
     if kind not in KINDS:
         raise ValueError(f"Unknown kind {kind!r}. Choose one of: {', '.join(KINDS)}")
 
@@ -172,7 +176,7 @@ def create_stub_instance(
             "full_name": full_name,
             "cli": cli,
             "dry_run": dry_run,
-            "stub": True,
+            "stub": stub,
             "created_at": when.isoformat(),
             "git_sha": git_sha,
             "notes": notes,
@@ -182,11 +186,14 @@ def create_stub_instance(
             json.dumps(summary, indent=2) + "\n",
             encoding="utf-8",
         )
-        dashboard_html = render_stub_dashboard(
-            kind=kind,
-            title=title,
-            summary=summary,
-        )
+        if dashboard_renderer is not None:
+            dashboard_html = dashboard_renderer(title, summary)
+        else:
+            dashboard_html = render_stub_dashboard(
+                kind=kind,
+                title=title,
+                summary=summary,
+            )
         (instance_dir / "dashboard.html").write_text(dashboard_html, encoding="utf-8")
 
         rel_dashboard = f"{kind}/{folder_name}/dashboard.html"
@@ -200,7 +207,7 @@ def create_stub_instance(
             "full_name": full_name,
             "cli": cli,
             "dry_run": dry_run,
-            "stub": True,
+            "stub": stub,
             "git_sha": git_sha,
             "dashboard_relpath": rel_dashboard,
         }
@@ -209,3 +216,26 @@ def create_stub_instance(
         save_catalog(catalog)
         rebuild_landing(catalog)
         return instance_dir
+
+
+def create_stub_instance(
+    *,
+    kind: str,
+    cli: str,
+    architecture: Optional[str] = None,
+    full_name: Optional[str] = None,
+    dry_run: bool = True,
+    notes: Optional[str] = None,
+    extra: Optional[dict[str, Any]] = None,
+) -> Path:
+    """Allocate a stub dashboard instance (benchmark / verification / placeholder)."""
+    return create_instance(
+        kind=kind,
+        cli=cli,
+        architecture=architecture,
+        full_name=full_name,
+        dry_run=dry_run,
+        stub=True,
+        notes=notes,
+        extra=extra,
+    )

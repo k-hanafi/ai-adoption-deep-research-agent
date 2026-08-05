@@ -48,15 +48,17 @@ def run_panel(
     k: int = 1,
     dry_run: bool = True,
     run_id: Optional[str] = None,
+    runner_kwargs: Optional[dict[str, Any]] = None,
 ) -> Path:
     """Run one architecture against a panel and write a run artifact bundle.
 
-    Phase 1: fixture panel + dry/stub runners. Writes predictions and a stub
-    dashboard.html under outputs/evals/runs/<run_id>/.
+    Writes predictions under evals/runs/<run_id>/. Optional runner_kwargs are
+    forwarded to the architecture run() (preset, max_steps, etc.).
     """
     if k < 1:
         raise ValueError(f"k must be >= 1, got {k}")
 
+    overrides = dict(runner_kwargs or {})
     spec = resolve_architecture(architecture)
     if isinstance(panel, list):
         # Normalize before creating run artifacts so bad rows fail cleanly.
@@ -88,7 +90,8 @@ def run_panel(
         "dry_run": dry_run,
         "panel_id": panel_meta.get("panel_id"),
         "panel_path": str(panel_path) if panel_path else None,
-        "phase": "phase1_scaffolding",
+        "runner_kwargs": overrides,
+        "phase": "eval_infra",
     }
     (run_dir / "config.snapshot.json").write_text(
         json.dumps(config_snapshot, indent=2) + "\n",
@@ -107,7 +110,12 @@ def run_panel(
     try:
         for panel_index, company_input in enumerate(companies):
             for repeat in range(1, k + 1):
-                result = run_company(spec.cli_key, company_input, dry_run=dry_run)
+                result = run_company(
+                    spec.cli_key,
+                    company_input,
+                    dry_run=dry_run,
+                    **overrides,
+                )
                 row = result.to_dict()
                 row["repeat"] = repeat
                 row["panel_index"] = panel_index
@@ -172,8 +180,8 @@ def run_panel(
         ),
         "total_cost_usd": sum(r.get("cost_usd", 0.0) or 0.0 for r in predictions),
         "component_cost_means": _component_means(first_pass),
-        "phase": "phase1_scaffolding",
-        "note": "Scoring is a placeholder summary. Full metrics arrive in Phase 2.",
+        "phase": "eval_infra",
+        "note": "Panel runner summary. Tuning dry proxies are applied in evals.tune.",
     }
     (run_dir / "scored.json").write_text(
         json.dumps(scored, indent=2) + "\n",

@@ -1,0 +1,7 @@
+arm_id: uas_screen_effort_high
+cli_key: unified-adaptive-search
+preset: medium
+max_steps: 10
+reasoning_effort: high
+web_search_depth: medium
+notes: Stage A OFAT reasoning.effort

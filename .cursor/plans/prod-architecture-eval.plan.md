@@ -10,10 +10,10 @@
 
 | Field | State |
 |---|---|
-| **Current state** | **Sequencing pivot (2026-08-05):** build tuning + benchmark **foundation** in `evals/` before locking UAS/PCS/SGS prod knobs. Scaffolding on `main` (`c648dfc`). Phase 1 arch redesign is **paused** (Jam high smoke already rejected stock Sol `high`). Active SoT for this pivot: [eval-suite-infra.plan.md](./eval-suite-infra.plan.md). |
-| **Next move** | Ship eval-suite infra MVP in 3 sequential PRs onto `main` (plans → landing/CLI stubs → dry `run-tuning` screen). Resume Phase 1 arch freezes only after systematic hyperparam experiments are runnable (dry first). |
+| **Current state** | Sequencing pivot active. PR1+PR2 merged (plans + categorized archive CLI). PR3 shipping dry Stage A `run-tuning`. Phase 1 arch redesign still paused. SoT: [eval-suite-infra.plan.md](./eval-suite-infra.plan.md). |
+| **Next move** | Land PR3, then resume Phase 1 UAS freeze using held-out tuning results (dry first, paid optional). |
 | **Tuesday deliverable** | Present eval results: winner architecture, cost/company, yield estimate for **9.45k** prod cohort under **≤~$1k** Stage 2 spend. |
-| **Blocked on** | Eval-suite infra MVP (dry `run-tuning` + categorized `open-dashboard`) before Phase 1 config freeze. |
+| **Blocked on** | PR3 merge (dry Stage A tuning dashboard) before Phase 1 config freeze. |
 | **Branch workflow** | Sequential PRs onto `main` for infra (`cursor/eval-infra-*-e253`). After infra: resume Phase 1 → Phase 2 → Phase 3. |
 
 ### Decisions locked (2026-08-04)
