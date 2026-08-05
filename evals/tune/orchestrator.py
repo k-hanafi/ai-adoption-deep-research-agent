@@ -84,6 +84,9 @@ def run_tuning(
         dry_run=dry_run,
     )
     print(f"Partial tuning bundle (crash recovery): {partial_dir}")
+    bundle_finalized_in_partial = False
+    partial_discarded = False
+    instance_dir: Optional[Path] = None
 
     try:
         for arm in arms:
@@ -125,6 +128,24 @@ def run_tuning(
             arm_run_dirs={k: str(v) for k, v in arm_run_dirs.items()},
         )
 
+        # Finalize the self-contained bundle into the partial dir BEFORE catalog
+        # archive, so a create_instance / promote failure cannot lose arm artifacts.
+        write_tuning_bundle(
+            partial_dir,
+            panel_path=panel_path,
+            panel_meta=panel_meta,
+            arms=arms,
+            arm_scores=arm_scores,
+            arm_run_dirs=arm_run_dirs,
+            summary={
+                **summary_core,
+                "title": "partial-tuning-bundle",
+                "kind": "tuning",
+                "dry_run": dry_run,
+            },
+        )
+        bundle_finalized_in_partial = True
+
         def _dashboard(title: str, summary: dict[str, Any]) -> str:
             return render_tuning_dashboard(title=title, summary=summary)
 
@@ -157,8 +178,7 @@ def run_tuning(
             dashboard_renderer=_dashboard,
         )
 
-        # Durability: snapshot panel/matrix, tabular results, and per-arm run copies
-        # inside the instance so later dashboards/writeups do not depend on evals/runs/.
+        # Promote durable files into the archived Tuning instance.
         summary = json.loads((instance_dir / "summary.json").read_text(encoding="utf-8"))
         updated = write_tuning_bundle(
             instance_dir,
@@ -169,16 +189,32 @@ def run_tuning(
             arm_run_dirs=arm_run_dirs,
             summary=summary,
         )
+        # Drop staging as soon as the instance holds the full bundle (do not wait
+        # on the cosmetic dashboard rewrite).
+        discard_partial_bundle(partial_dir)
+        partial_discarded = True
+
         (instance_dir / "dashboard.html").write_text(
             render_tuning_dashboard(title=str(updated["title"]), summary=updated),
             encoding="utf-8",
         )
-        discard_partial_bundle(partial_dir)
         return instance_dir
     except Exception:
-        # Leave partial_dir in place for recovery; surface the original error.
-        print(
-            f"Tuning stopped early. Completed arms (if any) are under: {partial_dir}",
-            flush=True,
-        )
+        if not partial_discarded:
+            # Leave partial_dir for recovery when the instance may be incomplete.
+            hint = (
+                "Full bundle is already in the partial dir (archive/promote failed)."
+                if bundle_finalized_in_partial
+                else "Completed arms (if any) are under the partial dir."
+            )
+            print(
+                f"Tuning stopped early. {hint} Path: {partial_dir}",
+                flush=True,
+            )
+        elif instance_dir is not None:
+            print(
+                f"Instance bundle is complete at {instance_dir}; "
+                "a later dashboard refresh failed.",
+                flush=True,
+            )
         raise
