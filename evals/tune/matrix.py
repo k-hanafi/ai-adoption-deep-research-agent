@@ -34,15 +34,18 @@ class TuneArm:
         return asdict(self)
 
 
-# Luna medium baseline near Jam smoke, scaled toward the ~$0.10 target envelope.
-LUNA_BASELINE_PRIOR_USD = 0.05
+# Conservative Luna prior for dry/cost-preview (live baseline ~$0.021).
+LUNA_BASELINE_PRIOR_USD = 0.03
 
 
 def stage_a_screen_arms() -> list[TuneArm]:
-    """OFAT screen: one factor moved per arm vs baseline.
+    """Wide OFAT screen: one factor moved per arm vs baseline.
 
-    Knobs are explicit (no swept `preset=`). Baseline matches medium-family
-    Luna defaults with March-style max_steps=10.
+    Locked v2 (2026-08-05):
+      baseline Luna / steps 10 / effort medium / search medium
+      steps: 20, 30, 50
+      effort: high, xhigh
+      search: high, beyond_high (high + max_tokens=8000)
     """
     return [
         TuneArm(
@@ -57,26 +60,37 @@ def stage_a_screen_arms() -> list[TuneArm]:
             dry_cost_scale=1.0,
         ),
         TuneArm(
-            arm_id="uas_screen_steps_15",
-            label="max_steps=15",
+            arm_id="uas_screen_steps_20",
+            label="max_steps=20",
             factor="max_steps",
             model=DEFAULT_MODEL,
-            max_steps=15,
+            max_steps=20,
             reasoning_effort="medium",
             web_search_depth="medium",
-            dry_findings_scale=1.25,
-            dry_cost_scale=1.4,
+            dry_findings_scale=1.05,
+            dry_cost_scale=1.3,
         ),
         TuneArm(
-            arm_id="uas_screen_search_high",
-            label="web_search depth=high",
-            factor="web_search_depth",
+            arm_id="uas_screen_steps_30",
+            label="max_steps=30",
+            factor="max_steps",
             model=DEFAULT_MODEL,
-            max_steps=10,
+            max_steps=30,
             reasoning_effort="medium",
-            web_search_depth="high",
+            web_search_depth="medium",
+            dry_findings_scale=1.1,
+            dry_cost_scale=1.7,
+        ),
+        TuneArm(
+            arm_id="uas_screen_steps_50",
+            label="max_steps=50",
+            factor="max_steps",
+            model=DEFAULT_MODEL,
+            max_steps=50,
+            reasoning_effort="medium",
+            web_search_depth="medium",
             dry_findings_scale=1.15,
-            dry_cost_scale=1.5,
+            dry_cost_scale=2.4,
         ),
         TuneArm(
             arm_id="uas_screen_effort_high",
@@ -86,7 +100,40 @@ def stage_a_screen_arms() -> list[TuneArm]:
             max_steps=10,
             reasoning_effort="high",
             web_search_depth="medium",
+            dry_findings_scale=1.15,
+            dry_cost_scale=2.0,
+        ),
+        TuneArm(
+            arm_id="uas_screen_effort_xhigh",
+            label="reasoning.effort=xhigh",
+            factor="reasoning_effort",
+            model=DEFAULT_MODEL,
+            max_steps=10,
+            reasoning_effort="xhigh",
+            web_search_depth="medium",
+            dry_findings_scale=1.25,
+            dry_cost_scale=3.5,
+        ),
+        TuneArm(
+            arm_id="uas_screen_search_high",
+            label="web_search depth=high",
+            factor="web_search_depth",
+            model=DEFAULT_MODEL,
+            max_steps=10,
+            reasoning_effort="medium",
+            web_search_depth="high",
+            dry_findings_scale=1.05,
+            dry_cost_scale=1.2,
+        ),
+        TuneArm(
+            arm_id="uas_screen_search_beyond_high",
+            label="web_search depth=beyond_high (max_tokens=8000)",
+            factor="web_search_depth",
+            model=DEFAULT_MODEL,
+            max_steps=10,
+            reasoning_effort="medium",
+            web_search_depth="beyond_high",
             dry_findings_scale=1.1,
-            dry_cost_scale=1.3,
+            dry_cost_scale=2.0,
         ),
     ]
