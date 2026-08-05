@@ -148,7 +148,10 @@ pipeline home and a temporary Stage 2 compatibility shim.
 ├── parallel_channel_search/       # PCS — 3 equal-depth channel agents (Phase 1 stub)
 ├── signal_gated_search/           # SGS — scouts → ranked dig (+ rescue) (Phase 1 stub)
 ├── unified_adaptive_search/       # UAS — single medium call (extracted from Stage 2 patterns)
-├── evals/                         # Harness CLI: run-evals, cost-preview, open-dashboard
+├── evals/                         # Standalone harness + instance archive
+│   ├── instances/                 # Categorized archive (tuning / benchmark / verification)
+│   ├── runs/                      # Per-arm run bundles (gitignored)
+│   └── ...                        # CLI, panel, configs, dashboard renderers
 ├── contracts/                     # Shared Finding + component cost ledger types
 ├── prompts/
 │   ├── stage_1_classifier.txt
@@ -163,13 +166,11 @@ pipeline home and a temporary Stage 2 compatibility shim.
 │   └── config.py
 ├── credentials/                   # *.txt.template tracked; real keys gitignored
 ├── crunchbase_data/               # Input CSV + Stage 2 P4–P5 JSONL
-├── outputs/                       # gitignored — pipeline + eval run artifacts
+├── outputs/                       # gitignored — Stage 1/2 pipeline artifacts
 │   ├── stage1/
-│   ├── stage2/                    # March master JSONL/CSV (keep readable)
-│   └── evals/runs/                # New eval instance bundles
+│   └── stage2/                    # March master JSONL/CSV (keep readable)
 └── presentation/
-    ├── production_results.html    # March production dashboard
-    └── eval_instances/            # Eval landing index (Phase 1 stub)
+    └── production_results.html    # March production dashboard
 ```
 
 ### Eval CLI (architecture playground)
@@ -181,16 +182,15 @@ Architecture keys (kebab-case): `parallel-channel-search`, `signal-gated-search`
 # Estimate spend before a paid run (no API calls)
 python -m evals cost-preview unified-adaptive-search
 
-# Dry/stub panel run → writes outputs/evals/runs/<run_id>/ + stub dashboard
-python -m evals run-evals unified-adaptive-search
-python -m evals run-evals parallel-channel-search
-python -m evals run-evals signal-gated-search
+# Archive an instance (stubs until tuning/benchmark/verification dashboards land)
+python -m evals run-tuning uas --stage screen
+python -m evals run-benchmarks uas
+python -m evals run-verification
 
-# Open the landing index of prior eval instances
+# Open the categorized landing index under evals/instances/
 python -m evals open-dashboard
 ```
 
-Phase 1 wires packages and the CLI. PCS/SGS are stubs. UAS builds the real
-single-call request shape from the Stage 2 prompt lineage but defaults to
-dry-run (no paid Agent API). Live panel evals and tabbed dashboards are Phase 2.
+Eval artifacts stay under `evals/` so the harness is standalone. Tuning Stage A
+screen is next; benchmark bake-off and Stage 3 verification remain stubs.
 

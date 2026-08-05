@@ -8,11 +8,18 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 EVALS_PACKAGE_DIR = Path(__file__).resolve().parent
 PANEL_DIR = EVALS_PACKAGE_DIR / "panel"
 CONFIGS_DIR = EVALS_PACKAGE_DIR / "configs"
-OUTPUTS_DIR = PROJECT_ROOT / "outputs"
-EVAL_RUNS_DIR = OUTPUTS_DIR / "evals" / "runs"
-PRESENTATION_DIR = PROJECT_ROOT / "presentation"
-EVAL_INSTANCES_DIR = PRESENTATION_DIR / "eval_instances"
-LANDING_INDEX_PATH = EVAL_INSTANCES_DIR / "index.html"
 
-# Tiny fixture used until Anchor Panel v1 membership is frozen.
+# Standalone artifact root: archive + per-arm runs live under evals/.
+EVAL_INSTANCES_DIR = EVALS_PACKAGE_DIR / "instances"
+LANDING_INDEX_PATH = EVAL_INSTANCES_DIR / "index.html"
+EVAL_RUNS_DIR = EVALS_PACKAGE_DIR / "runs"
+
+# Tiny fixture used until Anchor / tuning panel membership is frozen.
 FIXTURE_PANEL_PATH = PANEL_DIR / "fixture_panel.json"
+
+KINDS = ("tuning", "benchmark", "verification")
+KIND_LABELS = {
+    "tuning": "Tuning",
+    "benchmark": "Benchmark",
+    "verification": "Verification",
+}

@@ -1,1 +1,1 @@
-"""Dashboard builders (Phase 1: landing stub only)."""
+"""Dashboard builders: categorized landing, stubs, (later) tuning/benchmark pages."""

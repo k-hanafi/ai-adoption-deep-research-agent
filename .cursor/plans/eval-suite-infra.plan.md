@@ -12,8 +12,8 @@ Supersedes CLI naming in [eval-harness.plan.md](./eval-harness.plan.md) (`run-ev
 
 | Field | State |
 |---|---|
-| **Current state** | PR1 (this doc set) landing on `main`. Product code not started. |
-| **Next** | PR2: dark categorized `open-dashboard` + CLI trio stubs under `evals/instances/`. PR3: dry `run-tuning --stage screen` real dashboard. |
+| **Current state** | PR1 merged. PR2 in flight: dark categorized landing + `run-tuning` / `run-benchmarks` / `run-verification` stubs under `evals/instances/`. |
+| **Next** | Merge PR2, then PR3: dry `run-tuning --stage screen` real dashboard (arms / constraint / winner). |
 | **Exit** | User can run dry `python -m evals run-tuning uas --stage screen`, see a Tuning instance in `open-dashboard`, open its dashboard (arms / constraint / winner). Benchmark + verification archive as stubs. |
 | **Out of scope** | Stage 3 judge impl; full 200-company bake-off; freezing final arch YAML as prod winner; paid `--live` matrices in the first three PRs. |
 

@@ -54,9 +54,15 @@ outputs/**/latest
 !outputs/evals/runs/.gitkeep
 logs/*.log
 checkpoints/*.json
+# Legacy presentation archive (superseded by evals/instances/)
 presentation/eval_instances/catalog.json
 presentation/eval_instances/index.html
 !presentation/eval_instances/.gitkeep
+# Standalone eval archive + run bundles (keep .gitkeep only)
+evals/instances/**
+!evals/instances/.gitkeep
+evals/runs/**
+!evals/runs/.gitkeep
 
 # ─────────────────────────────────────────────────────────────────────────────
 # OS
