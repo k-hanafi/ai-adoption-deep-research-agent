@@ -131,14 +131,14 @@ def preview_cost(
         components = [
             {
                 "name": "unified_call",
-                "preset": "medium",
+                "preset": "luna",
                 "expected_usd": PRIOR_USD["medium"],
             }
         ]
         calls = 1.0
         notes = [
-            "UAS: one medium call per company (status-quo control arm).",
-            "Prior uses March empirical ~$0.32/company, not pricing-widget medians.",
+            "UAS: one explicit Luna call per company (status-quo control arm).",
+            "Prior still uses March empirical ~$0.32/company until live smokes retune it.",
         ]
 
     per_company = sum(float(c["expected_usd"]) for c in components)
@@ -204,7 +204,7 @@ def preview_matrix(
     notes = [
         "Matrix preview uses Luna-ish dry cost priors (not March $0.32 medium).",
         f"Stage A screen: {len(arms)} OFAT arms × {n_companies} companies × k={k}.",
-        "Approve spend before any future --live matrix.",
+        "Approve spend before any --live matrix (explicit Luna knobs, no preset sweep).",
     ]
     return CostPreview(
         architecture=spec.cli_key,
@@ -217,7 +217,7 @@ def preview_matrix(
         components=[
             {
                 "name": "matrix_arms",
-                "preset": "medium",
+                "preset": "luna",
                 "expected_usd": round(total, 4),
             }
         ],

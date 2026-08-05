@@ -5,13 +5,15 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from unified_adaptive_search.agent_call import DEFAULT_MODEL
+
 
 @dataclass(frozen=True)
 class TuneArm:
     arm_id: str
     label: str
     factor: str
-    preset: str
+    model: str
     max_steps: int
     reasoning_effort: str
     web_search_depth: str
@@ -22,7 +24,7 @@ class TuneArm:
 
     def runner_kwargs(self) -> dict[str, Any]:
         return {
-            "preset": self.preset,
+            "model": self.model,
             "max_steps": self.max_steps,
             "reasoning_effort": self.reasoning_effort,
             "web_search_depth": self.web_search_depth,
@@ -37,13 +39,17 @@ LUNA_BASELINE_PRIOR_USD = 0.05
 
 
 def stage_a_screen_arms() -> list[TuneArm]:
-    """OFAT screen: one factor moved per arm vs baseline."""
+    """OFAT screen: one factor moved per arm vs baseline.
+
+    Knobs are explicit (no swept `preset=`). Baseline matches medium-family
+    Luna defaults with March-style max_steps=10.
+    """
     return [
         TuneArm(
             arm_id="uas_screen_baseline",
-            label="Baseline (medium / steps 10 / effort medium / search medium)",
+            label="Baseline (Luna / steps 10 / effort medium / search medium)",
             factor="baseline",
-            preset="medium",
+            model=DEFAULT_MODEL,
             max_steps=10,
             reasoning_effort="medium",
             web_search_depth="medium",
@@ -54,7 +60,7 @@ def stage_a_screen_arms() -> list[TuneArm]:
             arm_id="uas_screen_steps_15",
             label="max_steps=15",
             factor="max_steps",
-            preset="medium",
+            model=DEFAULT_MODEL,
             max_steps=15,
             reasoning_effort="medium",
             web_search_depth="medium",
@@ -65,7 +71,7 @@ def stage_a_screen_arms() -> list[TuneArm]:
             arm_id="uas_screen_search_high",
             label="web_search depth=high",
             factor="web_search_depth",
-            preset="medium",
+            model=DEFAULT_MODEL,
             max_steps=10,
             reasoning_effort="medium",
             web_search_depth="high",
@@ -76,7 +82,7 @@ def stage_a_screen_arms() -> list[TuneArm]:
             arm_id="uas_screen_effort_high",
             label="reasoning.effort=high",
             factor="reasoning_effort",
-            preset="medium",
+            model=DEFAULT_MODEL,
             max_steps=10,
             reasoning_effort="high",
             web_search_depth="medium",

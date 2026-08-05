@@ -1,9 +1,11 @@
 name: Unified Adaptive Search
 cli_key: unified-adaptive-search
 package: unified_adaptive_search
-preset: medium
+# Explicit knobs (matches medium-family Luna defaults; max_steps=10 like March).
+model: openai/gpt-5.6-luna
 max_steps: 10
 reasoning_effort: medium
+web_search_depth: medium
 budget:
   max_usd_per_company: 0.40
   max_usd_per_experiment: 5.0
@@ -11,4 +13,4 @@ eval:
   k: 1
   panel: fixture_panel_v0
   dry_run: true
-notes: "Phase 1 scaffolding config. Single medium call; adaptive = hyperparameters."
+notes: "Single Luna call per company; adaptive = hyperparameters (not channel fan-out)."
