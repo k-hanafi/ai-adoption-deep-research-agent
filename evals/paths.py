@@ -22,6 +22,9 @@ TUNING_CONFIGS_DIR = CONFIGS_DIR / "tuning"
 # Mean $/company feasibility cutoff for tuning (drop arms above this).
 COST_CONSTRAINT_USD = 0.105
 
+# Hard abort for a single paid Stage A / Stage B matrix (not the unit-cost target).
+MAX_USD_PER_TUNING_RUN = 50.0
+
 KINDS = ("tuning", "benchmark", "verification")
 KIND_LABELS = {
     "tuning": "Tuning",

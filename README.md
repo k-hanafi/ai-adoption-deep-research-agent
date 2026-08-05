@@ -184,7 +184,10 @@ python -m evals cost-preview unified-adaptive-search
 
 # Dry Stage A hyperparam screen (UAS) → Tuning instance dashboard
 python -m evals run-tuning uas --stage screen
+
+# Matrix prior + notes (includes $50 per-tuning-run ceiling); live aborts if over
 python -m evals cost-preview uas --matrix screen
+python -m evals run-tuning uas --stage screen --live
 
 # Stub archive rows for later phases
 python -m evals run-benchmarks uas
@@ -194,6 +197,9 @@ python -m evals run-verification
 python -m evals open-dashboard
 ```
 
-Eval artifacts stay under `evals/` so the harness is standalone. Benchmark bake-off
-and Stage 3 verification remain stubs.
+Eval artifacts stay under `evals/` so the harness is standalone. Live `run-tuning`
+aborts before paid arms when the matrix prior exceeds **$50**
+(`MAX_USD_PER_TUNING_RUN` in `evals/paths.py`). That is separate from the
+architecture unit-cost target (~$0.10/company). Benchmark bake-off and Stage 3
+verification remain stubs.
 

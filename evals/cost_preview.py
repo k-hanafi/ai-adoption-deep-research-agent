@@ -8,7 +8,7 @@ from typing import Any, Optional, Union
 
 from evals.architectures import resolve_architecture
 from evals.panel import load_panel_companies
-from evals.paths import FIXTURE_PANEL_PATH, TUNING_PANEL_PATH
+from evals.paths import FIXTURE_PANEL_PATH, MAX_USD_PER_TUNING_RUN, TUNING_PANEL_PATH
 from evals.tune.matrix import LUNA_BASELINE_PRIOR_USD, stage_a_screen_arms
 
 # Illustrative priors for preview math only (not billed values).
@@ -204,6 +204,10 @@ def preview_matrix(
     notes = [
         "Matrix preview uses Luna-ish dry cost priors (not March $0.32 medium).",
         f"Stage A screen: {len(arms)} OFAT arms × {n_companies} companies × k={k}.",
+        (
+            f"Per-tuning-run spend ceiling: ${MAX_USD_PER_TUNING_RUN:.0f} "
+            "(live run-tuning aborts if matrix estimate exceeds this)."
+        ),
         "Approve spend before any --live matrix (explicit Luna knobs, no preset sweep).",
     ]
     return CostPreview(
