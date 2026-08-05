@@ -25,7 +25,11 @@ def main() -> None:
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--max-steps", type=int, default=DEFAULT_MAX_STEPS)
     parser.add_argument("--reasoning-effort", default=DEFAULT_REASONING_EFFORT)
-    parser.add_argument("--web-search-depth", default=DEFAULT_WEB_SEARCH_DEPTH)
+    parser.add_argument(
+        "--web-search-depth",
+        default=DEFAULT_WEB_SEARCH_DEPTH,
+        help="medium | high | beyond_high (beyond_high = high + max_tokens=8000)",
+    )
     parser.add_argument(
         "--live",
         action="store_true",

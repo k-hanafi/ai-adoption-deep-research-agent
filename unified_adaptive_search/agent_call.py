@@ -30,6 +30,8 @@ DEFAULT_TIMEOUT = 300.0
 LEDGER_CONFIG_LABEL = "luna"
 
 # Map depth labels to web_search tool options.
+# Named API sizes are low/medium/high only. beyond_high is our stretch past
+# named high via explicit max_tokens (docs: explicit budgets override size).
 _WEB_SEARCH_DEPTH: dict[str, dict[str, Any]] = {
     "medium": {
         "search_context_size": "medium",
@@ -38,6 +40,11 @@ _WEB_SEARCH_DEPTH: dict[str, dict[str, Any]] = {
     "high": {
         "search_context_size": "high",
         "max_tokens": 4000,
+    },
+    "beyond_high": {
+        "search_context_size": "high",
+        "max_tokens": 8000,
+        "max_tokens_per_page": 4000,
     },
 }
 
