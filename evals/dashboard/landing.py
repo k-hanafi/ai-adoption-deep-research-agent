@@ -17,6 +17,18 @@ _EMPTY_CLI = {
 }
 
 
+def format_local_wall_time(when: datetime, *, joiner: str) -> str:
+    """Local wall clock for archive titles / landing rows.
+
+    Builds the stamp without strftime %-d / %-I, which raise on Windows.
+    """
+    hour12 = when.hour % 12 or 12
+    return (
+        f"{when.strftime('%b')} {when.day}, {when.year}{joiner}"
+        f"{hour12}:{when.strftime('%M')} {when.strftime('%p')}"
+    )
+
+
 def ensure_landing_stub() -> Path:
     """Rebuild index.html from catalog (soft-load on corruption)."""
     from evals.archive import load_catalog
@@ -103,7 +115,7 @@ def _format_archived(created_at: Optional[str]) -> str:
         return str(created_at)
     if when.tzinfo is not None:
         when = when.astimezone()
-    return when.strftime("%b %-d, %Y, %-I:%M %p")
+    return format_local_wall_time(when, joiner=", ")
 
 
 def _render_index(catalog: dict[str, Any]) -> str:

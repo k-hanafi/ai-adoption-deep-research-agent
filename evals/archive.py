@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
-from evals.dashboard.landing import rebuild_landing
+from evals.dashboard.landing import format_local_wall_time, rebuild_landing
 from evals.dashboard.stubs import render_stub_dashboard
 from evals.paths import EVAL_INSTANCES_DIR, KIND_LABELS, KINDS
 
@@ -79,7 +79,7 @@ def _git_sha_short() -> Optional[str]:
 def _format_title(kind: str, n: int, when: datetime) -> str:
     label = KIND_LABELS[kind]
     # Local wall clock for professor-facing archive titles.
-    stamp = when.strftime("%b %-d, %Y at %-I:%M %p")
+    stamp = format_local_wall_time(when, joiner=" at ")
     return f"{label} #{n} · {stamp}"
 
 
