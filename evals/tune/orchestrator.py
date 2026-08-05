@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any, Optional
 
@@ -15,6 +16,12 @@ from evals.tune.aggregate import (
     score_arm_dry,
     score_arm_live,
     soft_reference_findings_mean,
+)
+from evals.tune.artifacts import (
+    begin_partial_bundle,
+    discard_partial_bundle,
+    persist_completed_arm,
+    write_tuning_bundle,
 )
 from evals.tune.dashboard import render_tuning_dashboard
 from evals.tune.matrix import stage_a_screen_arms
@@ -64,66 +71,114 @@ def run_tuning(
     soft_mean = soft_reference_findings_mean(panel_meta)
     arms = stage_a_screen_arms()
     arm_scores: list[dict[str, Any]] = []
-    arm_run_dirs: dict[str, str] = {}
+    arm_run_dirs: dict[str, Path] = {}
 
-    for arm in arms:
-        run_dir = run_panel(
-            spec.cli_key,
-            panel=panel_path,
-            k=1,
-            dry_run=dry_run,
-            runner_kwargs=arm.runner_kwargs(),
-        )
-        arm_run_dirs[arm.arm_id] = str(run_dir)
-        if dry_run:
-            scored = score_arm_dry(
-                arm,
-                soft_findings_mean=soft_mean,
-                n_companies=n_companies,
-            )
-        else:
-            scored = score_arm_live(
-                arm,
-                run_dir=run_dir,
-                n_companies=n_companies,
-            )
-        scored["run_dir"] = str(run_dir)
-        arm_scores.append(scored)
-
-    summary_core = build_summary(
-        architecture=spec.cli_key,
+    # Crash safety: completed arms land under evals/runs/_tuning_partial_*/
+    # even if the process dies before the Tuning instance is archived.
+    partial_dir = begin_partial_bundle(
+        panel_path=panel_path,
+        panel_meta=panel_meta,
+        arms=arms,
         stage=stage,
-        panel_id=str(panel_meta.get("panel_id") or panel_path.name),
-        dry_run=dry_run,
-        arm_scores=arm_scores,
-        arm_run_dirs=arm_run_dirs,
-    )
-
-    def _dashboard(title: str, summary: dict[str, Any]) -> str:
-        return render_tuning_dashboard(title=title, summary=summary)
-
-    live_flag = "" if dry_run else " --live"
-    notes = (
-        "Stage A OFAT screen (dry proxies)."
-        if dry_run
-        else "Stage A OFAT screen (live metered usage)."
-    )
-    return create_instance(
-        kind="tuning",
-        cli=cli
-        or f"python -m evals run-tuning {spec.short_alias} --stage {stage}{live_flag}",
         architecture=spec.cli_key,
-        full_name=spec.full_name,
         dry_run=dry_run,
-        stub=False,
-        notes=notes,
-        extra={
-            "stage": stage,
-            "panel_id": summary_core["panel_id"],
-            "n_arms": len(arms),
-            "winner_arm_id": summary_core.get("winner_arm_id"),
-            "constraint_usd_per_company": summary_core["constraint_usd_per_company"],
-            **{k: summary_core[k] for k in ("arms", "winner", "arm_run_dirs", "metric_note")},
-        },
-        dashboard_renderer=_dashboard,
     )
+    print(f"Partial tuning bundle (crash recovery): {partial_dir}")
+
+    try:
+        for arm in arms:
+            run_dir = run_panel(
+                spec.cli_key,
+                panel=panel_path,
+                k=1,
+                dry_run=dry_run,
+                runner_kwargs=arm.runner_kwargs(),
+            )
+            arm_run_dirs[arm.arm_id] = run_dir
+            if dry_run:
+                scored = score_arm_dry(
+                    arm,
+                    soft_findings_mean=soft_mean,
+                    n_companies=n_companies,
+                )
+            else:
+                scored = score_arm_live(
+                    arm,
+                    run_dir=run_dir,
+                    n_companies=n_companies,
+                )
+            scored["run_dir"] = str(run_dir)
+            arm_scores.append(scored)
+            persist_completed_arm(
+                partial_dir,
+                arm_id=arm.arm_id,
+                run_dir=run_dir,
+                score=scored,
+            )
+
+        summary_core = build_summary(
+            architecture=spec.cli_key,
+            stage=stage,
+            panel_id=str(panel_meta.get("panel_id") or panel_path.name),
+            dry_run=dry_run,
+            arm_scores=arm_scores,
+            arm_run_dirs={k: str(v) for k, v in arm_run_dirs.items()},
+        )
+
+        def _dashboard(title: str, summary: dict[str, Any]) -> str:
+            return render_tuning_dashboard(title=title, summary=summary)
+
+        live_flag = "" if dry_run else " --live"
+        notes = (
+            "Stage A OFAT screen (dry proxies). Self-contained artifact bundle."
+            if dry_run
+            else "Stage A OFAT screen (live metered usage). Self-contained artifact bundle."
+        )
+        instance_dir = create_instance(
+            kind="tuning",
+            cli=cli
+            or f"python -m evals run-tuning {spec.short_alias} --stage {stage}{live_flag}",
+            architecture=spec.cli_key,
+            full_name=spec.full_name,
+            dry_run=dry_run,
+            stub=False,
+            notes=notes,
+            extra={
+                "stage": stage,
+                "panel_id": summary_core["panel_id"],
+                "n_arms": len(arms),
+                "winner_arm_id": summary_core.get("winner_arm_id"),
+                "constraint_usd_per_company": summary_core["constraint_usd_per_company"],
+                **{
+                    k: summary_core[k]
+                    for k in ("arms", "winner", "arm_run_dirs", "metric_note")
+                },
+            },
+            dashboard_renderer=_dashboard,
+        )
+
+        # Durability: snapshot panel/matrix, tabular results, and per-arm run copies
+        # inside the instance so later dashboards/writeups do not depend on evals/runs/.
+        summary = json.loads((instance_dir / "summary.json").read_text(encoding="utf-8"))
+        updated = write_tuning_bundle(
+            instance_dir,
+            panel_path=panel_path,
+            panel_meta=panel_meta,
+            arms=arms,
+            arm_scores=arm_scores,
+            arm_run_dirs=arm_run_dirs,
+            summary=summary,
+        )
+        (instance_dir / "dashboard.html").write_text(
+            render_tuning_dashboard(title=str(updated["title"]), summary=updated),
+            encoding="utf-8",
+        )
+        discard_partial_bundle(partial_dir)
+        return instance_dir
+    except Exception:
+        # Leave partial_dir in place for recovery; surface the original error.
+        print(
+            f"Tuning stopped early. Completed arms (if any) are under: {partial_dir}",
+            flush=True,
+        )
+        raise
