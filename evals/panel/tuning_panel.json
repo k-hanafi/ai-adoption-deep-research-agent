@@ -1,66 +1,397 @@
 {
-  "panel_id": "tuning_panel_v0",
+  "panel_id": "tuning_panel_v1_march_positives_5x3",
   "reference_kind": "soft",
-  "note": "Held-out tuning panel v0 (placeholders). Never use bake-off / Phase 3 IDs here.",
+  "note": "Held-out UAS Stage A tuning panel (v1). Fifteen March Stage 2 positives (findings_count >= 1), stratified 5 high + 5 medium + 5 low/minimal by March findings richness. Soft march_reference only (not hard labels). NEVER reuse these company IDs for bake-off / Phase 3 paired evals. This is not a 50+50 found/not-found bake-off panel.",
+  "source": {
+    "march_run": "outputs/stage2/production_results.jsonl",
+    "selection_axis": "march_findings_count",
+    "population": "Stage 2 companies with findings_count >= 1",
+    "population_size": 1251,
+    "strata_cutpoints": {
+      "low": {
+        "min_findings_count": 1,
+        "max_findings_count": 1
+      },
+      "medium": {
+        "min_findings_count": 2,
+        "max_findings_count": 2
+      },
+      "high": {
+        "min_findings_count": 3,
+        "max_findings_count": null
+      }
+    },
+    "strata_cutpoints_note": "Frozen from March positive distribution: low=1 (n=720), medium=2 (n=362), high>=3 (n=169). Secondary diversification when ties: research_priority_score P4/P5 and mapped March channels (owned/jobs/third_party). Jam (rcid 610194) forced into high (findings_count=8).",
+    "channel_mapping": "Soft-mapped from March finding source_type strings into owned | jobs | third_party for reference only."
+  },
   "companies": [
     {
-      "rcid": 200001,
-      "name": "Tune Found Alpha",
-      "homepage_url": "https://example.com/tune-found-alpha",
-      "short_description": "Soft-positive fixture for dry Stage A screens.",
+      "rcid": 610194,
+      "name": "Jam",
+      "homepage_url": "https://jam.dev/",
+      "short_description": "1-click bug reports developers love. Try for free at jam.dev",
+      "research_priority_score": 4,
+      "online_presence_score": 7,
+      "category_list": null,
+      "stratum": "high",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 8,
+        "tools": [
+          "GitHub Copilot",
+          "Grain",
+          "Claude",
+          "Perplexity",
+          "ChatGPT",
+          "ChatPRD",
+          "Wondercraft",
+          "Descript",
+          "OpusClip",
+          "Cursor",
+          "Jam MCP",
+          "Claude Desktop",
+          "Linear MCP",
+          "Claude Code"
+        ],
+        "channels": [
+          "owned",
+          "third_party"
+        ],
+        "cost_usd": 0.30512
+      }
+    },
+    {
+      "rcid": 95067586,
+      "name": "Anoki AI",
+      "homepage_url": "https://anoki.ai/",
+      "short_description": "CTV, Meet Multimodal AI",
       "research_priority_score": 5,
-      "online_presence_score": 4,
-      "category_list": "Software",
+      "online_presence_score": 9,
+      "category_list": null,
+      "stratum": "high",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 7,
+        "tools": [
+          "RunwayML",
+          "ChatGPT",
+          "OpenAI Sora",
+          "Suno",
+          "Adobe Firefly",
+          "HeyGen",
+          "Aria (AI assistant; unspecified vendor)"
+        ],
+        "channels": [
+          "owned"
+        ],
+        "cost_usd": 0.33929
+      }
+    },
+    {
+      "rcid": 1683171,
+      "name": "Gamma",
+      "homepage_url": "https://gamma.app/",
+      "short_description": "Gamma.app is an AI-powered platform that creates working presentations, documents, and visual content.",
+      "research_priority_score": 4,
+      "online_presence_score": 8,
+      "category_list": null,
+      "stratum": "high",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 6,
+        "tools": [
+          "Intercom Fin (Fin AI Agent)",
+          "Intercom Suite",
+          "Cursor (AI code editor)",
+          "NotebookLM",
+          "Lovable",
+          "Bolt",
+          "ChatGPT (Deep Research)",
+          "Midjourney",
+          "Replicate"
+        ],
+        "channels": [
+          "third_party"
+        ],
+        "cost_usd": 0.47473
+      }
+    },
+    {
+      "rcid": 383925,
+      "name": "boam.ai",
+      "homepage_url": "https://boam.ai/",
+      "short_description": "The future of restaurant intelligence.",
+      "research_priority_score": 4,
+      "online_presence_score": 8,
+      "category_list": null,
+      "stratum": "high",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 5,
+        "tools": [
+          "n8n",
+          "LLM-based workflows(unspecified LLM)",
+          "next-gen AI tools(unspecified)"
+        ],
+        "channels": [
+          "jobs"
+        ],
+        "cost_usd": 0.3414
+      }
+    },
+    {
+      "rcid": 16941573,
+      "name": "Preql",
+      "homepage_url": "https://www.preql.com/",
+      "short_description": "Preql integrates with the modern data stack to empower business users and manage business metrics.",
+      "research_priority_score": 5,
+      "online_presence_score": 7,
+      "category_list": null,
+      "stratum": "high",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 3,
+        "tools": [
+          "Claude Code",
+          "Codex CLI",
+          "Aider",
+          "OpenAI Codex"
+        ],
+        "channels": [
+          "jobs"
+        ],
+        "cost_usd": 0.42334
+      }
+    },
+    {
+      "rcid": 58618,
+      "name": "Savvy Wealth",
+      "homepage_url": "https://savvywealth.com/",
+      "short_description": "Savvy Wealth is a technology-enabled wealth management firm.",
+      "research_priority_score": 5,
+      "online_presence_score": 9,
+      "category_list": null,
+      "stratum": "medium",
       "march_reference": {
         "reference_kind": "soft",
         "findings_count": 2,
-        "tools": ["GitHub Copilot", "ChatGPT"],
-        "channels": ["owned", "jobs"]
+        "tools": [
+          "Claude Code",
+          "OpenAI Codex",
+          "Cursor",
+          "Devin",
+          "ChatGPT-based large language model (same LLM as Microsoft ChatGPT)"
+        ],
+        "channels": [
+          "jobs",
+          "third_party"
+        ],
+        "cost_usd": 0.39286
       }
     },
     {
-      "rcid": 200002,
-      "name": "Tune Found Beta",
-      "homepage_url": "https://example.com/tune-found-beta",
-      "short_description": "Second soft-positive fixture.",
+      "rcid": 7711219,
+      "name": "Compound Planning",
+      "homepage_url": "https://compoundplanning.com",
+      "short_description": "Compound Planning offers wealth advisory focusing on alternative assets and AI-powered tools.",
       "research_priority_score": 4,
-      "online_presence_score": 3,
-      "category_list": "Healthcare",
+      "online_presence_score": 8,
+      "category_list": null,
+      "stratum": "medium",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 2,
+        "tools": [
+          "OpenAI ChatGPT-4",
+          "Langfuse"
+        ],
+        "channels": [
+          "third_party"
+        ],
+        "cost_usd": 0.39752
+      }
+    },
+    {
+      "rcid": 16842059,
+      "name": "PolicyPartner",
+      "homepage_url": "https://policypartnerdc.com",
+      "short_description": "PolicyPartner provides forward-looking insights and events to help clients better understand evolving regulations and policies.",
+      "research_priority_score": 5,
+      "online_presence_score": 7,
+      "category_list": null,
+      "stratum": "medium",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 2,
+        "tools": [
+          "GPT-4",
+          "Claude",
+          "unspecified AI-powered newsletter system"
+        ],
+        "channels": [
+          "jobs",
+          "owned"
+        ],
+        "cost_usd": 0.41236
+      }
+    },
+    {
+      "rcid": 96530414,
+      "name": "SEO G.O.A.T.",
+      "homepage_url": "https://seogoat.io/",
+      "short_description": "Reliable Link-Building Company, SEO, Guest Posting Service, Blogger Outreach, White Label, Outsourcing",
+      "research_priority_score": 4,
+      "online_presence_score": 9,
+      "category_list": null,
+      "stratum": "medium",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 2,
+        "tools": [
+          "ChatGPT",
+          "ClaudeAI",
+          "Perplexity",
+          "LeonardoAI",
+          "Heygen",
+          "Jasper",
+          "Writesonic",
+          "Hellowriter"
+        ],
+        "channels": [
+          "owned"
+        ],
+        "cost_usd": 0.39859
+      }
+    },
+    {
+      "rcid": 96548601,
+      "name": "Exowatt",
+      "homepage_url": "http://exowatt.com",
+      "short_description": "Powering AI with 24-hour Dispatchable Solar",
+      "research_priority_score": 5,
+      "online_presence_score": 9,
+      "category_list": null,
+      "stratum": "medium",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 2,
+        "tools": [
+          "Hugging Face",
+          "LangChain",
+          "OpenAI API",
+          "Anthropic Claude",
+          "unspecified AI tools"
+        ],
+        "channels": [
+          "jobs"
+        ],
+        "cost_usd": 0.38652
+      }
+    },
+    {
+      "rcid": 7861227,
+      "name": "Intentful",
+      "homepage_url": "https://intentful.ai",
+      "short_description": "Intentful creates AI models for businesses, enhancing workflows and customer engagement through tailored AI solutions.",
+      "research_priority_score": 5,
+      "online_presence_score": 9,
+      "category_list": null,
+      "stratum": "low",
       "march_reference": {
         "reference_kind": "soft",
         "findings_count": 1,
-        "tools": ["Microsoft Copilot"],
-        "channels": ["third_party"]
+        "tools": [
+          "Intentful proprietary Artificial Intelligence-enabled platform (unspecified generative AI/LLM)"
+        ],
+        "channels": [
+          "jobs"
+        ],
+        "cost_usd": 0.3986
       }
     },
     {
-      "rcid": 200003,
-      "name": "Tune Empty Gamma",
-      "homepage_url": "https://example.com/tune-empty-gamma",
-      "short_description": "Soft-negative fixture (no March findings).",
-      "research_priority_score": 5,
-      "online_presence_score": 4,
-      "category_list": "Fintech",
-      "march_reference": {
-        "reference_kind": "soft",
-        "findings_count": 0,
-        "tools": [],
-        "channels": []
-      }
-    },
-    {
-      "rcid": 200004,
-      "name": "Tune Empty Delta",
-      "homepage_url": "https://example.com/tune-empty-delta",
-      "short_description": "Second soft-negative fixture.",
+      "rcid": 15639246,
+      "name": "Momentum Commerce",
+      "homepage_url": "https://momentumcommerce.com/",
+      "short_description": "Momentum Commerce is a marketing and advertising company.",
       "research_priority_score": 4,
-      "online_presence_score": 2,
-      "category_list": "Retail",
+      "online_presence_score": 9,
+      "category_list": null,
+      "stratum": "low",
       "march_reference": {
         "reference_kind": "soft",
-        "findings_count": 0,
-        "tools": [],
-        "channels": []
+        "findings_count": 1,
+        "tools": [
+          "unspecified generative AI (LLM-based content generation)"
+        ],
+        "channels": [
+          "owned"
+        ],
+        "cost_usd": 0.39999
+      }
+    },
+    {
+      "rcid": 93977375,
+      "name": "Zoë Foundry",
+      "homepage_url": "https://www.zoefoundry.com/",
+      "short_description": "A culture-first venture studio elevating employee benefits.",
+      "research_priority_score": 5,
+      "online_presence_score": 8,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "U+AI Venture Discovery AI platform"
+        ],
+        "channels": [
+          "third_party"
+        ],
+        "cost_usd": 0.39903
+      }
+    },
+    {
+      "rcid": 94310610,
+      "name": "ComplexChaos",
+      "homepage_url": "https://www.complexchaos.ai/",
+      "short_description": "AI-mediated human cooperation",
+      "research_priority_score": 5,
+      "online_presence_score": 9,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "unspecified AI tools"
+        ],
+        "channels": [
+          "jobs"
+        ],
+        "cost_usd": 0.39812
+      }
+    },
+    {
+      "rcid": 94424383,
+      "name": "OmniAI",
+      "homepage_url": "https://getomni.ai",
+      "short_description": "OmniAI is a software development platform that allows users to transform unstructured data to accurate insights.",
+      "research_priority_score": 4,
+      "online_presence_score": 8,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "OpenAI GPT-4o (vision)",
+          "Meta Llama 3.3"
+        ],
+        "channels": [
+          "owned"
+        ],
+        "cost_usd": 0.39807
       }
     }
   ]
