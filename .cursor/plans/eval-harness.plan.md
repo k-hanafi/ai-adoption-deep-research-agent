@@ -1,7 +1,7 @@
 
 # Eval Harness Plan: Perplexity Agent API Playground
 
-> Durable planning doc for Stage 2 architecture experiments. **Plan only. No implementation yet.**
+> **Superseded for goals / sequencing / CLI naming** by [prod-architecture-eval.plan.md](./prod-architecture-eval.plan.md) and [eval-suite-infra.plan.md](./eval-suite-infra.plan.md). Kept for scaffolding history and pricing research (§0).
 
 ---
 
