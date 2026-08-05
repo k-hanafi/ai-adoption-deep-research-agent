@@ -9,7 +9,7 @@ from typing import Any, Optional
 from evals.archive import create_instance
 from evals.architectures import resolve_architecture
 from evals.panel import load_panel
-from evals.paths import TUNING_PANEL_PATH
+from evals.paths import MAX_USD_PER_TUNING_RUN, TUNING_PANEL_PATH
 from evals.runner import run_panel
 from evals.tune.aggregate import (
     build_summary,
@@ -58,7 +58,7 @@ def run_tuning(
         print(
             "Live tuning: paid UAS panel runs with metered usage. "
             "Run `python3 -m evals cost-preview uas --matrix screen` first "
-            "and approve spend before large matrices."
+            f"(ceiling ${MAX_USD_PER_TUNING_RUN:.0f} per tuning run)."
         )
 
     panel_path = Path(panel) if panel else TUNING_PANEL_PATH
@@ -67,6 +67,31 @@ def run_tuning(
     n_companies = len(companies)
     if n_companies < 1:
         raise ValueError(f"tuning panel is empty: {panel_path}")
+
+    # Paid path only: abort before arms if matrix prior exceeds the run ceiling.
+    # Dry runs stay free so you can still exercise the harness without a budget.
+    # Lazy import avoids cost_preview ↔ tune package cycle at module load.
+    if not dry_run:
+        from evals.cost_preview import preview_matrix
+
+        preview = preview_matrix(
+            architecture,
+            matrix=stage,
+            k=1,
+            panel=panel_path,
+        )
+        estimate = float(preview.estimated_total_usd)
+        if estimate > MAX_USD_PER_TUNING_RUN:
+            raise ValueError(
+                f"Tuning matrix estimate ${estimate:.2f} exceeds "
+                f"MAX_USD_PER_TUNING_RUN=${MAX_USD_PER_TUNING_RUN:.2f}. "
+                "Aborting before paid arms. Shrink the panel/matrix or raise "
+                "the ceiling in evals/paths.py after an explicit budget change."
+            )
+        print(
+            f"Cost gate passed: matrix estimate ${estimate:.2f} "
+            f"<= ceiling ${MAX_USD_PER_TUNING_RUN:.2f}."
+        )
 
     soft_mean = soft_reference_findings_mean(panel_meta)
     arms = stage_a_screen_arms()

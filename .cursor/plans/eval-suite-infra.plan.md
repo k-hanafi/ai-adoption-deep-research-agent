@@ -12,10 +12,11 @@ Supersedes CLI naming in [eval-harness.plan.md](./eval-harness.plan.md) (`run-ev
 
 | Field | State |
 |---|---|
-| **Current state** | PR1 + PR2 merged. PR3 in flight: dry Stage A `run-tuning --stage screen` with real tuning dashboard. |
-| **Next** | Merge PR3 after Bugbot clean. Then Phase 1 arch redesign can resume using this harness. |
-| **Exit** | User can run dry `python -m evals run-tuning uas --stage screen`, see a Tuning instance in `open-dashboard`, open its dashboard (arms / constraint / winner). Benchmark + verification archive as stubs. |
-| **Out of scope** | Stage 3 judge impl; full 200-company bake-off; freezing final arch YAML as prod winner; paid `--live` matrices in the first three PRs. |
+| **Current state** | Dry + live Stage A UAS tuning on main (panel, durability, Luna knobs). Per-tuning-run spend ceiling coded at **$50** (`MAX_USD_PER_TUNING_RUN`). |
+| **Next** | Cost-preview matrix, then live Stage A under the $50 gate. Phase 1 arch redesign uses winners under ~$0.10/company. |
+| **Exit** | User can run dry/live `python -m evals run-tuning uas --stage screen`, see a Tuning instance in `open-dashboard`, open its dashboard (arms / constraint / winner). Benchmark + verification archive as stubs. |
+| **Out of scope** | Stage 3 judge impl; full 200-company bake-off; freezing final arch YAML as prod winner. |
+| **Spend ceilings** | Per-company feasibility: mean `$/company ≤ ~$0.10` (drop if `> ~$0.105`). Per-tuning-run abort: matrix prior `> $50` blocks `--live` only (dry unrestricted). |
 
 ---
 
@@ -31,6 +32,7 @@ Supersedes CLI naming in [eval-harness.plan.md](./eval-harness.plan.md) (`run-ev
 | MVP depth | Real **tuning** dashboard; benchmark + verification **stubs** only |
 | Dry metrics | Labeled proxies (cost priors + soft march references) until live wiring |
 | Methodology | Held-out tuning panel vs future bake-off panel. Stage A OFAT screen → Stage B small factorial. Mean `$/company ≤ ~$0.10` (drop if `> ~$0.105`). Maximize mean findings among feasible. `k≥2` on live winner later. |
+| Per-tuning-run ceiling | **$50** hard abort on `run-tuning --live` when matrix cost-preview estimate exceeds `MAX_USD_PER_TUNING_RUN` (dry path not gated). |
 
 ---
 
@@ -74,3 +76,4 @@ Paired companies across UAS/PCS/SGS. Ideal 100+100, likely 50+50. Eval spend ≤
 ## Changelog
 
 - 2026-08-05: Created for sequencing pivot. Locked UX/CLI/artifact decisions. Three-PR ship plan.
+- 2026-08-05: Raised per-tuning-run spend ceiling to **$50** (coded gate on live `run-tuning`; unit-cost ~$0.10/company unchanged).
