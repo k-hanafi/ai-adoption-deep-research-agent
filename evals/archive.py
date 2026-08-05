@@ -1,0 +1,157 @@
+"""Eval instance archive under evals/instances/."""
+
+from __future__ import annotations
+
+import json
+import subprocess
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Optional
+
+from evals.dashboard.landing import rebuild_landing
+from evals.dashboard.stubs import render_stub_dashboard
+from evals.paths import EVAL_INSTANCES_DIR, KIND_LABELS, KINDS
+
+
+def _catalog_path() -> Path:
+    return EVAL_INSTANCES_DIR / "catalog.json"
+
+
+def _empty_catalog() -> dict[str, Any]:
+    return {
+        "version": 1,
+        "next_n": {kind: 1 for kind in KINDS},
+        "instances": [],
+    }
+
+
+def load_catalog(*, strict: bool = True) -> dict[str, Any]:
+    path = _catalog_path()
+    if not path.exists():
+        return _empty_catalog()
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        if strict:
+            raise ValueError(
+                f"Corrupt eval catalog at {path}: {exc}. "
+                "Fix or remove catalog.json before archiving."
+            ) from exc
+        return _empty_catalog()
+    if not isinstance(data, dict):
+        if strict:
+            raise ValueError(f"Corrupt eval catalog at {path}: expected a JSON object.")
+        return _empty_catalog()
+    data.setdefault("version", 1)
+    data.setdefault("next_n", {kind: 1 for kind in KINDS})
+    data.setdefault("instances", [])
+    if not isinstance(data["instances"], list):
+        if strict:
+            raise ValueError(f"Corrupt eval catalog at {path}: instances must be a list.")
+        data["instances"] = []
+    for kind in KINDS:
+        data["next_n"].setdefault(kind, 1)
+    return data
+
+
+def save_catalog(catalog: dict[str, Any]) -> None:
+    EVAL_INSTANCES_DIR.mkdir(parents=True, exist_ok=True)
+    _catalog_path().write_text(json.dumps(catalog, indent=2) + "\n", encoding="utf-8")
+
+
+def _git_sha_short() -> Optional[str]:
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            check=False,
+            capture_output=True,
+            text=True,
+            cwd=EVAL_INSTANCES_DIR.parents[1],
+        )
+    except OSError:
+        return None
+    if out.returncode != 0:
+        return None
+    sha = (out.stdout or "").strip()
+    return sha or None
+
+
+def _format_title(kind: str, n: int, when: datetime) -> str:
+    label = KIND_LABELS[kind]
+    # Local wall clock for professor-facing archive titles.
+    stamp = when.strftime("%b %-d, %Y at %-I:%M %p")
+    return f"{label} #{n} · {stamp}"
+
+
+def create_stub_instance(
+    *,
+    kind: str,
+    cli: str,
+    architecture: Optional[str] = None,
+    full_name: Optional[str] = None,
+    dry_run: bool = True,
+    notes: Optional[str] = None,
+    extra: Optional[dict[str, Any]] = None,
+) -> Path:
+    """Allocate per-kind #n, write stub dashboard, update catalog + landing."""
+    if kind not in KINDS:
+        raise ValueError(f"Unknown kind {kind!r}. Choose one of: {', '.join(KINDS)}")
+
+    catalog = load_catalog(strict=True)
+    n = int(catalog["next_n"][kind])
+    when = datetime.now().astimezone()
+    folder_name = f"{n:03d}_{when.strftime('%Y-%m-%d_%H%M')}"
+    instance_dir = EVAL_INSTANCES_DIR / kind / folder_name
+    if instance_dir.exists():
+        # Same-minute collision: append seconds.
+        folder_name = f"{n:03d}_{when.strftime('%Y-%m-%d_%H%M%S')}"
+        instance_dir = EVAL_INSTANCES_DIR / kind / folder_name
+    instance_dir.mkdir(parents=True, exist_ok=False)
+
+    title = _format_title(kind, n, when)
+    git_sha = _git_sha_short()
+    summary = {
+        "kind": kind,
+        "n": n,
+        "title": title,
+        "architecture": architecture,
+        "full_name": full_name,
+        "cli": cli,
+        "dry_run": dry_run,
+        "stub": True,
+        "created_at": when.isoformat(),
+        "git_sha": git_sha,
+        "notes": notes,
+        **(extra or {}),
+    }
+    (instance_dir / "summary.json").write_text(
+        json.dumps(summary, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    dashboard_html = render_stub_dashboard(
+        kind=kind,
+        title=title,
+        summary=summary,
+    )
+    (instance_dir / "dashboard.html").write_text(dashboard_html, encoding="utf-8")
+
+    rel_dashboard = f"{kind}/{folder_name}/dashboard.html"
+    entry = {
+        "kind": kind,
+        "n": n,
+        "instance_id": folder_name,
+        "title": title,
+        "created_at": when.isoformat(),
+        "architecture": architecture,
+        "full_name": full_name,
+        "cli": cli,
+        "dry_run": dry_run,
+        "stub": True,
+        "git_sha": git_sha,
+        "dashboard_relpath": rel_dashboard,
+    }
+    catalog["instances"].insert(0, entry)
+    catalog["next_n"][kind] = n + 1
+    save_catalog(catalog)
+    rebuild_landing(catalog)
+    return instance_dir

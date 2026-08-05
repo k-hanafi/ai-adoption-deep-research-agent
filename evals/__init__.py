@@ -1,7 +1,9 @@
 """Standalone eval harness for the three Stage 2 architecture packages.
 
-Locked CLI product trio:
-  python -m evals run-evals <architecture>
+CLI product:
+  python -m evals run-tuning <architecture> --stage screen
+  python -m evals run-benchmarks <architecture>
+  python -m evals run-verification
   python -m evals cost-preview <architecture>
   python -m evals open-dashboard
 """

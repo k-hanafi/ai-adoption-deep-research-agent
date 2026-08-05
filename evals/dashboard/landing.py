@@ -1,144 +1,143 @@
-"""Landing index of prior eval instances (open-dashboard target)."""
+"""Categorized landing index (open-dashboard target)."""
 
 from __future__ import annotations
 
 import html
-import json
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
-from evals.paths import EVAL_INSTANCES_DIR, LANDING_INDEX_PATH
+from evals.dashboard.theme import DARK_CSS
+from evals.paths import EVAL_INSTANCES_DIR, KIND_LABELS, KINDS, LANDING_INDEX_PATH
 
-
-def _catalog_path() -> Path:
-    return EVAL_INSTANCES_DIR / "catalog.json"
-
-
-def _load_catalog(*, strict: bool = True) -> list[dict[str, Any]]:
-    catalog_path = _catalog_path()
-    if not catalog_path.exists():
-        return []
-    try:
-        data = json.loads(catalog_path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
-        if strict:
-            raise ValueError(
-                f"Corrupt eval catalog at {catalog_path}: {exc}. "
-                "Fix or remove catalog.json before updating the landing index."
-            ) from exc
-        return []
-    if not isinstance(data, list):
-        if strict:
-            raise ValueError(
-                f"Corrupt eval catalog at {catalog_path}: expected a JSON list."
-            )
-        return []
-    return data
+_EMPTY_CLI = {
+    "tuning": "python -m evals run-tuning uas --stage screen",
+    "benchmark": "python -m evals run-benchmarks uas",
+    "verification": "python -m evals run-verification",
+}
 
 
 def ensure_landing_stub() -> Path:
+    """Rebuild index.html from catalog (soft-load on corruption)."""
+    from evals.archive import load_catalog
+
+    catalog = load_catalog(strict=False)
+    return rebuild_landing(catalog)
+
+
+def rebuild_landing(catalog: dict[str, Any]) -> Path:
     EVAL_INSTANCES_DIR.mkdir(parents=True, exist_ok=True)
-    # Always rebuild from catalog so open-dashboard stays aligned even if
-    # index.html was deleted or left stale after a partial write.
-    # Soft-load so a corrupt catalog still yields an empty landing page.
-    LANDING_INDEX_PATH.write_text(
-        _render_index(_load_catalog(strict=False)),
-        encoding="utf-8",
-    )
-    return LANDING_INDEX_PATH
-
-
-def update_landing_index(
-    *,
-    run_id: str,
-    architecture: str,
-    full_name: str,
-    scored: dict[str, Any],
-) -> Path:
-    EVAL_INSTANCES_DIR.mkdir(parents=True, exist_ok=True)
-    catalog = _load_catalog(strict=True)
-
-    entry = {
-        "run_id": run_id,
-        "architecture": architecture,
-        "full_name": full_name,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "total_cost_usd": scored.get("total_cost_usd"),
-        "total_findings": scored.get("total_findings"),
-        "n_companies": scored.get("n_companies"),
-        "dashboard_relpath": f"../../outputs/evals/runs/{run_id}/dashboard.html",
-        "phase": scored.get("phase"),
-    }
-    catalog = [row for row in catalog if row.get("run_id") != run_id]
-    catalog.insert(0, entry)
-    # Persist catalog first. Index is derived from catalog, and
-    # ensure_landing_stub / open-dashboard always rebuild from it.
-    _catalog_path().write_text(json.dumps(catalog, indent=2) + "\n", encoding="utf-8")
     LANDING_INDEX_PATH.write_text(_render_index(catalog), encoding="utf-8")
     return LANDING_INDEX_PATH
 
 
-def _render_index(catalog: list[dict[str, Any]]) -> str:
-    if not catalog:
-        rows_html = (
-            "<tr><td colspan='5'>No eval instances yet. "
-            "Run <code>python -m evals run-evals &lt;architecture&gt;</code>.</td></tr>"
+def _instances_for_kind(catalog: dict[str, Any], kind: str) -> list[dict[str, Any]]:
+    rows = [
+        row
+        for row in catalog.get("instances") or []
+        if isinstance(row, dict) and row.get("kind") == kind
+    ]
+    # Newest-first by n (catalog already inserts at front; sort as safety).
+    rows.sort(key=lambda r: int(r.get("n") or 0), reverse=True)
+    return rows
+
+
+def _render_section(kind: str, rows: list[dict[str, Any]]) -> str:
+    label = KIND_LABELS[kind]
+    count = len(rows)
+    if not rows:
+        cmd = html.escape(_EMPTY_CLI[kind])
+        body = (
+            f'<div class="empty">No {html.escape(label.lower())} instances yet. '
+            f"Create one with <code>{cmd}</code>.</div>"
         )
     else:
-        parts: list[str] = []
-        for row in catalog:
+        parts: list[str] = [
+            "<table><thead><tr>"
+            "<th>#</th><th>Eval instance</th><th>Archived</th><th>File</th>"
+            "</tr></thead><tbody>"
+        ]
+        for row in rows:
+            n = html.escape(str(row.get("n") or ""))
+            title = html.escape(str(row.get("title") or f"{label} #{n}"))
             href = html.escape(str(row.get("dashboard_relpath") or "#"), quote=True)
-            run_id = html.escape(str(row.get("run_id") or ""))
-            full_name = html.escape(str(row.get("full_name") or ""))
-            architecture = html.escape(str(row.get("architecture") or ""))
-            n_companies = html.escape(str(row.get("n_companies") or ""))
-            total_findings = html.escape(str(row.get("total_findings") or ""))
-            total_cost = html.escape(str(row.get("total_cost_usd") or ""))
+            arch = row.get("architecture") or "n/a"
+            mode = "dry" if row.get("dry_run", True) else "live"
+            stub = "stub · " if row.get("stub") else ""
+            sha = row.get("git_sha") or "—"
+            # Use ASCII hyphen in meta if sha unknown; avoid em dash in product copy.
+            if sha == "—":
+                sha = "unknown"
+            meta = (
+                f"{stub}{html.escape(str(arch))} · {html.escape(mode)} · "
+                f"commit {html.escape(str(sha))}"
+            )
+            archived = html.escape(_format_archived(row.get("created_at")))
+            filename = html.escape(Path(str(row.get("dashboard_relpath") or "")).name)
             parts.append(
                 "<tr>"
-                f"<td><a href='{href}'>{run_id}</a></td>"
-                f"<td>{full_name} (<code>{architecture}</code>)</td>"
-                f"<td>{n_companies}</td>"
-                f"<td>{total_findings}</td>"
-                f"<td>{total_cost}</td>"
+                f"<td>{n}</td>"
+                f"<td class='title-cell'><a href='{href}'>{title}</a>"
+                f"<span class='meta'>{meta}</span></td>"
+                f"<td>{archived}</td>"
+                f"<td><code>{filename}</code></td>"
                 "</tr>"
             )
-        rows_html = "\n".join(parts)
+        parts.append("</tbody></table>")
+        body = "\n".join(parts)
 
+    return (
+        f'<section class="section" id="{html.escape(kind)}">'
+        f"<h2>{html.escape(label)} · {count} archived</h2>"
+        f"{body}"
+        "</section>"
+    )
+
+
+def _format_archived(created_at: Optional[str]) -> str:
+    if not created_at:
+        return ""
+    try:
+        when = datetime.fromisoformat(created_at)
+    except ValueError:
+        return str(created_at)
+    if when.tzinfo is not None:
+        when = when.astimezone()
+    return when.strftime("%b %-d, %Y, %-I:%M %p")
+
+
+def _render_index(catalog: dict[str, Any]) -> str:
+    total = len(catalog.get("instances") or [])
+    sections = "\n".join(
+        _render_section(kind, _instances_for_kind(catalog, kind)) for kind in KINDS
+    )
+    rewritten = datetime.now().astimezone().strftime("%Y-%m-%d")
     return f"""<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Eval instances</title>
-  <style>
-    body {{ font-family: Georgia, serif; margin: 2rem; max-width: 900px; color: #1a1a1a; }}
-    table {{ border-collapse: collapse; width: 100%; }}
-    th, td {{ border-bottom: 1px solid #ddd; text-align: left; padding: 0.5rem; vertical-align: top; }}
-    .chip {{ display: inline-block; border: 1px solid #bbb; padding: 0.15rem 0.5rem; font-size: 0.85rem; }}
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Eval Suite · instance archive</title>
+  <style>{DARK_CSS}</style>
 </head>
 <body>
-  <p class="chip">Phase 1 landing stub</p>
-  <h1>Eval instances</h1>
-  <p>
-    Landing index for prior <code>run-evals</code> dashboard instances.
-    Full tabbed Cost / Findings / Traces dashboards ship in Phase 2.
-  </p>
-  <table>
-    <thead>
-      <tr>
-        <th>Run id</th>
-        <th>Architecture</th>
-        <th>Companies</th>
-        <th>Findings</th>
-        <th>Spend (USD)</th>
-      </tr>
-    </thead>
-    <tbody>
-      {rows_html}
-    </tbody>
-  </table>
+  <div class="wrap">
+    <div class="header-row">
+      <div>
+        <h1>Eval Suite</h1>
+        <p class="subtitle">instance archive</p>
+      </div>
+      <p class="chip">{total} archived</p>
+    </div>
+    <p class="lede">
+      Each row is one CLI invocation of
+      <code>run-tuning</code>, <code>run-benchmarks</code>, or
+      <code>run-verification</code>. Click a title to open that instance dashboard.
+      Times use this machine's local timezone.
+    </p>
+    {sections}
+    <p class="footer">Index rewritten {html.escape(rewritten)}.</p>
+  </div>
 </body>
 </html>
 """

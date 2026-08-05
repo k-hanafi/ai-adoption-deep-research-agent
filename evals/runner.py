@@ -10,7 +10,6 @@ from typing import Any, Optional, Union
 
 from contracts.types import CompanyInput
 from evals.architectures import resolve_architecture, run_company
-from evals.dashboard.landing import ensure_landing_stub, update_landing_index
 from evals.panel import load_panel, load_panel_companies
 from evals.paths import EVAL_RUNS_DIR, FIXTURE_PANEL_PATH
 
@@ -184,36 +183,19 @@ def run_panel(
     dashboard_html = _stub_dashboard_html(spec.full_name, spec.cli_key, run_id, scored)
     (run_dir / "dashboard.html").write_text(dashboard_html, encoding="utf-8")
 
-    # Core artifacts already succeeded. Landing failures must not rewrite status
-    # to failed, but they still surface to the caller.
-    landing_error: Optional[str] = None
-    try:
-        ensure_landing_stub()
-        update_landing_index(
-            run_id=run_id,
-            architecture=spec.cli_key,
-            full_name=spec.full_name,
-            scored=scored,
-        )
-    except Exception as exc:
-        landing_error = f"{type(exc).__name__}: {exc}"
-
+    # Professor-facing archive lives in evals/instances/ via run-tuning /
+    # run-benchmarks / run-verification. run_panel only writes arm/run bundles.
     status_payload: dict[str, Any] = {"status": "completed", "run_id": run_id}
-    if landing_error:
-        status_payload["landing_error"] = landing_error
     (run_dir / "run.log").write_text(
         f"run_id={run_id}\narchitecture={spec.cli_key}\ndry_run={dry_run}\n"
         f"companies={len(companies)}\npredictions={len(predictions)}\n"
-        f"status=completed\n"
-        + (f"landing_error={landing_error}\n" if landing_error else ""),
+        f"status=completed\n",
         encoding="utf-8",
     )
     (run_dir / "status.json").write_text(
         json.dumps(status_payload, indent=2) + "\n",
         encoding="utf-8",
     )
-    if landing_error:
-        raise RuntimeError(f"eval run artifacts written, but landing update failed: {landing_error}")
     return run_dir
 
 

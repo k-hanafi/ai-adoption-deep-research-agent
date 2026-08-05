@@ -1,4 +1,4 @@
-"""CLI for the locked eval product trio."""
+"""CLI for the eval product: run-* modes, cost-preview, open-dashboard."""
 
 from __future__ import annotations
 
@@ -8,10 +8,10 @@ import sys
 import webbrowser
 from pathlib import Path
 
-from evals.architectures import ARCHITECTURES, ALIASES
+from evals.archive import create_stub_instance
+from evals.architectures import ARCHITECTURES, ALIASES, resolve_architecture
 from evals.cost_preview import preview_cost
 from evals.dashboard.landing import ensure_landing_stub
-from evals.runner import run_panel
 
 
 def _architecture_help() -> str:
@@ -30,30 +30,48 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
-    run_p = sub.add_parser(
-        "run-evals",
-        help="Run one architecture against the panel (Phase 1: dry/stub).",
+    tune_p = sub.add_parser(
+        "run-tuning",
+        help="Archive a tuning instance (PR2: stub dashboard; Stage A in next PR).",
     )
-    run_p.add_argument("architecture", help=_architecture_help())
-    run_p.add_argument(
-        "--k",
-        type=int,
-        default=1,
-        help="Repeat count (default 1, must be >= 1)",
+    tune_p.add_argument("architecture", help=_architecture_help())
+    tune_p.add_argument(
+        "--stage",
+        choices=("screen", "factorial"),
+        default="screen",
+        help="Tuning stage (default: screen)",
     )
-    run_p.add_argument(
-        "--panel",
-        type=Path,
-        default=None,
-        help="Optional panel JSON path (default: fixture panel)",
-    )
-    run_p.add_argument(
+    tune_p.add_argument(
         "--live",
         action="store_true",
-        help=(
-            "Attempt live API mode "
-            "(Phase 1 architectures raise NotImplementedError)"
-        ),
+        help="Mark instance as live (paid path not wired yet)",
+    )
+
+    bench_p = sub.add_parser(
+        "run-benchmarks",
+        help="Archive a benchmark instance (stub until Phase 3 bake-off).",
+    )
+    bench_p.add_argument("architecture", help=_architecture_help())
+    bench_p.add_argument(
+        "--live",
+        action="store_true",
+        help="Mark instance as live (paid path not wired yet)",
+    )
+
+    ver_p = sub.add_parser(
+        "run-verification",
+        help="Archive a verification instance (stub until Stage 3 judge).",
+    )
+    ver_p.add_argument(
+        "architecture",
+        nargs="?",
+        default=None,
+        help="Optional architecture key/alias for metadata",
+    )
+    ver_p.add_argument(
+        "--live",
+        action="store_true",
+        help="Mark instance as live (paid path not wired yet)",
     )
 
     cost_p = sub.add_parser(
@@ -82,7 +100,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     dash_p = sub.add_parser(
         "open-dashboard",
-        help="Open the landing index of prior eval instances.",
+        help="Open the categorized landing index of prior eval instances.",
     )
     dash_p.add_argument(
         "--no-open",
@@ -93,21 +111,63 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _cli_summary(argv: list[str] | None) -> str:
+    if argv is None:
+        argv = sys.argv[1:]
+    return "python -m evals " + " ".join(argv)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    cli = _cli_summary(argv)
 
-    if args.command == "run-evals":
-        if args.k < 1:
-            parser.error("--k must be >= 1")
-        run_dir = run_panel(
-            args.architecture,
-            panel=args.panel,
-            k=args.k,
+    if args.command == "run-tuning":
+        spec = resolve_architecture(args.architecture)
+        instance_dir = create_stub_instance(
+            kind="tuning",
+            cli=cli,
+            architecture=spec.cli_key,
+            full_name=spec.full_name,
             dry_run=not args.live,
+            notes=f"PR2 stub. Stage={args.stage}. Real Stage A screen lands next.",
+            extra={"stage": args.stage},
         )
-        print(f"Wrote eval run bundle to: {run_dir}")
-        print(f"Dashboard: {run_dir / 'dashboard.html'}")
+        print(f"Wrote tuning instance to: {instance_dir}")
+        print(f"Dashboard: {instance_dir / 'dashboard.html'}")
+        return 0
+
+    if args.command == "run-benchmarks":
+        spec = resolve_architecture(args.architecture)
+        instance_dir = create_stub_instance(
+            kind="benchmark",
+            cli=cli,
+            architecture=spec.cli_key,
+            full_name=spec.full_name,
+            dry_run=not args.live,
+            notes="PR2 stub. Paired bake-off not wired.",
+        )
+        print(f"Wrote benchmark instance to: {instance_dir}")
+        print(f"Dashboard: {instance_dir / 'dashboard.html'}")
+        return 0
+
+    if args.command == "run-verification":
+        architecture = None
+        full_name = None
+        if args.architecture:
+            spec = resolve_architecture(args.architecture)
+            architecture = spec.cli_key
+            full_name = spec.full_name
+        instance_dir = create_stub_instance(
+            kind="verification",
+            cli=cli,
+            architecture=architecture,
+            full_name=full_name,
+            dry_run=not args.live,
+            notes="PR2 stub. Stage 3 judge not wired.",
+        )
+        print(f"Wrote verification instance to: {instance_dir}")
+        print(f"Dashboard: {instance_dir / 'dashboard.html'}")
         return 0
 
     if args.command == "cost-preview":
