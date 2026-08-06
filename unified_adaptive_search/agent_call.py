@@ -41,10 +41,10 @@ _WEB_SEARCH_DEPTH: dict[str, dict[str, Any]] = {
         "search_context_size": "high",
         "max_tokens": 4000,
     },
+    # Only max_tokens differs from high (OFAT: do not also set max_tokens_per_page).
     "beyond_high": {
         "search_context_size": "high",
         "max_tokens": 8000,
-        "max_tokens_per_page": 4000,
     },
 }
 
