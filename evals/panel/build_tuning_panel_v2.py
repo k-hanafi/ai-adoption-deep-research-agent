@@ -55,7 +55,13 @@ def _stratum(findings_count: int) -> str:
 
 def _row_from_march(r: dict[str, Any]) -> dict[str, Any]:
     findings = r.get("findings") or []
-    n = int(r.get("findings_count") or len(findings) or 0)
+    # Prefer explicit findings_count, including 0. Do not use `or len(findings)`
+    # because 0 is falsy and would mis-bin zeros that still have a findings list.
+    raw_count = r.get("findings_count")
+    if raw_count is None:
+        n = len(findings)
+    else:
+        n = int(raw_count)
     tools: list[str] = []
     channels: list[str] = []
     for f in findings:
