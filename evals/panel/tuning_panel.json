@@ -1,13 +1,18 @@
 {
-  "panel_id": "tuning_panel_v1_march_positives_5x3",
+  "panel_id": "tuning_panel_v2_march_50_richness_plus_none",
   "reference_kind": "soft",
-  "note": "Held-out UAS Stage A tuning panel (v1). Fifteen March Stage 2 positives (findings_count >= 1), stratified 5 high + 5 medium + 5 low/minimal by March findings richness. Soft march_reference only (not hard labels). NEVER reuse these company IDs for bake-off / Phase 3 paired evals. This is not a 50+50 found/not-found bake-off panel.",
+  "note": "Held-out UAS Stage A tuning panel (v2). Fifty March Stage 2 companies: 12 high + 12 medium + 12 low positives by findings richness, plus 14 March zero-finding companies (stratum=none). Soft march_reference only. Includes all v1 panel IDs. NEVER reuse these company IDs for bake-off / Phase 3 paired evals.",
   "source": {
     "march_run": "outputs/stage2/production_results.jsonl",
     "selection_axis": "march_findings_count",
-    "population": "Stage 2 companies with findings_count >= 1",
-    "population_size": 1251,
+    "population": "Stage 2 companies (positives + zeros)",
+    "population_size_positives": 1251,
+    "population_size_zeros": 8221,
     "strata_cutpoints": {
+      "none": {
+        "min_findings_count": 0,
+        "max_findings_count": 0
+      },
       "low": {
         "min_findings_count": 1,
         "max_findings_count": 1
@@ -21,7 +26,13 @@
         "max_findings_count": null
       }
     },
-    "strata_cutpoints_note": "Frozen from March positive distribution: low=1 (n=720), medium=2 (n=362), high>=3 (n=169). Secondary diversification when ties: research_priority_score P4/P5 and mapped March channels (owned/jobs/third_party). Jam (rcid 610194) forced into high (findings_count=8).",
+    "strata_targets": {
+      "high": 12,
+      "medium": 12,
+      "low": 12,
+      "none": 14
+    },
+    "strata_cutpoints_note": "Same richness bins as v1 for positives; added none=0. v1's 15 IDs retained; filled from March with homepage_url. Jam (rcid 610194) remains in high.",
     "channel_mapping": "Soft-mapped from March finding source_type strings into owned | jobs | third_party for reference only."
   },
   "companies": [
@@ -58,6 +69,33 @@
           "third_party"
         ],
         "cost_usd": 0.30512
+      }
+    },
+    {
+      "rcid": 3920737,
+      "name": "Hackmamba",
+      "homepage_url": "https://hackmamba.io",
+      "short_description": "Hackmamba is a Technical content development company for software teams.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "high",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 7,
+        "tools": [
+          "Cursor",
+          "GitHub Copilot",
+          "Claude (inside GitHub Copilot)",
+          "Replit",
+          "Bolt.new",
+          "v0 by Vercel",
+          "ChatGPT (OpenAI), CodeGPT (VS Code extension)"
+        ],
+        "channels": [
+          "owned"
+        ],
+        "cost_usd": 0.27465
       }
     },
     {
@@ -117,6 +155,164 @@
       }
     },
     {
+      "rcid": 9017047,
+      "name": "Artist Dynamix",
+      "homepage_url": "https://artistdynamix.com",
+      "short_description": "Artist Dynamix offers web development, digital marketing, and SEO services for creative entrepreneurs, non-profits, and small businesses.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "high",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 6,
+        "tools": [
+          "Loom,Otter.ai",
+          "ClickUp (ClickUp AI features)",
+          "Sider.ai",
+          "OpenAI GPTs (custom GPTs)",
+          "Unspecified text-to-speech AI tool",
+          "ManyChat"
+        ],
+        "channels": [
+          "third_party",
+          "owned"
+        ],
+        "cost_usd": 0.2641
+      }
+    },
+    {
+      "rcid": 22453263,
+      "name": "FunnelStory",
+      "homepage_url": "https://www.funnelstory.ai",
+      "short_description": "Revenue Data Platform for Post-Sales Teams",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "high",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 6,
+        "tools": [
+          "Cursor",
+          "Windsurf,Windsurf editor",
+          "OpenAI/ChatGPT,ChatGPT,Gemini,Claude",
+          "NotebookLM",
+          "V0",
+          "OpenAI platform API,internal AI-powered code review tool (GitHub Action)"
+        ],
+        "channels": [
+          "owned"
+        ],
+        "cost_usd": 0.18436
+      }
+    },
+    {
+      "rcid": 23911891,
+      "name": "echowin",
+      "homepage_url": "https://echo.win",
+      "short_description": "echowin is an AI call answering and workflow automation platform for automating incoming phone calls and business processes.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "high",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 6,
+        "tools": [
+          "ChatGPT",
+          "GitHub Copilot",
+          "Microsoft 365 Copilot",
+          "Zapier AI",
+          "Perplexity AI",
+          "Midjourney"
+        ],
+        "channels": [
+          "owned"
+        ],
+        "cost_usd": 0.09678
+      }
+    },
+    {
+      "rcid": 26433312,
+      "name": "Remote Resource LLC",
+      "homepage_url": "https://www.remoteresource.com",
+      "short_description": "Remote Resource LLC is a global company providing one stop solutions in offshore / remote staffing and/or Staff Augmentation.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "high",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 6,
+        "tools": [
+          "ChatGPT,Claude.ai,Adobe Firefly,Playground AI,Runway ML",
+          "Jasper AI",
+          "ChatGpt,MS Copilot",
+          "ChatGpt,MS Copilot,Grammarly",
+          "ChatGpt,MS Copilot,Claude.ai",
+          "Copilot (unspecified)"
+        ],
+        "channels": [
+          "owned"
+        ],
+        "cost_usd": 0.37675
+      }
+    },
+    {
+      "rcid": 26710035,
+      "name": "Vellum",
+      "homepage_url": "https://www.vellum.ai",
+      "short_description": "Vellum is a developer platform for the production of LLM apps.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "high",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 6,
+        "tools": [
+          "Devin (Cognition)",
+          "Cursor,Claude Code",
+          "Codex",
+          "Cursor,GitHub Copilot",
+          "Vellum (internal agents built on Vellum)",
+          "Cursor,Claude"
+        ],
+        "channels": [
+          "owned",
+          "jobs"
+        ],
+        "cost_usd": 0.34508
+      }
+    },
+    {
+      "rcid": 94299144,
+      "name": "Aidora",
+      "homepage_url": "https://getaidora.com/",
+      "short_description": "Aidora is the first AI-powered, end-to-end modern software solution for leave management",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "high",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 6,
+        "tools": [
+          "ChatGPT",
+          "OpenAI custom GPTs",
+          "ChatGPT,Gemini,Claude",
+          "Cursor",
+          "Fathom Notetaker",
+          "SuperWhisper"
+        ],
+        "channels": [
+          "third_party"
+        ],
+        "cost_usd": 0.17618
+      }
+    },
+    {
       "rcid": 383925,
       "name": "boam.ai",
       "homepage_url": "https://boam.ai/",
@@ -164,6 +360,117 @@
       }
     },
     {
+      "rcid": 1247,
+      "name": "EverVet Partners",
+      "homepage_url": "https://evervetpartners.com",
+      "short_description": "EverVet Partners specializes in the acquisition and development of independent veterinary hospitals.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "medium",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 2,
+        "tools": [
+          "CoVet",
+          "AI Scribe (unspecified vendor)"
+        ],
+        "channels": [
+          "owned"
+        ],
+        "cost_usd": 0.20189
+      }
+    },
+    {
+      "rcid": 3212,
+      "name": "Legion Health",
+      "homepage_url": "https://legionhealth.com",
+      "short_description": "Legion Health offers telepsychiatry services that improve mental health access and care.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "medium",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 2,
+        "tools": [
+          "AirOps,GrowthBar,LangChain,n8n",
+          "OpenAI,Anthropic"
+        ],
+        "channels": [
+          "jobs"
+        ],
+        "cost_usd": 0.19431
+      }
+    },
+    {
+      "rcid": 8767,
+      "name": "Awesomic",
+      "homepage_url": "https://www.awesomic.com",
+      "short_description": "Get matched with the top 1% of talent and get results in 24 hours.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "medium",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 2,
+        "tools": [
+          "Claude Code",
+          "Runway,Pika Labs,Synthesia,Kaiber,Midjourney,ElevenLabs,ChatGPT"
+        ],
+        "channels": [
+          "jobs"
+        ],
+        "cost_usd": 0.12484
+      }
+    },
+    {
+      "rcid": 19659,
+      "name": "Endor Labs",
+      "homepage_url": "https://www.endorlabs.com",
+      "short_description": "Endor Labs secures software supply chains with advanced tools for open-source risk, compliance, and developer productivity.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "medium",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 2,
+        "tools": [
+          "Cursor,GitHub Copilot",
+          "OpenAI GPT-3.5-turbo (api.openai.com),ChatGPT"
+        ],
+        "channels": [
+          "jobs",
+          "owned"
+        ],
+        "cost_usd": 0.22069
+      }
+    },
+    {
+      "rcid": 27011,
+      "name": "[INVNT GROUP]",
+      "homepage_url": "https://www.invntgroup.com/",
+      "short_description": "[INVNT GROUP] is a live brand storytelling agency that offers services in advertising and branding to help improve brand development.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "medium",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 2,
+        "tools": [
+          "Midjourney",
+          "ChatGPT"
+        ],
+        "channels": [
+          "owned"
+        ],
+        "cost_usd": 0.10508
+      }
+    },
+    {
       "rcid": 58618,
       "name": "Savvy Wealth",
       "homepage_url": "https://savvywealth.com/",
@@ -187,6 +494,50 @@
           "third_party"
         ],
         "cost_usd": 0.39286
+      }
+    },
+    {
+      "rcid": 72086,
+      "name": "Gooey.AI",
+      "homepage_url": "https://gooey.ai",
+      "short_description": "A shared AI workflow platform for enterprises and marketers.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "medium",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 2,
+        "tools": [
+          "Copilot (unspecified AI coding assistant),ChatGPT"
+        ],
+        "channels": [
+          "jobs"
+        ],
+        "cost_usd": 0.16537
+      }
+    },
+    {
+      "rcid": 72513,
+      "name": "Sensaria",
+      "homepage_url": "https://www.sensaria.com",
+      "short_description": "Sensaria offers decor, art, framing, art, design curation, and printing services.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "medium",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 2,
+        "tools": [
+          "Midjourney,DALL\u00b7E,Stable Diffusion",
+          "unspecified AI generative technologies"
+        ],
+        "channels": [
+          "jobs",
+          "owned"
+        ],
+        "cost_usd": 0.3476
       }
     },
     {
@@ -289,6 +640,153 @@
       }
     },
     {
+      "rcid": 8274,
+      "name": "Addition Wealth",
+      "homepage_url": "https://www.additionwealth.com",
+      "short_description": "Addition Wealth is a holistic financial wellness platform that empowers employees to make smart, informed financial decisions.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "ChatGPT,Jasper,Canva"
+        ],
+        "channels": [
+          "jobs"
+        ],
+        "cost_usd": 0.15858
+      }
+    },
+    {
+      "rcid": 32116,
+      "name": "StepZen",
+      "homepage_url": "https://www.stepzen.com/",
+      "short_description": "StepZen is an architecturally distinct GraphQL server. It allows developers to build APIs quickly and with less code.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "OpenAI (unspecified GPT model)"
+        ],
+        "channels": [
+          "owned"
+        ],
+        "cost_usd": 0.34279
+      }
+    },
+    {
+      "rcid": 32705,
+      "name": "Cloaked",
+      "homepage_url": "https://cloaked.app",
+      "short_description": "Cloaked is a consumer-first privacy company that enables individuals to take control of their personal data with unlimited identities.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "unspecified AI tools"
+        ],
+        "channels": [
+          "jobs"
+        ],
+        "cost_usd": 0.348
+      }
+    },
+    {
+      "rcid": 38867,
+      "name": "Voicegain",
+      "homepage_url": "http://voicegain.ai",
+      "short_description": "Generative Voice AI Platform focused on Contact Centers",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "OpenAI GPT-3.5 (ChatGPT API)"
+        ],
+        "channels": [
+          "owned"
+        ],
+        "cost_usd": 0.39188
+      }
+    },
+    {
+      "rcid": 43617,
+      "name": "NetRise",
+      "homepage_url": "https://www.netrise.io",
+      "short_description": "NetRise provides a cloud based platform for detecting, analyzing, and securing firmware and software in the supply chain ecosystem.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "ChatGPT (v3.5)"
+        ],
+        "channels": [
+          "owned"
+        ],
+        "cost_usd": 0.26867
+      }
+    },
+    {
+      "rcid": 59639,
+      "name": "ToolJet",
+      "homepage_url": "https://tooljet.com",
+      "short_description": "ToolJet is a low-code open-source platform for developing and deploying custom business applications.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "ChatGPT, Grammarly"
+        ],
+        "channels": [
+          "owned"
+        ],
+        "cost_usd": 0.12641
+      }
+    },
+    {
+      "rcid": 78227,
+      "name": "Aftershoot",
+      "homepage_url": "https://aftershoot.com",
+      "short_description": "AfterShoot helps in optimizing the post production workflow of photographers.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "ChatGPT,Claude,Perplexity"
+        ],
+        "channels": [
+          "jobs"
+        ],
+        "cost_usd": 0.31352
+      }
+    },
+    {
       "rcid": 7861227,
       "name": "Intentful",
       "homepage_url": "https://intentful.ai",
@@ -332,7 +830,7 @@
     },
     {
       "rcid": 93977375,
-      "name": "Zoë Foundry",
+      "name": "Zo\u00eb Foundry",
       "homepage_url": "https://www.zoefoundry.com/",
       "short_description": "A culture-first venture studio elevating employee benefits.",
       "research_priority_score": 5,
@@ -392,6 +890,244 @@
           "owned"
         ],
         "cost_usd": 0.39807
+      }
+    },
+    {
+      "rcid": 1871,
+      "name": "4D Sight",
+      "homepage_url": "http://www.4dsight.com",
+      "short_description": "Native video monetization",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.73466
+      }
+    },
+    {
+      "rcid": 6631,
+      "name": "Entendre Finance",
+      "homepage_url": "https://entendre.finance/",
+      "short_description": "AI Powered Crypto Accounting & Treasury",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.18514
+      }
+    },
+    {
+      "rcid": 8898,
+      "name": "Transcarent",
+      "homepage_url": "https://www.transcarent.com",
+      "short_description": "Transcarent is a provider of a healthcare platform that facilitates improved outcomes and cost-effective decisions.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.16666
+      }
+    },
+    {
+      "rcid": 9799,
+      "name": "EdgeMode",
+      "homepage_url": "http://www.edgemode.io/",
+      "short_description": "EdgeMode is an infrastructure management platform.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.161
+      }
+    },
+    {
+      "rcid": 10805,
+      "name": "OmniView Sports",
+      "homepage_url": "http://ovszone.com",
+      "short_description": "OmniView Sports is a sports viewing app that revolutionizes viewing experience.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.20629
+      }
+    },
+    {
+      "rcid": 11800,
+      "name": "Crediverso",
+      "homepage_url": "https://www.crediverso.com",
+      "short_description": "Crediverso is a financial technology platform.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.13827
+      }
+    },
+    {
+      "rcid": 13962,
+      "name": "Climavision",
+      "homepage_url": "https://www.climavision.com",
+      "short_description": "Climavision brings high-resolution weather radar and satellite network, with advanced weather prediction modeling.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.19685
+      }
+    },
+    {
+      "rcid": 14961,
+      "name": "FloorFound",
+      "homepage_url": "https://floorfound.com",
+      "short_description": "FloorFound is a developer of an e-commerce software platform that facilitates returns and resales of oversized products for retailers.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.22133
+      }
+    },
+    {
+      "rcid": 15045,
+      "name": "CU NextGen",
+      "homepage_url": "https://cunextgen.com/",
+      "short_description": "A New Technology Partner For Credit Union",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.17694
+      }
+    },
+    {
+      "rcid": 15783,
+      "name": "Navikenz",
+      "homepage_url": "https://www.navikenz.com",
+      "short_description": "Navikenz leverages AI technology to help enterprises speed up their transition to data-centric, organizations in the new digital future.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.26418
+      }
+    },
+    {
+      "rcid": 18675,
+      "name": "Omniscope",
+      "homepage_url": "https://www.omniscope.ai/",
+      "short_description": "Building the world's largest immune databank.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.16632
+      }
+    },
+    {
+      "rcid": 21771,
+      "name": "Railspire",
+      "homepage_url": "https://www.railspire.com",
+      "short_description": "Railspire enables autonomous locomotive driving, the first technology of its kind in the rail sector.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.17028
+      }
+    },
+    {
+      "rcid": 25022,
+      "name": "Viva Translate",
+      "homepage_url": "https://www.vivatranslate.com",
+      "short_description": "Viva Translate helps people around the world communicate in English, Spanish and Portuguese in real time.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.24256
+      }
+    },
+    {
+      "rcid": 25447,
+      "name": "VerAI Discoveries",
+      "homepage_url": "https://ver-ai.com/",
+      "short_description": "VerAI Discoveries is an AI-driven mineral asset portfolio company that uses AI and machine learning to identify concealed mineral deposits.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.2353
       }
     }
   ]

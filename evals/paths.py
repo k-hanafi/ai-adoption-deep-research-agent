@@ -18,6 +18,8 @@ EVAL_RUNS_DIR = EVALS_PACKAGE_DIR / "runs"
 FIXTURE_PANEL_PATH = PANEL_DIR / "fixture_panel.json"
 TUNING_PANEL_PATH = PANEL_DIR / "tuning_panel.json"
 TUNING_CONFIGS_DIR = CONFIGS_DIR / "tuning"
+# March Stage 2 production dump (panel / cost-diagnose selection source).
+MARCH_STAGE2_JSONL = PROJECT_ROOT / "outputs" / "stage2" / "production_results.jsonl"
 
 # Mean $/company feasibility cutoff for tuning (drop arms above this).
 COST_CONSTRAINT_USD = 0.105

@@ -54,24 +54,40 @@ Supersedes CLI naming in [eval-harness.plan.md](./eval-harness.plan.md) (`run-ev
 
 ---
 
-## Stage A screen matrix (wide OFAT v2)
+## Stage A screen matrix (evidence-locked after cost-diagnose)
 
-Baseline: Luna / `max_steps=10` / `reasoning.effort=medium` / search `low`.
+**Panel v2:** `tuning_panel_v2_march_50_richness_plus_none` (12 high / 12 medium / 12 low / 14 none). Held out from bake-off.
 
-`web_search_depth` is our ladder (not a Perplexity field): **low / medium / high** → `max_tokens` 2k / 4k / 8k.
+**Search package** (`web_search_depth`, our ladder): low / medium / high turns up `search_context_size`, `max_tokens`, `max_tokens_per_page`, `max_results` together.
+
+**Cost-diagnose (2026-08-06, 5 cos × 8 configs, ~$2):**
+
+| Config | Mean $/co | Mean findings |
+|---|---|---|
+| baseline (10 / medium / search low) | ~0.022 | 2.6 |
+| steps 50 / 100 | ~0.020–0.023 | ~2.0–2.4 |
+| search package medium / high | ~0.021 | ~1.4–2.2 |
+| effort xhigh | ~0.058 | 3.6 |
+| effort max | ~0.117 | 3.8 |
+| API max corner (100 / max / search high) | ~0.116 | 3.8 |
+
+**Verdict:** `reasoning.effort` is the spend dial that can reach ~$0.10. Steps and search barely move dollars at medium effort (still kept for yield / PCS transfer curves).
+
+Baseline: Luna / steps 10 / effort medium / search low.
 
 | Arm id | Change |
 |---|---|
-| `uas_screen_baseline` | none (search low) |
-| `uas_screen_steps_20` | `max_steps=20` |
+| `uas_screen_baseline` | none |
 | `uas_screen_steps_30` | `max_steps=30` |
 | `uas_screen_steps_50` | `max_steps=50` |
+| `uas_screen_steps_100` | `max_steps=100` |
 | `uas_screen_effort_high` | `reasoning.effort=high` |
 | `uas_screen_effort_xhigh` | `reasoning.effort=xhigh` |
-| `uas_screen_search_medium` | search medium (4k tokens) |
-| `uas_screen_search_high` | search high (8k tokens) |
+| `uas_screen_effort_max` | `reasoning.effort=max` |
+| `uas_screen_search_medium` | search package medium |
+| `uas_screen_search_high` | search package high |
 
-8 OFAT arms × 15 companies ≈ 120 live calls. Model fixed Luna.
+9 OFAT arms × 50 companies = 450 live calls. Model fixed Luna. Budget headroom under $50 run gate.
 
 ---
 
