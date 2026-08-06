@@ -56,20 +56,20 @@ Supersedes CLI naming in [eval-harness.plan.md](./eval-harness.plan.md) (`run-ev
 
 ## Stage A screen matrix (wide OFAT v2)
 
-Baseline: Luna / `max_steps=10` / `reasoning.effort=medium` / search `medium`.
+Baseline: Luna / `max_steps=10` / `reasoning.effort=medium` / search `low`.
 
-Narrow v1 (steps 15 / search high / effort high) was too marginal; live showed only effort-high moved yield. Wide v2 locked 2026-08-05:
+`web_search_depth` is our ladder (not a Perplexity field): **low / medium / high** → `max_tokens` 2k / 4k / 8k.
 
 | Arm id | Change |
 |---|---|
-| `uas_screen_baseline` | none |
+| `uas_screen_baseline` | none (search low) |
 | `uas_screen_steps_20` | `max_steps=20` |
 | `uas_screen_steps_30` | `max_steps=30` |
 | `uas_screen_steps_50` | `max_steps=50` |
 | `uas_screen_effort_high` | `reasoning.effort=high` |
 | `uas_screen_effort_xhigh` | `reasoning.effort=xhigh` |
-| `uas_screen_search_high` | search depth high |
-| `uas_screen_search_beyond_high` | search past high (`max_tokens=8000`) |
+| `uas_screen_search_medium` | search medium (4k tokens) |
+| `uas_screen_search_high` | search high (8k tokens) |
 
 8 OFAT arms × 15 companies ≈ 120 live calls. Model fixed Luna.
 

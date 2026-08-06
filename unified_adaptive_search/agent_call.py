@@ -23,26 +23,26 @@ DEFAULT_MODEL = "openai/gpt-5.6-luna"
 # March production used 10; stock medium docs default is 15 (see from_preset_defaults).
 DEFAULT_MAX_STEPS = 10
 DEFAULT_REASONING_EFFORT = "medium"
-DEFAULT_WEB_SEARCH_DEPTH = "medium"
+# Our ladder (not a Perplexity enum): low/medium/high → rising max_tokens.
+DEFAULT_WEB_SEARCH_DEPTH = "low"
 DEFAULT_TIMEOUT = 300.0
 
 # Ledger label for CostComponent.preset (schema field). Not an API preset kwarg.
 LEDGER_CONFIG_LABEL = "luna"
 
-# Map depth labels to web_search tool options.
-# Named API sizes are low/medium/high only. beyond_high is our stretch past
-# named high via explicit max_tokens (docs: explicit budgets override size).
+# UAS web_search_depth → Agent API web_search tool fields.
+# Primary control is max_tokens (2k / 4k / 8k). search_context_size is pinned
+# to a matching named size so the API gets a consistent payload.
 _WEB_SEARCH_DEPTH: dict[str, dict[str, Any]] = {
-    "medium": {
+    "low": {
         "search_context_size": "medium",
         "max_tokens": 2000,
     },
-    "high": {
+    "medium": {
         "search_context_size": "high",
         "max_tokens": 4000,
     },
-    # Only max_tokens differs from high (OFAT: do not also set max_tokens_per_page).
-    "beyond_high": {
+    "high": {
         "search_context_size": "high",
         "max_tokens": 8000,
     },
@@ -63,14 +63,14 @@ def from_preset_defaults(name: str = "medium") -> dict[str, Any]:
             "model": DEFAULT_MODEL,
             "max_steps": 15,
             "reasoning_effort": "medium",
-            "web_search_depth": "medium",
+            "web_search_depth": "low",
         }
     if key == "low":
         return {
             "model": DEFAULT_MODEL,
             "max_steps": 5,
             "reasoning_effort": "minimal",
-            "web_search_depth": "medium",
+            "web_search_depth": "low",
         }
     raise ValueError(
         f"Unknown preset defaults {name!r}. "

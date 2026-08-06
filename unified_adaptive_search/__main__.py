@@ -28,7 +28,7 @@ def main() -> None:
     parser.add_argument(
         "--web-search-depth",
         default=DEFAULT_WEB_SEARCH_DEPTH,
-        help="medium | high | beyond_high (beyond_high = high + max_tokens=8000)",
+        help="Our search ladder: low | medium | high (max_tokens 2k / 4k / 8k)",
     )
     parser.add_argument(
         "--live",
