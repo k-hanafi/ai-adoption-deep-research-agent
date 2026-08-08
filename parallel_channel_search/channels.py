@@ -22,6 +22,17 @@ DEFAULT_REASONING_EFFORT = "medium"
 DEFAULT_WEB_SEARCH_DEPTH = "medium"
 
 
+def equal_depth_config_label(
+    model: str = DEFAULT_MODEL,
+    max_steps: int = DEFAULT_MAX_STEPS,
+    reasoning_effort: str = DEFAULT_REASONING_EFFORT,
+    web_search_depth: str = DEFAULT_WEB_SEARCH_DEPTH,
+) -> str:
+    """Stable ledger/preview label from explicit knobs (not a Perplexity preset)."""
+    model_tag = model.rsplit("/", 1)[-1].replace(".", "_")
+    return f"{model_tag}_steps{max_steps}_{reasoning_effort}_search_{web_search_depth}"
+
+
 @dataclass
 class ChannelConfig:
     channel_id: str

@@ -10,6 +10,7 @@ from evals.architectures import resolve_architecture
 from evals.panel import load_panel_companies
 from evals.paths import FIXTURE_PANEL_PATH, MAX_USD_PER_TUNING_RUN, TUNING_PANEL_PATH
 from evals.tune.matrix import LUNA_BASELINE_PRIOR_USD, stage_a_screen_arms
+from parallel_channel_search.channels import equal_depth_config_label
 
 # Illustrative priors for preview math only (not billed values).
 PRIOR_USD = {
@@ -21,6 +22,8 @@ PRIOR_USD = {
 # Tuning #14 live UAS OFAT: medium-effort family ≈ $0.020–0.023/call.
 # PCS equal-depth lock: steps50 / effort medium / search medium × 3 (pcs-param-lock.md).
 PCS_CHANNEL_PRIOR_USD = 0.022
+# Keep preview component labels identical to the PCS stub/live ledger.
+PCS_CHANNEL_PRESET_LABEL = equal_depth_config_label()
 
 
 @dataclass
@@ -92,17 +95,17 @@ def preview_cost(
         components = [
             {
                 "name": "channel_jobs",
-                "preset": "luna_steps50_medium_search_medium",
+                "preset": PCS_CHANNEL_PRESET_LABEL,
                 "expected_usd": PCS_CHANNEL_PRIOR_USD,
             },
             {
                 "name": "channel_owned",
-                "preset": "luna_steps50_medium_search_medium",
+                "preset": PCS_CHANNEL_PRESET_LABEL,
                 "expected_usd": PCS_CHANNEL_PRIOR_USD,
             },
             {
                 "name": "channel_third_party",
-                "preset": "luna_steps50_medium_search_medium",
+                "preset": PCS_CHANNEL_PRESET_LABEL,
                 "expected_usd": PCS_CHANNEL_PRIOR_USD,
             },
         ]
