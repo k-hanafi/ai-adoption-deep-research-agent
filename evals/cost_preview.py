@@ -18,6 +18,9 @@ PRIOR_USD = {
     "medium": 0.32,
     "high": 0.60,
 }
+# Tuning #14 live UAS OFAT: medium-effort family ≈ $0.020–0.023/call.
+# PCS equal-depth lock: steps50 / effort medium / search medium × 3 (pcs-param-lock.md).
+PCS_CHANNEL_PRIOR_USD = 0.022
 
 
 @dataclass
@@ -87,18 +90,27 @@ def preview_cost(
 
     if spec.cli_key == "parallel-channel-search":
         components = [
-            {"name": "channel_jobs", "preset": "low", "expected_usd": PRIOR_USD["low"]},
-            {"name": "channel_owned", "preset": "low", "expected_usd": PRIOR_USD["low"]},
+            {
+                "name": "channel_jobs",
+                "preset": "luna_steps50_medium_search_medium",
+                "expected_usd": PCS_CHANNEL_PRIOR_USD,
+            },
+            {
+                "name": "channel_owned",
+                "preset": "luna_steps50_medium_search_medium",
+                "expected_usd": PCS_CHANNEL_PRIOR_USD,
+            },
             {
                 "name": "channel_third_party",
-                "preset": "low",
-                "expected_usd": PRIOR_USD["low"],
+                "preset": "luna_steps50_medium_search_medium",
+                "expected_usd": PCS_CHANNEL_PRIOR_USD,
             },
         ]
         calls = 3.0
         notes = [
-            "PCS: 3 equal-depth channel agents at low (locked v1).",
-            "Domain filters deferred (not in this estimate).",
+            "PCS: 3 equal-depth Luna channels (steps 50 / effort medium / search medium).",
+            "Prior ≈$0.022/channel from Tuning #14 medium family (projected ≈$0.066/company).",
+            "Domain filters off (prompt-only targeting).",
         ]
     elif spec.cli_key == "signal-gated-search":
         components = [

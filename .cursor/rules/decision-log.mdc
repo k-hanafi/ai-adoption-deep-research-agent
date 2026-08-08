@@ -1,0 +1,36 @@
+---
+description: Maintain docs/decision-log.md as a living, self-healing project decision record for write-up later.
+alwaysApply: true
+---
+
+# Decision log (agents)
+
+Canonical file: `docs/decision-log.md`
+
+## When to write
+
+After any turn that **locks, changes, or clearly rejects** a design/config/eval choice (architectures, knobs, prompts, cost targets, merge policy, panels, Stage 3, bake-off rules), update the log before ending the turn.
+
+Skip trivia (typos, formatting-only, pure code plumbing with no product decision).
+
+## How to write
+
+1. **Append** a new `## YYYY-MM-DD: <title>` section. Do not rewrite old decisions in place.
+2. Use: **Decision → Why → Evidence → Alternatives rejected → Open follow-ups** (omit empty fields).
+3. Point **Evidence** at real paths / metrics / instance IDs in this repo.
+4. If a new decision replaces an old one: keep the old section; add `**Status:** superseded by [[YYYY-MM-DD: title]]` on the old entry; write the new entry fully.
+5. Keep **Open follow-ups** at the bottom current: check off done items, add new ones, remove stale duplicates.
+6. Refresh the **Related artifacts** list when important paths move or appear.
+
+## Self-heal
+
+If you notice the log is wrong or stale (broken path, checkbox done but unchecked, two `current` decisions that disagree):
+
+- Fix the mechanical issue (path, checkbox, related-artifacts link).
+- For substantive conflict: do not silently pick a winner; append a short entry noting the conflict and what the user / latest freeze says, or ask once if unclear.
+
+## Do not
+
+- Invent decisions the user did not make or approve.
+- Dump chat transcripts or raw JSONL into the log.
+- Duplicate long tables already in `.cursor/plans/*`; summarize and link.
