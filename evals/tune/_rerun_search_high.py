@@ -320,6 +320,8 @@ def _row_from_trace(
         "findings_count": len(findings),
         "cost_usd": cost_usd,
         "cost_estimated": cost_estimated,
+        # Durable marker: always rebill these (preview/cost may be incomplete).
+        "_trace_recovered": True,
         "error": None
         if _trace_ok(trace)
         else (trace.get("error") or "live_error"),
@@ -375,13 +377,14 @@ def main() -> None:
 
     for panel_index, company in enumerate(companies):
         existing = by_index.get(panel_index)
-        # Do not skip trace-recovered / cost-estimated rows: preview parse can
-        # understate findings, and cost is only a heuristic until a live rebill.
+        # Do not skip trace-recovered rows: preview parse can understate
+        # findings, and cost may be missing or estimated until a live rebill.
         if (
             existing
             and not existing.get("error")
             and (existing.get("traces") or {}).get("phase") != "live_error"
             and not existing.get("_from_trace_only")
+            and not existing.get("_trace_recovered")
             and not existing.get("cost_estimated")
             and existing.get("findings_count") is not None
             and "cost_usd" in existing

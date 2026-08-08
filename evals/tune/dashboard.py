@@ -508,7 +508,12 @@ def _tool_use_by_arm(
                     continue
                 n_ok += 1
                 toi = tu.get("tool_output_items")
-                sw = float(details.get("search_web") or 0)
+                # Agent usage may label the tool search_web or web_search.
+                sw = float(
+                    details.get("search_web")
+                    or details.get("web_search")
+                    or 0
+                )
                 urls = float(tu.get("search_result_urls") or 0)
                 if toi is not None:
                     tools.append(float(toi))
