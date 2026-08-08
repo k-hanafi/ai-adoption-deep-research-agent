@@ -13,6 +13,7 @@ from evals.architectures import ARCHITECTURES, ALIASES, resolve_architecture
 from evals.cost_preview import preview_cost, preview_matrix
 from evals.dashboard.landing import ensure_landing_stub
 from evals.tune import run_tuning
+from evals.tune.cost_diagnose import run_cost_diagnose
 
 
 def _architecture_help() -> str:
@@ -79,6 +80,19 @@ def build_parser() -> argparse.ArgumentParser:
         "--live",
         action="store_true",
         help="Mark instance as live (paid path not wired yet)",
+    )
+
+    diag_p = sub.add_parser(
+        "cost-diagnose",
+        help=(
+            "Small paid (or dry) knob smokes to size Stage A ranges "
+            "before a full tuning matrix."
+        ),
+    )
+    diag_p.add_argument(
+        "--live",
+        action="store_true",
+        help="Paid Agent API smokes (default is dry)",
     )
 
     cost_p = sub.add_parser(
@@ -184,6 +198,18 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(f"Wrote verification instance to: {instance_dir}")
         print(f"Dashboard: {instance_dir / 'dashboard.html'}")
+        return 0
+
+    if args.command == "cost-diagnose":
+        if args.live:
+            print(
+                "Live cost-diagnose: paid UAS smokes across knob highs + "
+                "API-max corner. Approve spend before large follows.",
+                file=sys.stderr,
+            )
+        out_dir = run_cost_diagnose(dry_run=not args.live)
+        print(f"Wrote cost-diagnose bundle to: {out_dir}")
+        print(f"Summary: {out_dir / 'summary.csv'}")
         return 0
 
     if args.command == "cost-preview":

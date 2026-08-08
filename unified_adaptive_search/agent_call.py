@@ -30,21 +30,27 @@ DEFAULT_TIMEOUT = 300.0
 # Ledger label for CostComponent.preset (schema field). Not an API preset kwarg.
 LEDGER_CONFIG_LABEL = "luna"
 
-# UAS web_search_depth → Agent API web_search tool fields.
-# Primary control is max_tokens (2k / 4k / 8k). search_context_size is pinned
-# to a matching named size so the API gets a consistent payload.
+# UAS web_search_depth → coordinated web_search tool package (our ladder).
+# Each step raises size, token budgets, and result breadth together so
+# "search=high" means a richer search package, not only max_tokens.
 _WEB_SEARCH_DEPTH: dict[str, dict[str, Any]] = {
     "low": {
         "search_context_size": "medium",
         "max_tokens": 2000,
+        "max_tokens_per_page": 1000,
+        "max_results": 10,
     },
     "medium": {
         "search_context_size": "high",
         "max_tokens": 4000,
+        "max_tokens_per_page": 2000,
+        "max_results": 20,
     },
     "high": {
         "search_context_size": "high",
         "max_tokens": 8000,
+        "max_tokens_per_page": 4000,
+        "max_results": 50,
     },
 }
 
@@ -198,6 +204,69 @@ def require_api_key(api_key: Optional[str] = None) -> str:
     return key
 
 
+def _tool_use_from_response(response: Any) -> dict[str, Any]:
+    """Extract actual tool/search utilization from an Agent API response.
+
+    - tool_calls_details: metered invocations per tool (web_search, fetch_url, …)
+    - output_item_counts: how many search/fetch/message blocks appear in output
+      (soft proxy for research-loop activity; API has no steps_used field)
+    - search_result_urls: URLs collected from search_results items
+    """
+    from perplexity.types.output_item import (
+        FetchURLResultsOutputItem,
+        MessageOutputItem,
+        SearchResultsOutputItem,
+    )
+
+    tool_calls_details: dict[str, int] = {}
+    tool_calls_cost_usd = None
+    if getattr(response, "usage", None):
+        usage = response.usage
+        raw_details = getattr(usage, "tool_calls_details", None) or {}
+        for name, detail in raw_details.items():
+            inv = getattr(detail, "invocation", None)
+            if inv is None and isinstance(detail, dict):
+                inv = detail.get("invocation")
+            if inv is not None:
+                tool_calls_details[str(name)] = int(inv)
+        cost = getattr(usage, "cost", None)
+        if cost is not None and getattr(cost, "tool_calls_cost", None) is not None:
+            tool_calls_cost_usd = float(cost.tool_calls_cost)
+
+    output_item_counts = {
+        "search_results": 0,
+        "fetch_url_results": 0,
+        "message": 0,
+        "other": 0,
+    }
+    citations: list[str] = []
+    for item in response.output or []:
+        if isinstance(item, SearchResultsOutputItem):
+            output_item_counts["search_results"] += 1
+            for sr in item.results or []:
+                if getattr(sr, "url", None):
+                    citations.append(sr.url)
+        elif isinstance(item, FetchURLResultsOutputItem):
+            output_item_counts["fetch_url_results"] += 1
+        elif isinstance(item, MessageOutputItem):
+            output_item_counts["message"] += 1
+        else:
+            output_item_counts["other"] += 1
+
+    return {
+        "tool_calls_details": tool_calls_details,
+        "tool_calls_cost_usd": tool_calls_cost_usd,
+        "output_item_counts": output_item_counts,
+        "search_result_urls": len(citations),
+        "citations": citations,
+        # Soft loop proxy: tool output blocks (not an official steps_used).
+        "tool_output_items": (
+            output_item_counts["search_results"]
+            + output_item_counts["fetch_url_results"]
+        ),
+    }
+
+
 def execute_agent_call(
     request_kwargs: dict[str, Any],
     *,
@@ -209,7 +278,6 @@ def execute_agent_call(
     Reuses the production parse / usage patterns (sync client, like preset tests).
     """
     from perplexity import Perplexity
-    from perplexity.types.output_item import SearchResultsOutputItem
 
     key = require_api_key(api_key)
     client = Perplexity(api_key=key, max_retries=0)
@@ -229,12 +297,7 @@ def execute_agent_call(
         if response.usage.cost and response.usage.cost.total_cost is not None:
             cost_usd = float(response.usage.cost.total_cost)
 
-    citations: list[str] = []
-    for item in response.output or []:
-        if isinstance(item, SearchResultsOutputItem):
-            for sr in item.results or []:
-                if getattr(sr, "url", None):
-                    citations.append(sr.url)
+    tool_use = _tool_use_from_response(response)
 
     # Build meta before failure/empty checks so metered usage is never dropped.
     meta = {
@@ -245,7 +308,15 @@ def execute_agent_call(
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
         "total_tokens": total_tokens,
-        "citations": citations,
+        "citations": tool_use["citations"],
+        "tool_use": {
+            "tool_calls_details": tool_use["tool_calls_details"],
+            "tool_calls_cost_usd": tool_use["tool_calls_cost_usd"],
+            "output_item_counts": tool_use["output_item_counts"],
+            "search_result_urls": tool_use["search_result_urls"],
+            "tool_output_items": tool_use["tool_output_items"],
+            "max_steps_ceiling": request_kwargs.get("max_steps"),
+        },
         "raw_content_preview": None,
         "genai_adoption_found": False,
         "findings": [],

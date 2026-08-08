@@ -190,6 +190,8 @@ def run(
             "output_tokens": payload.get("output_tokens"),
             "total_tokens": payload.get("total_tokens"),
             "citations": payload.get("citations") or [],
+            # Actual tool use vs request caps (see agent_call._tool_use_from_response).
+            "tool_use": payload.get("tool_use") or {},
             "raw_content_preview": payload.get("raw_content_preview"),
             "prompt_lineage": "prompts/stage_2_perplexity_prompt.txt",
             "source_patterns": "src/stage_2/production_agent_runner.py",
