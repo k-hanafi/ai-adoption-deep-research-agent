@@ -6,15 +6,14 @@ import html
 import json
 from typing import Any
 
-from evals.dashboard.theme import DARK_CSS
+from evals.dashboard.theme import SUITE_CSS
 from evals.paths import KIND_LABELS
 
 
 _STUB_COPY = {
     "tuning": (
-        "Tuning instances will show Stage A/B hyperparameter arms, the "
-        "~$0.10/company constraint, and a winner under that budget. "
-        "This stub only proves archive wiring. Real Stage A screen lands in the next PR."
+        "Tuning instances show Stage A/B hyperparameter arms, the "
+        "~$0.10/company constraint, and a winner under that budget."
     ),
     "benchmark": (
         "Benchmark instances will compare UAS / PCS / SGS on a held-out paired "
@@ -40,33 +39,38 @@ def render_stub_dashboard(
     cli = summary.get("cli") or ""
     mode = "dry" if summary.get("dry_run", True) else "live"
     sha = summary.get("git_sha") or "unknown"
-    meta = (
-        f"{html.escape(str(arch))} · {html.escape(mode)} · "
-        f"commit {html.escape(str(sha))}"
-    )
-    body = html.escape(copy)
     payload = html.escape(json.dumps(summary, indent=2))
-    return f"""<!doctype html>
+    return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{safe_title}</title>
-  <style>{DARK_CSS}</style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>{safe_title}</title>
+<style>
+{SUITE_CSS}
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <p class="chip">{html.escape(label)} stub</p>
-    <div class="header-row">
-      <h1>{safe_title}</h1>
-    </div>
-    <p class="subtitle">{meta}</p>
-    <div class="banner">{body}</div>
-    <p class="meta">CLI: <code>{html.escape(cli)}</code></p>
-    <h2 class="section" style="margin-top:1.5rem">summary.json</h2>
-    <pre>{payload}</pre>
-    <p class="footer"><a href="../../index.html">Back to archive</a></p>
+<header class="appbar">
+  <div class="brand">Deep Research Eval Suite<small>{html.escape(label)} stub</small></div>
+  <div class="appbar-meta">{html.escape(str(arch))} · {html.escape(mode)} · commit {html.escape(str(sha))}</div>
+</header>
+<div class="notice dry">
+  <span class="tag">Stub</span>
+  <div><span class="run-headline">{safe_title}</span>
+  <span class="run-meta">{html.escape(copy)}</span></div>
+</div>
+<main class="content">
+  <div class="tab-lead">
+    <h2>{safe_title}</h2>
+    <p>CLI: <code>{html.escape(cli)}</code></p>
   </div>
+  <div class="card">
+    <div class="card-title">summary.json</div>
+    <pre style="font-family:var(--mono);font-size:12px;white-space:pre-wrap;color:var(--text2)">{payload}</pre>
+  </div>
+  <footer class="page-footer"><a href="../../index.html">Back to archive</a></footer>
+</main>
 </body>
 </html>
 """

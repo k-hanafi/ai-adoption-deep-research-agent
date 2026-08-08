@@ -172,7 +172,9 @@ def run_tuning(
         bundle_finalized_in_partial = True
 
         def _dashboard(title: str, summary: dict[str, Any]) -> str:
-            return render_tuning_dashboard(title=title, summary=summary)
+            return render_tuning_dashboard(
+                title=title, summary=summary, instance_dir=None
+            )
 
         live_flag = "" if dry_run else " --live"
         notes = (
@@ -220,7 +222,11 @@ def run_tuning(
         partial_discarded = True
 
         (instance_dir / "dashboard.html").write_text(
-            render_tuning_dashboard(title=str(updated["title"]), summary=updated),
+            render_tuning_dashboard(
+                title=str(updated["title"]),
+                summary=updated,
+                instance_dir=instance_dir,
+            ),
             encoding="utf-8",
         )
         return instance_dir
