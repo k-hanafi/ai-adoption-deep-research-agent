@@ -375,17 +375,23 @@ def main() -> None:
 
     for panel_index, company in enumerate(companies):
         existing = by_index.get(panel_index)
-        if existing and not existing.get("error") and (
-            (existing.get("traces") or {}).get("phase") != "live_error"
-        ) and not existing.get("_from_trace_only"):
-            # Keep successful prediction rows.
-            if existing.get("findings_count") is not None and "cost_usd" in existing:
-                print(
-                    f"SKIP idx={panel_index} rcid={company.rcid} {company.name} "
-                    f"(already ok)",
-                    flush=True,
-                )
-                continue
+        # Do not skip trace-recovered / cost-estimated rows: preview parse can
+        # understate findings, and cost is only a heuristic until a live rebill.
+        if (
+            existing
+            and not existing.get("error")
+            and (existing.get("traces") or {}).get("phase") != "live_error"
+            and not existing.get("_from_trace_only")
+            and not existing.get("cost_estimated")
+            and existing.get("findings_count") is not None
+            and "cost_usd" in existing
+        ):
+            print(
+                f"SKIP idx={panel_index} rcid={company.rcid} {company.name} "
+                f"(already ok)",
+                flush=True,
+            )
+            continue
 
         last_err = existing.get("error") if existing else None
         success = False

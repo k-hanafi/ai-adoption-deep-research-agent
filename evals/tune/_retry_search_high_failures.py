@@ -217,7 +217,30 @@ def main() -> None:
                 flush=True,
             )
 
-    ordered = [by_index[i] for i in range(len(companies))]
+    ordered: list[dict[str, Any]] = []
+    for i, company in enumerate(companies):
+        row = by_index.get(i)
+        if row is None:
+            row = {
+                "rcid": company.rcid,
+                "company_name": company.name,
+                "architecture": "unified-adaptive-search",
+                "findings": [],
+                "findings_count": 0,
+                "cost_usd": 0.0,
+                "error": "missing_prediction_row",
+                "traces": {
+                    "strategy": "unified_adaptive_search",
+                    "phase": "live_error",
+                    "error": "missing_prediction_row",
+                },
+                "repeat": 1,
+                "panel_index": i,
+                "stub": False,
+                "dry_run": False,
+            }
+            by_index[i] = row
+        ordered.append(row)
     with pred_path.open("w", encoding="utf-8") as f:
         for r in ordered:
             f.write(json.dumps(r) + "\n")
