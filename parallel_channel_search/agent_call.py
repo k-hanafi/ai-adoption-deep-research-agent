@@ -312,17 +312,25 @@ def execute_agent_call(
         return meta
 
     meta["raw_content_preview"] = content[:500]
+    # Keep metered usage even when content parsing fails after a live response.
     try:
         try:
             parsed = json.loads(content)
         except json.JSONDecodeError:
             parsed = json.loads(_extract_json_from_text(content))
+        if not isinstance(parsed, dict):
+            meta["error"] = (
+                f"JSON root must be an object, got {type(parsed).__name__}"
+            )
+            return meta
+        meta["findings"] = _parse_findings(
+            parsed.get("findings"), channel_id=channel_id
+        )
+        meta["genai_adoption_found"] = bool(parsed.get("genai_adoption_found", False))
+        meta["no_finding_reason"] = parsed.get("no_finding_reason")
+        meta["no_finding_analysis"] = parsed.get("no_finding_analysis")
     except json.JSONDecodeError as exc:
         meta["error"] = f"JSON parse error: {exc}"
-        return meta
-
-    meta["findings"] = _parse_findings(parsed.get("findings"), channel_id=channel_id)
-    meta["genai_adoption_found"] = bool(parsed.get("genai_adoption_found", False))
-    meta["no_finding_reason"] = parsed.get("no_finding_reason")
-    meta["no_finding_analysis"] = parsed.get("no_finding_analysis")
+    except Exception as exc:
+        meta["error"] = f"Response parse error: {type(exc).__name__}: {exc}"
     return meta
