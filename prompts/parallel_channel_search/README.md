@@ -11,7 +11,7 @@
 | `channel_owned.txt` | Owned specialist contract |
 | `channel_third_party.txt` | Third-party specialist contract |
 
-Compose at runtime: expand `{shared_preamble}` from `shared_preamble.txt`, then fill company fields (`company_id`, `company_name`, `homepage_url`, `short_description`).
+Compose at runtime via `parallel_channel_search.prompting.build_channel_prompt`: expand `{shared_preamble}` from `shared_preamble.txt`, then fill company fields (`company_id`, `company_name`, `homepage_url`, `short_description`).
 
 ## Design rules baked in
 

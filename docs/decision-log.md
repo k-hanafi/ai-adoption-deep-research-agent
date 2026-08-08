@@ -87,7 +87,7 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 
 **Locked prompts:** `prompts/parallel_channel_search/{shared_preamble,channel_jobs,channel_owned,channel_third_party}.txt`.
 
-**Status:** Design freeze. Package live runner still stubbed (see Open follow-ups).
+**Status:** Design freeze. Dry-run request builder landed 2026-08-08; live fan-out still open (see Open follow-ups).
 
 **Evidence:** Tuning #14; `evals/configs/parallel_channel_search.yaml`; user approval 2026-08-08.
 
@@ -153,12 +153,26 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 
 ---
 
+## 2026-08-08: PCS dry-run request builder (prompt compose + explicit knobs)
+
+**Decision:** PCS dry-run composes frozen channel prompts into three equal-depth Agent API request kwargs (explicit model/steps/effort/search tools, no dynamic `preset`). Live fan-out stays unwired until the next PR.
+
+**Why:** Unblocks eval wiring and request inspection without paid calls. Reuses the UAS request shape so the bake-off compares channel fan-out vs one adaptive call, not different API packaging.
+
+**Evidence:** `parallel_channel_search/{prompting,agent_call,runner}.py`; dry-run `traces.request_snapshots`.
+
+**Alternatives rejected:** Importing UAS `agent_call` internals (keeps PCS package identity); shipping live fan-out in the same slice.
+
+**Open follow-ups:** live parallel fan-out + metered ledger; merge/dedupe; one-company paid smoke.
+
+---
+
 ## Open follow-ups (PCS)
 
 - [x] Freeze prompts + Agent API knobs (design)
 - [x] Confirm UAS package is live-ready (no rebuild needed; Tuning #14 proved live path)
-- [ ] Wire live PCS runner (still stub) + compose prompts into Agent API calls
-- [ ] Parallel fan-out of 3 channel calls + per-channel cost ledger from usage
+- [x] Compose frozen prompts into per-channel Agent API request kwargs (dry-run snapshots)
+- [ ] Wire live PCS runner: parallel fan-out of 3 channel calls + per-channel cost ledger from usage
 - [ ] Merge/dedupe: normalize URL + (tool, url) across channels; keep provenance
 - [ ] Tiny paid smoke to confirm 3× metered cost ≈ projection
 - [ ] Optional Stage B: steps=50 × search=high if we want to re-test deeper search with the steps budget
