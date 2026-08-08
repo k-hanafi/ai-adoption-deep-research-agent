@@ -16,7 +16,12 @@ from contracts.types import (
 )
 from parallel_channel_search.channels import (
     DEFAULT_EQUAL_DEPTH_PRESET,
+    DEFAULT_MAX_STEPS,
+    DEFAULT_MODEL,
+    DEFAULT_REASONING_EFFORT,
+    DEFAULT_WEB_SEARCH_DEPTH,
     default_channel_configs,
+    equal_depth_config_label,
 )
 from parallel_channel_search.merge import merge_findings
 
@@ -30,6 +35,10 @@ def run(
     dry_run: bool = True,
     preset: str = DEFAULT_EQUAL_DEPTH_PRESET,
     enabled_channels: Optional[tuple[str, ...]] = None,
+    model: str = DEFAULT_MODEL,
+    max_steps: int = DEFAULT_MAX_STEPS,
+    reasoning_effort: str = DEFAULT_REASONING_EFFORT,
+    web_search_depth: str = DEFAULT_WEB_SEARCH_DEPTH,
 ) -> ArchitectureResult:
     """Run PCS for one company.
 
@@ -47,13 +56,27 @@ def run(
         if isinstance(company, CompanyInput)
         else CompanyInput.from_mapping(company)
     )
-    configs = [c for c in default_channel_configs(preset, enabled_channels) if c.enabled]
+    configs = [
+        c
+        for c in default_channel_configs(
+            preset,
+            enabled_channels,
+            model=model,
+            max_steps=max_steps,
+            reasoning_effort=reasoning_effort,
+            web_search_depth=web_search_depth,
+        )
+        if c.enabled
+    ]
 
     # STUB: no Agent API calls. Real path fans out one call per channel, then merge.
+    knob_label = equal_depth_config_label(
+        model, max_steps, reasoning_effort, web_search_depth
+    )
     components = [
         CostComponent(
             name=f"channel_{cfg.channel_id}",
-            preset=cfg.preset,
+            preset=knob_label,
             cost_usd=0.0,
             channel=cfg.channel_id,
             ran=False,
@@ -76,17 +99,23 @@ def run(
             "Parallel Channel Search Phase 1 stub: "
             f"{len(configs)} equal-depth channel agent(s) "
             f"({', '.join(c.channel_id for c in configs) or 'none'}) "
-            f"at preset={preset!r}. "
+            f"at {knob_label}. "
             "No Perplexity Agent API call was made."
         ),
         traces={
             "strategy": "parallel_channel_search",
             "phase": "stub",
-            "equal_depth_preset": preset,
+            "model": model,
+            "max_steps": max_steps,
+            "reasoning_effort": reasoning_effort,
+            "web_search_depth": web_search_depth,
+            "legacy_preset_arg": preset,
             "channels": [c.channel_id for c in configs],
-            "domain_filters": "deferred_empty",
+            "domain_filters": "off_prompt_only",
         },
         stub=True,
         dry_run=True,
-        preset=preset,
+        # Explicit knobs are source of truth (same pattern as UAS: no stock preset).
+        preset=None,
+        model_used=model,
     )

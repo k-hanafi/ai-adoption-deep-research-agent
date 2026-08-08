@@ -10,6 +10,7 @@ from evals.architectures import resolve_architecture
 from evals.panel import load_panel_companies
 from evals.paths import FIXTURE_PANEL_PATH, MAX_USD_PER_TUNING_RUN, TUNING_PANEL_PATH
 from evals.tune.matrix import LUNA_BASELINE_PRIOR_USD, stage_a_screen_arms
+from parallel_channel_search.channels import equal_depth_config_label
 
 # Illustrative priors for preview math only (not billed values).
 PRIOR_USD = {
@@ -18,6 +19,11 @@ PRIOR_USD = {
     "medium": 0.32,
     "high": 0.60,
 }
+# Tuning #14 live UAS OFAT: medium-effort family ≈ $0.020–0.023/call.
+# PCS equal-depth lock: steps50 / effort medium / search medium × 3 (pcs-param-lock.md).
+PCS_CHANNEL_PRIOR_USD = 0.022
+# Keep preview component labels identical to the PCS stub/live ledger.
+PCS_CHANNEL_PRESET_LABEL = equal_depth_config_label()
 
 
 @dataclass
@@ -87,18 +93,27 @@ def preview_cost(
 
     if spec.cli_key == "parallel-channel-search":
         components = [
-            {"name": "channel_jobs", "preset": "low", "expected_usd": PRIOR_USD["low"]},
-            {"name": "channel_owned", "preset": "low", "expected_usd": PRIOR_USD["low"]},
+            {
+                "name": "channel_jobs",
+                "preset": PCS_CHANNEL_PRESET_LABEL,
+                "expected_usd": PCS_CHANNEL_PRIOR_USD,
+            },
+            {
+                "name": "channel_owned",
+                "preset": PCS_CHANNEL_PRESET_LABEL,
+                "expected_usd": PCS_CHANNEL_PRIOR_USD,
+            },
             {
                 "name": "channel_third_party",
-                "preset": "low",
-                "expected_usd": PRIOR_USD["low"],
+                "preset": PCS_CHANNEL_PRESET_LABEL,
+                "expected_usd": PCS_CHANNEL_PRIOR_USD,
             },
         ]
         calls = 3.0
         notes = [
-            "PCS: 3 equal-depth channel agents at low (locked v1).",
-            "Domain filters deferred (not in this estimate).",
+            "PCS: 3 equal-depth Luna channels (steps 50 / effort medium / search medium).",
+            "Prior ≈$0.022/channel from Tuning #14 medium family (projected ≈$0.066/company).",
+            "Domain filters off (prompt-only targeting).",
         ]
     elif spec.cli_key == "signal-gated-search":
         components = [
