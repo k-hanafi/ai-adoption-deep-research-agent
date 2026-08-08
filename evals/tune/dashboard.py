@@ -352,7 +352,7 @@ def _leaderboard_html(
         else:
             badges.append('<span class="badge pass">feasible</span>')
         badge_html = "".join(badges)
-        factor = str(arm.get("factor") or "")
+        factor = str(arm.get("factor") or "other")
         body.append(
             f"<tr class='{row_cls}' data-factor='{html.escape(factor)}' data-arm='{html.escape(arm_id)}'>"
             f"<td class='num'>{rank}</td>"
@@ -463,7 +463,7 @@ def _chart_payload(
             {
                 "arm_id": a.get("arm_id"),
                 "label": a.get("label"),
-                "factor": a.get("factor"),
+                "factor": str(a.get("factor") or "other"),
                 "cost": a.get("mean_cost_usd"),
                 "findings": a.get("mean_findings"),
                 "feasible": bool(a.get("feasible")),
@@ -601,9 +601,10 @@ _SUITE_JS = r"""
 
   function applyFilter() {
     const active = activeFactors();
+    const showAll = active.size === 0;
     let shown = 0;
     rows().forEach(tr => {
-      const ok = active.has(tr.dataset.factor);
+      const ok = showAll || active.has(tr.dataset.factor);
       tr.style.display = ok ? '' : 'none';
       if (ok) shown += 1;
     });
@@ -648,7 +649,10 @@ _SUITE_JS = r"""
     let payload = {};
     try { payload = JSON.parse(host.getAttribute('data-payload') || '{}'); } catch (e) { payload = {}; }
     const active = activeFactors();
-    const pts = (payload.points || []).filter(p => active.has(String(p.factor)));
+    const showAll = active.size === 0;
+    const pts = (payload.points || []).filter(
+      p => showAll || active.has(String(p.factor))
+    );
     const feasible = pts.filter(p => p.feasible);
     const infeas = pts.filter(p => !p.feasible);
     const winners = pts.filter(p => p.winner);
