@@ -181,13 +181,27 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 
 ---
 
+## 2026-08-08: PCS merge dedupe by normalized (tool, url)
+
+**Decision:** Merge keeps the first finding per normalized `(AI_tool_used, source_url)` across channels. URL normalize lowercases scheme/host, strips fragments and trailing slashes. Channel provenance on the kept row is preserved; `finding_id` is renumbered after merge.
+
+**Why:** Sibling rooms may report the same evidence. Deduping only within a channel would double-count in the bake-off score. First-wins with jobs → owned → third_party order matches the runner's stable channel order.
+
+**Evidence:** `parallel_channel_search/merge.py`.
+
+**Alternatives rejected:** Keying on channel too (old stub); hard domain allowlists at merge time.
+
+**Open follow-ups:** CLI `--live` smoke; paid one-company confirm of 3× metered cost.
+
+---
+
 ## Open follow-ups (PCS)
 
 - [x] Freeze prompts + Agent API knobs (design)
 - [x] Confirm UAS package is live-ready (no rebuild needed; Tuning #14 proved live path)
 - [x] Compose frozen prompts into per-channel Agent API request kwargs (dry-run snapshots)
 - [x] Wire live PCS runner: parallel fan-out of 3 channel calls + per-channel cost ledger from usage
-- [ ] Merge/dedupe: normalize URL + (tool, url) across channels; keep provenance
+- [x] Merge/dedupe: normalize URL + (tool, url) across channels; keep provenance
 - [ ] Tiny paid smoke to confirm 3× metered cost ≈ projection
 - [ ] Optional Stage B: steps=50 × search=high if we want to re-test deeper search with the steps budget
 - [ ] Lock UAS **bake-off** knobs in `evals/configs/unified_adaptive_search.yaml` (package works; yaml still baseline-ish, not Tuning #14 winner)
