@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
-from evals.dashboard.theme import DARK_CSS
+from evals.dashboard.theme import SUITE_CSS
 from evals.paths import EVAL_INSTANCES_DIR, KIND_LABELS, KINDS, LANDING_INDEX_PATH
 
 _EMPTY_CLI = {
@@ -49,7 +49,6 @@ def _instances_for_kind(catalog: dict[str, Any], kind: str) -> list[dict[str, An
         for row in catalog.get("instances") or []
         if isinstance(row, dict) and row.get("kind") == kind
     ]
-    # Newest-first by n (catalog already inserts at front; sort as safety).
     rows.sort(key=lambda r: int(r.get("n") or 0), reverse=True)
     return rows
 
@@ -65,7 +64,7 @@ def _render_section(kind: str, rows: list[dict[str, Any]]) -> str:
         )
     else:
         parts: list[str] = [
-            "<table><thead><tr>"
+            '<table class="archive-table"><thead><tr>'
             "<th>#</th><th>Eval instance</th><th>Archived</th><th>File</th>"
             "</tr></thead><tbody>"
         ]
@@ -83,13 +82,16 @@ def _render_section(kind: str, rows: list[dict[str, Any]]) -> str:
             )
             archived = html.escape(_format_archived(row.get("created_at")))
             filename = html.escape(Path(str(row.get("dashboard_relpath") or "")).name)
+            stub_tag = (
+                '<span class="tag-inline">stub</span>' if row.get("stub") else ""
+            )
             parts.append(
                 "<tr>"
-                f"<td>{n}</td>"
-                f"<td class='title-cell'><a href='{href}'>{title}</a>"
+                f'<td class="num">{n}</td>'
+                f"<td><a href='{href}'>{title}</a>{stub_tag}"
                 f"<span class='meta'>{meta}</span></td>"
-                f"<td>{archived}</td>"
-                f"<td><code>{filename}</code></td>"
+                f"<td class='meta'>{archived}</td>"
+                f"<td class='num'>{filename}</td>"
                 "</tr>"
             )
         parts.append("</tbody></table>")
@@ -121,32 +123,30 @@ def _render_index(catalog: dict[str, Any]) -> str:
         _render_section(kind, _instances_for_kind(catalog, kind)) for kind in KINDS
     )
     rewritten = datetime.now().astimezone().strftime("%Y-%m-%d")
-    return f"""<!doctype html>
+    return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Eval Suite · instance archive</title>
-  <style>{DARK_CSS}</style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Eval Suite · instance archive</title>
+<style>
+{SUITE_CSS}
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="header-row">
-      <div>
-        <h1>Eval Suite</h1>
-        <p class="subtitle">instance archive</p>
-      </div>
-      <p class="chip">{total} archived</p>
-    </div>
-    <p class="lede">
-      Each row is one CLI invocation of
-      <code>run-tuning</code>, <code>run-benchmarks</code>, or
-      <code>run-verification</code>. Click a title to open that instance dashboard.
-      Times use this machine's local timezone.
-    </p>
-    {sections}
-    <p class="footer">Index rewritten {html.escape(rewritten)}.</p>
-  </div>
+<header class="appbar">
+  <div class="brand">Deep Research Eval Suite<small>instance archive</small></div>
+  <div class="appbar-meta">{total} archived</div>
+</header>
+<main class="archive">
+  <p class="lede">Each row is one saved CLI run of
+  <code>run-tuning</code>, <code>run-benchmarks</code>, or
+  <code>run-verification</code>, kept so a scored instance stays viewable after
+  later builds. Click a title to open that instance dashboard. Times use this
+  machine's local timezone.</p>
+  {sections}
+  <footer class="page-footer">Index rewritten {html.escape(rewritten)}.</footer>
+</main>
 </body>
 </html>
 """

@@ -135,6 +135,21 @@ def build_parser() -> argparse.ArgumentParser:
         help="Print the path only (do not launch a browser)",
     )
 
+    refresh_p = sub.add_parser(
+        "refresh-dashboard",
+        help="Rewrite a tuning instance dashboard.html from its summary.json.",
+    )
+    refresh_p.add_argument(
+        "instance_dir",
+        type=Path,
+        help="Path to evals/instances/tuning/<id>/",
+    )
+    refresh_p.add_argument(
+        "--open",
+        action="store_true",
+        help="Open the rewritten dashboard in a browser",
+    )
+
     return parser
 
 
@@ -240,6 +255,35 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Landing index: {path}")
         if not args.no_open:
             webbrowser.open(path.resolve().as_uri())
+        return 0
+
+    if args.command == "refresh-dashboard":
+        from evals.tune.dashboard import render_tuning_dashboard
+
+        instance_dir = args.instance_dir.expanduser().resolve()
+        summary_path = instance_dir / "summary.json"
+        if not summary_path.is_file():
+            print(f"error: missing {summary_path}", file=sys.stderr)
+            return 2
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        if summary.get("kind") != "tuning":
+            print(
+                "error: refresh-dashboard currently supports tuning instances only",
+                file=sys.stderr,
+            )
+            return 2
+        title = str(summary.get("title") or instance_dir.name)
+        out = instance_dir / "dashboard.html"
+        out.write_text(
+            render_tuning_dashboard(
+                title=title, summary=summary, instance_dir=instance_dir
+            ),
+            encoding="utf-8",
+        )
+        ensure_landing_stub()
+        print(f"Dashboard: {out}")
+        if args.open:
+            webbrowser.open(out.resolve().as_uri())
         return 0
 
     parser.error(f"Unknown command: {args.command}")
