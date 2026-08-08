@@ -167,12 +167,26 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 
 ---
 
+## 2026-08-08: PCS live parallel fan-out + per-channel metering
+
+**Decision:** Live PCS fans out one equal-depth Agent API call per enabled channel (ThreadPoolExecutor), tags findings with `channel`, and meters each `CostComponent` from usage. Transport failures skip that component without dropping sibling channel costs.
+
+**Why:** Equal-depth coverage insurance needs real parallel spend, not a single adaptive thread. Per-channel ledger rows make the ~3× cost projection falsifiable in a one-company smoke.
+
+**Evidence:** `parallel_channel_search/{agent_call,runner}.py`; dry-run path unchanged.
+
+**Alternatives rejected:** Sequential channel calls (slower, same dollars); importing UAS `execute_agent_call` (PCS keeps package identity and channel tagging).
+
+**Open follow-ups:** cross-channel merge/dedupe upgrade; CLI `--live` smoke; paid one-company confirm.
+
+---
+
 ## Open follow-ups (PCS)
 
 - [x] Freeze prompts + Agent API knobs (design)
 - [x] Confirm UAS package is live-ready (no rebuild needed; Tuning #14 proved live path)
 - [x] Compose frozen prompts into per-channel Agent API request kwargs (dry-run snapshots)
-- [ ] Wire live PCS runner: parallel fan-out of 3 channel calls + per-channel cost ledger from usage
+- [x] Wire live PCS runner: parallel fan-out of 3 channel calls + per-channel cost ledger from usage
 - [ ] Merge/dedupe: normalize URL + (tool, url) across channels; keep provenance
 - [ ] Tiny paid smoke to confirm 3× metered cost ≈ projection
 - [ ] Optional Stage B: steps=50 × search=high if we want to re-test deeper search with the steps budget
