@@ -118,6 +118,29 @@ def _run_one_channel(
         }
 
 
+def _aggregate_no_finding_reason(
+    payloads_by_channel: dict[str, dict[str, Any]],
+    configs: list[ChannelConfig],
+) -> Optional[str]:
+    """Pick a company-level no-finding reason from channel payloads.
+
+    Prefer has_presence_no_evidence over limited_online_presence when any channel
+    saw meaningful material. Ignore unknown/null reasons.
+    """
+    reasons = {
+        str((payloads_by_channel.get(cfg.channel_id) or {}).get("no_finding_reason") or "")
+        .strip()
+        .lower()
+        for cfg in configs
+    }
+    reasons.discard("")
+    if "has_presence_no_evidence" in reasons:
+        return "has_presence_no_evidence"
+    if "limited_online_presence" in reasons:
+        return "limited_online_presence"
+    return None
+
+
 def run(
     company: Union[CompanyInput, dict[str, Any]],
     *,
@@ -277,10 +300,8 @@ def run(
         }
 
     findings = merge_findings(channel_findings)
-    any_adoption = bool(findings) or any(
-        bool((payloads_by_channel.get(c.channel_id) or {}).get("genai_adoption_found"))
-        for c in configs
-    )
+    # Company-level adoption follows merged rows only (channel flags alone can lie).
+    adoption_found = bool(findings)
     phase = "live_error" if errors else "live"
     return ArchitectureResult(
         rcid=company_input.rcid,
@@ -288,8 +309,12 @@ def run(
         architecture=ARCHITECTURE_CLI_KEY,
         findings=findings,
         cost_ledger=CostLedger.from_components(components),
-        genai_adoption_found=any_adoption,
-        no_finding_reason=None if findings else "has_presence_no_evidence",
+        genai_adoption_found=adoption_found,
+        no_finding_reason=(
+            None
+            if findings
+            else _aggregate_no_finding_reason(payloads_by_channel, configs)
+        ),
         no_finding_analysis=(
             None
             if findings
