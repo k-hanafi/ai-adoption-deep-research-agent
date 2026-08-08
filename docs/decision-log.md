@@ -195,6 +195,18 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 
 ---
 
+## 2026-08-08: PCS CLI live smoke entrypoint
+
+**Decision:** `python -m parallel_channel_search` defaults to dry-run and accepts `--live` plus explicit knobs (same shape as UAS CLI). Eval harness already forwards `dry_run=False` into `run()`.
+
+**Why:** One-company paid smoke should be a deliberate CLI flag, not an accidental panel spend. Keeps bake-off readiness checkable without opening the full eval suite.
+
+**Evidence:** `parallel_channel_search/__main__.py`; `evals/configs/parallel_channel_search.yaml` notes.
+
+**Open follow-ups:** user-approved one-company paid smoke to confirm 3× metered cost ≈ projection.
+
+---
+
 ## Open follow-ups (PCS)
 
 - [x] Freeze prompts + Agent API knobs (design)
@@ -202,7 +214,8 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 - [x] Compose frozen prompts into per-channel Agent API request kwargs (dry-run snapshots)
 - [x] Wire live PCS runner: parallel fan-out of 3 channel calls + per-channel cost ledger from usage
 - [x] Merge/dedupe: normalize URL + (tool, url) across channels; keep provenance
-- [ ] Tiny paid smoke to confirm 3× metered cost ≈ projection
+- [x] CLI `--live` entrypoint for one-company smoke
+- [ ] Tiny paid smoke to confirm 3× metered cost ≈ projection (needs user OK)
 - [ ] Optional Stage B: steps=50 × search=high if we want to re-test deeper search with the steps budget
 - [ ] Lock UAS **bake-off** knobs in `evals/configs/unified_adaptive_search.yaml` (package works; yaml still baseline-ish, not Tuning #14 winner)
 - [ ] SGS design + implement (next Phase 1 arch)

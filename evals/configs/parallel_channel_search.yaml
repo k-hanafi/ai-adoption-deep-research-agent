@@ -22,4 +22,6 @@ eval:
 notes: >-
   FINAL SUGGESTION under effort=medium and ≈$0.10/company: equal-depth 3×
   (steps 50 / effort medium / search medium). Projected ≈$0.06–0.07/company.
-  Live runner still to wire; prompts in prompts/parallel_channel_search/.
+  Live runner wired (parallel fan-out + per-channel ledger). Smoke with
+  `python -m parallel_channel_search --live` on one company before panel runs.
+  Prompts in prompts/parallel_channel_search/.
