@@ -28,6 +28,17 @@ ARCHITECTURE_NAME = "Parallel Channel Search"
 ARCHITECTURE_CLI_KEY = "parallel-channel-search"
 
 
+def _knob_label(
+    model: str,
+    max_steps: int,
+    reasoning_effort: str,
+    web_search_depth: str,
+) -> str:
+    """Stable ledger/config label from explicit knobs (not a Perplexity preset)."""
+    model_tag = model.rsplit("/", 1)[-1].replace(".", "_")
+    return f"{model_tag}_steps{max_steps}_{reasoning_effort}_search_{web_search_depth}"
+
+
 def run(
     company: Union[CompanyInput, dict[str, Any]],
     *,
@@ -69,7 +80,7 @@ def run(
     ]
 
     # STUB: no Agent API calls. Real path fans out one call per channel, then merge.
-    knob_label = f"luna_steps{max_steps}_{reasoning_effort}_search_{web_search_depth}"
+    knob_label = _knob_label(model, max_steps, reasoning_effort, web_search_depth)
     components = [
         CostComponent(
             name=f"channel_{cfg.channel_id}",
@@ -106,11 +117,13 @@ def run(
             "max_steps": max_steps,
             "reasoning_effort": reasoning_effort,
             "web_search_depth": web_search_depth,
-            "equal_depth_preset": preset,
+            "legacy_preset_arg": preset,
             "channels": [c.channel_id for c in configs],
             "domain_filters": "off_prompt_only",
         },
         stub=True,
         dry_run=True,
-        preset=preset,
+        # Explicit knobs are source of truth (same pattern as UAS: no stock preset).
+        preset=None,
+        model_used=model,
     )
