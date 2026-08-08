@@ -1,18 +1,19 @@
-"""Agent API request builder for one PCS channel call.
+"""Agent API request builder + live call for one PCS channel.
 
 Builds explicit kwargs (model, max_steps, reasoning, tools) instead of a
 dynamic `preset` name. Matches the UAS request shape so the bake-off compares
 architectures, not API packaging.
 
 Dry-run uses `build_request_kwargs` only (no Perplexity SDK import).
-Live `execute_agent_call` lands in a later PR.
 """
 
 from __future__ import annotations
 
+import json
+import logging
 from typing import Any, Optional
 
-from contracts.types import CompanyInput
+from contracts.types import CompanyInput, Finding
 from parallel_channel_search.channels import (
     DEFAULT_MAX_STEPS,
     DEFAULT_MODEL,
@@ -20,6 +21,10 @@ from parallel_channel_search.channels import (
     DEFAULT_WEB_SEARCH_DEPTH,
 )
 from parallel_channel_search.prompting import RESPONSE_SCHEMA, build_channel_prompt
+
+logger = logging.getLogger("parallel_channel_search.agent_call")
+
+DEFAULT_TIMEOUT = 300.0
 
 # Same ladder as UAS: low/medium/high → rising search package size.
 # Kept local so PCS does not import UAS internals.
@@ -90,3 +95,242 @@ def request_snapshot(request_kwargs: dict[str, Any]) -> dict[str, Any]:
         "input_chars": len(request_kwargs.get("input") or ""),
         "has_preset": "preset" in request_kwargs,
     }
+
+
+def _extract_text_fallback(output: list) -> str:
+    """Walk MessageOutputItem content parts for text (production_agent_runner pattern)."""
+    from perplexity.types.output_item import MessageOutputItem
+
+    texts: list[str] = []
+    for item in output:
+        if isinstance(item, MessageOutputItem):
+            for part in getattr(item, "content", None) or []:
+                text = getattr(part, "text", None)
+                if text:
+                    texts.append(text)
+    return "".join(texts)
+
+
+def _extract_json_from_text(text: str) -> str:
+    """Find the outermost JSON object in text using brace-depth counting."""
+    start = text.find("{")
+    if start == -1:
+        return text
+    depth = 0
+    in_string = False
+    escape = False
+    for i in range(start, len(text)):
+        ch = text[i]
+        if escape:
+            escape = False
+            continue
+        if ch == "\\":
+            escape = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : i + 1]
+    return text[start:]
+
+
+def _parse_findings(raw_findings: Any, *, channel_id: str) -> list[Finding]:
+    findings: list[Finding] = []
+    if not isinstance(raw_findings, list):
+        return findings
+    for idx, row in enumerate(raw_findings):
+        if not isinstance(row, dict):
+            continue
+        try:
+            findings.append(
+                Finding(
+                    finding_id=int(row.get("finding_id") or idx + 1),
+                    AI_tool_used=str(row.get("AI_tool_used") or ""),
+                    use_case=str(row.get("use_case") or ""),
+                    business_function=str(row.get("business_function") or ""),
+                    evidence_description=str(row.get("evidence_description") or ""),
+                    source_url=str(row.get("source_url") or ""),
+                    source_type=str(row.get("source_type") or ""),
+                    channel=channel_id,
+                )
+            )
+        except (TypeError, ValueError):
+            continue
+    return findings
+
+
+def require_api_key(api_key: Optional[str] = None) -> str:
+    """Resolve Perplexity key from arg, credentials file, or env. Refuse if missing."""
+    if api_key:
+        return api_key
+    from src.config import APIKeys
+
+    key = APIKeys().perplexity
+    if not key:
+        raise RuntimeError(
+            "Perplexity API key required for live Parallel Channel Search. "
+            "Set credentials/perplexity_api_key.txt or PERPLEXITY_API_KEY. "
+            "Use dry_run=True to build request snapshots without calling the API."
+        )
+    return key
+
+
+def _tool_use_from_response(response: Any) -> dict[str, Any]:
+    """Extract actual tool/search utilization from an Agent API response."""
+    from perplexity.types.output_item import (
+        FetchURLResultsOutputItem,
+        MessageOutputItem,
+        SearchResultsOutputItem,
+    )
+
+    tool_calls_details: dict[str, int] = {}
+    tool_calls_cost_usd = None
+    if getattr(response, "usage", None):
+        usage = response.usage
+        raw_details = getattr(usage, "tool_calls_details", None) or {}
+        for name, detail in raw_details.items():
+            inv = getattr(detail, "invocation", None)
+            if inv is None and isinstance(detail, dict):
+                inv = detail.get("invocation")
+            if inv is not None:
+                tool_calls_details[str(name)] = int(inv)
+        cost = getattr(usage, "cost", None)
+        if cost is not None and getattr(cost, "tool_calls_cost", None) is not None:
+            tool_calls_cost_usd = float(cost.tool_calls_cost)
+
+    output_item_counts = {
+        "search_results": 0,
+        "fetch_url_results": 0,
+        "message": 0,
+        "other": 0,
+    }
+    citations: list[str] = []
+    for item in response.output or []:
+        if isinstance(item, SearchResultsOutputItem):
+            output_item_counts["search_results"] += 1
+            for sr in item.results or []:
+                if getattr(sr, "url", None):
+                    citations.append(sr.url)
+        elif isinstance(item, FetchURLResultsOutputItem):
+            output_item_counts["fetch_url_results"] += 1
+        elif isinstance(item, MessageOutputItem):
+            output_item_counts["message"] += 1
+        else:
+            output_item_counts["other"] += 1
+
+    return {
+        "tool_calls_details": tool_calls_details,
+        "tool_calls_cost_usd": tool_calls_cost_usd,
+        "output_item_counts": output_item_counts,
+        "search_result_urls": len(citations),
+        "citations": citations,
+        "tool_output_items": (
+            output_item_counts["search_results"]
+            + output_item_counts["fetch_url_results"]
+        ),
+    }
+
+
+def execute_agent_call(
+    request_kwargs: dict[str, Any],
+    *,
+    channel_id: str,
+    api_key: Optional[str] = None,
+    timeout: float = DEFAULT_TIMEOUT,
+) -> dict[str, Any]:
+    """One sync Agent API call for a PCS channel. Returns parsed payload + usage."""
+    from perplexity import Perplexity
+
+    key = require_api_key(api_key)
+    client = Perplexity(api_key=key, max_retries=0)
+    create_kwargs = dict(request_kwargs)
+    create_kwargs["timeout"] = timeout
+
+    response = client.responses.create(**create_kwargs)
+
+    cost_usd = 0.0
+    input_tokens = None
+    output_tokens = None
+    total_tokens = None
+    if response.usage:
+        input_tokens = response.usage.input_tokens
+        output_tokens = response.usage.output_tokens
+        total_tokens = response.usage.total_tokens
+        if response.usage.cost and response.usage.cost.total_cost is not None:
+            cost_usd = float(response.usage.cost.total_cost)
+
+    tool_use = _tool_use_from_response(response)
+
+    meta = {
+        "channel_id": channel_id,
+        "response_id": response.id,
+        "model_used": response.model,
+        "response_status": response.status,
+        "cost_usd": cost_usd,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "total_tokens": total_tokens,
+        "citations": tool_use["citations"],
+        "tool_use": {
+            "tool_calls_details": tool_use["tool_calls_details"],
+            "tool_calls_cost_usd": tool_use["tool_calls_cost_usd"],
+            "output_item_counts": tool_use["output_item_counts"],
+            "search_result_urls": tool_use["search_result_urls"],
+            "tool_output_items": tool_use["tool_output_items"],
+            "max_steps_ceiling": request_kwargs.get("max_steps"),
+        },
+        "raw_content_preview": None,
+        "genai_adoption_found": False,
+        "findings": [],
+        "no_finding_reason": None,
+        "no_finding_analysis": None,
+        "error": None,
+    }
+
+    if response.status == "failed":
+        err = response.error
+        detail = f"{err.type}: {err.message}" if err else "unknown"
+        meta["error"] = f"Agent API response failed: {detail}"
+        return meta
+
+    content = (response.output_text or "").strip()
+    if not content:
+        content = _extract_text_fallback(list(response.output or [])).strip()
+    if not content:
+        output_types = [type(item).__name__ for item in (response.output or [])]
+        meta["error"] = (
+            f"Empty Agent API response (model={response.model}, "
+            f"status={response.status}, output_types={output_types})"
+        )
+        return meta
+
+    meta["raw_content_preview"] = content[:500]
+    # Keep metered usage even when content parsing fails after a live response.
+    try:
+        try:
+            parsed = json.loads(content)
+        except json.JSONDecodeError:
+            parsed = json.loads(_extract_json_from_text(content))
+        if not isinstance(parsed, dict):
+            meta["error"] = (
+                f"JSON root must be an object, got {type(parsed).__name__}"
+            )
+            return meta
+        meta["findings"] = _parse_findings(
+            parsed.get("findings"), channel_id=channel_id
+        )
+        meta["genai_adoption_found"] = bool(parsed.get("genai_adoption_found", False))
+        meta["no_finding_reason"] = parsed.get("no_finding_reason")
+        meta["no_finding_analysis"] = parsed.get("no_finding_analysis")
+    except json.JSONDecodeError as exc:
+        meta["error"] = f"JSON parse error: {exc}"
+    except Exception as exc:
+        meta["error"] = f"Response parse error: {type(exc).__name__}: {exc}"
+    return meta
