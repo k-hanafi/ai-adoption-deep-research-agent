@@ -294,7 +294,7 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 
 **Alternatives rejected:** Copying UAS few-shots A–E; copying UAS’s full all-room source tour into shared (would collapse channel identity).
 
-**Open follow-ups:** SGS live fan-out (dry orchestrator is on `sgs/03-dry-runner`). Envelope `channel_id` now wins over a mislabeled model `channel` (hotfix #23).
+**Open follow-ups:** SGS paid path smokes (live fan-out is on `sgs/04-live-fanout`). Envelope `channel_id` wins over a mislabeled model `channel` (hotfix #23).
 
 ---
 
@@ -308,7 +308,7 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 
 **Alternatives rejected:** Preferring `channel` because dry-run fixtures already set it. That field remains the fallback when no envelope is present.
 
-**Open follow-ups:** live runner should keep tagging envelope `channel_id` on scout snapshots.
+**Open follow-ups:** live runner tags envelope `channel_id` on scout rows (see live fan-out entry).
 
 ---
 
@@ -322,7 +322,21 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 
 **Alternatives rejected:** Always snapshot three hypothetical digs at medium (would hide the gate). Shipping live ThreadPool in the same slice.
 
-**Open follow-ups:** live scout/dig fan-out, merge, `--live` CLI, paid path smokes.
+**Open follow-ups:** paid path smokes (user-approved spend). Cost-preview prior refresh.
+
+---
+
+## 2026-08-13: SGS live scout/dig fan-out + merge + CLI
+
+**Decision:** Live SGS fans out three presence scouts (ThreadPool), runs the frozen gate, then fans out 0–3 cold digs at the shared effort ladder. Findings merge with the PCS `(tool, url)` dedupe. Transport failure skips that component without dropping siblings. `python -m signal_gated_search` stays dry by default. `--live` is the paid one-company smoke. Scout rows passed to the gate carry envelope `channel_id` / `assigned_channel` so a mislabeled model `channel` cannot reroute spend.
+
+**Why:** Same grain as the PCS live PR: metering has to be real or the bake-off cannot compare gated spend to always-on equal depth. Dry-run is unchanged so inspect-without-paying still works.
+
+**Evidence:** `signal_gated_search/{runner,agent_call,__main__}.py`; `tests/test_sgs_live.py` (mocked API). Digs wrap PCS `execute_agent_call`.
+
+**Alternatives rejected:** Sequential scout/dig calls (same dollars, slower). A second merge implementation. Paid smoke inside this PR.
+
+**Open follow-ups:** user-approved one-company paid smoke (N=0/1/2/3 paths if possible). Cost-preview YAML still uses the old Top-1 prior.
 
 ---
 
@@ -343,6 +357,6 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 - [x] SGS gate ladder + prompt compose (PR `sgs/02-gate-compose`)
 - [x] SGS gate prefers envelope `channel_id` over the model `channel` field (see [[2026-08-13: SGS gate reads envelope channel_id before the model channel field]])
 - [x] SGS dry orchestrator (scout snapshots → gate → 0–3 dig snapshots)
-- [ ] SGS live fan-out + merge + `--live` CLI
+- [x] SGS live fan-out + merge + `--live` CLI
 - [ ] SGS paid path smokes (after live PR, user-approved spend)
 - [ ] 3-arch bake-off in eval suite (needs live SGS + frozen UAS knobs; PCS live ready)
