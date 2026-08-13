@@ -162,6 +162,43 @@ def test_gate_accepts_channel_id_field() -> None:
     assert decision.reasoning_effort == "max"
 
 
+def test_envelope_channel_id_wins_over_model_channel() -> None:
+    decision = decide_gate(
+        [
+            {
+                "channel_id": "jobs",
+                "channel": "owned",
+                "evidence_bin": "moderate",
+                "urls": ["https://boards.greenhouse.io/example"],
+            },
+            {
+                "channel_id": "owned",
+                "channel": "jobs",
+                "evidence_bin": "none",
+                "urls": [],
+            },
+        ]
+    )
+    assert decision.dig_channels == ["jobs"]
+    assert decision.reasoning_effort == "max"
+
+
+def test_unknown_model_channel_does_not_drop_valid_envelope() -> None:
+    decision = decide_gate(
+        [
+            {
+                "channel_id": "jobs",
+                "channel": "careers",
+                "evidence_bin": "strong",
+                "urls": ["https://x"],
+            },
+            {"channel_id": "owned", "evidence_bin": "none", "urls": []},
+        ]
+    )
+    assert decision.dig_channels == ["jobs"]
+    assert decision.dig_count == 1
+
+
 def test_gate_skips_unknown_channel_instead_of_aborting() -> None:
     decision = decide_gate(
         [

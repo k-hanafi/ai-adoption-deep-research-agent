@@ -280,7 +280,7 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 
 **Alternatives rejected:** Warm-start hints in dig input (even with “not a cage” wording).
 
-**Open follow-ups:** gate ladder; live runner.
+**Open follow-ups:** live runner.
 
 ---
 
@@ -294,7 +294,21 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 
 **Alternatives rejected:** Copying UAS few-shots A–E; copying UAS’s full all-room source tour into shared (would collapse channel identity).
 
-**Open follow-ups:** SGS gate ladder + live runner (prompts for extract are ready).
+**Open follow-ups:** SGS live runner (prompts for extract are ready).
+
+---
+
+## 2026-08-13: SGS gate reads envelope channel_id before the model channel field
+
+**Decision:** `decide_gate` maps a scout row to a room in this order: `assigned_channel`, then envelope `channel_id`, then the model's `channel` field. A mislabeled or unknown model value must not reroute or drop a valid envelope.
+
+**Why:** Live scout rows will typically carry both tags. Trusting the model undoes the assigned-room override (same policy as Parallel Channel Search forcing parsed findings onto the envelope room) and can send dig spend to the wrong source or skip a real presence hit.
+
+**Evidence:** Bugbot on PR #21 after merge; `signal_gated_search/gate.py`; `tests/test_sgs_gate.py` (`test_envelope_channel_id_wins_over_model_channel`, `test_unknown_model_channel_does_not_drop_valid_envelope`).
+
+**Alternatives rejected:** Preferring `channel` because dry-run fixtures already set it. That field remains the fallback when no envelope is present.
+
+**Open follow-ups:** live runner should keep tagging envelope `channel_id` on scout snapshots.
 
 ---
 
@@ -312,5 +326,8 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 - [x] SGS **design** freeze (signal-count effort ladder; see [[2026-08-08: SGS design frozen (signal-count effort ladder)]])
 - [x] SGS scout semantics = **presence screen** (see [[2026-08-11: SGS scouts are channel presence screens]])
 - [x] SGS digs = **cold start** (see [[2026-08-13: SGS digs are cold start]])
-- [ ] SGS **implement** (gate ladder, live runner, path smokes)
+- [x] SGS gate ladder + prompt compose (PR `sgs/02-gate-compose`)
+- [x] SGS gate prefers envelope `channel_id` over the model `channel` field (see [[2026-08-13: SGS gate reads envelope channel_id before the model channel field]])
+- [ ] SGS live fan-out + merge + `--live` CLI
+- [ ] SGS paid path smokes (after live PR, user-approved spend)
 - [ ] 3-arch bake-off in eval suite (needs live SGS + frozen UAS knobs; PCS live ready)

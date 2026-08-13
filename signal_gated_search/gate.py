@@ -119,8 +119,8 @@ def decide_gate(
     for row in scouts:
         assigned = str(
             row.get("assigned_channel")
-            or row.get("channel")
             or row.get("channel_id")
+            or row.get("channel")
             or ""
         ).strip().lower()
         if assigned not in CHANNEL_IDS:
