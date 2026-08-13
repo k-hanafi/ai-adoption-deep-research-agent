@@ -26,6 +26,15 @@ DIG_EFFORT_BY_COUNT = {
     3: "medium",
 }
 
+
+def dig_config_label(reasoning_effort: str) -> str:
+    """Stable ledger label for one dig (explicit knobs, not a stock preset)."""
+    model_tag = DEFAULT_DIG_MODEL.rsplit("/", 1)[-1].replace(".", "_")
+    return (
+        f"{model_tag}_steps{DEFAULT_DIG_MAX_STEPS}_"
+        f"{reasoning_effort}_search_{DEFAULT_DIG_WEB_SEARCH_DEPTH}"
+    )
+
 # Unused for dig selection (dig-all signaled). Kept for traces / Top-1 ablation.
 DEFAULT_CHANNEL_PRIOR = {
     "owned": 1.0,
