@@ -9,7 +9,12 @@ from signal_gated_search.runner import ARCHITECTURE_NAME, run
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=f"{ARCHITECTURE_NAME} (Phase 1 stub)")
+    parser = argparse.ArgumentParser(
+        description=(
+            f"{ARCHITECTURE_NAME} "
+            "(dry-run: 3 scout snapshots, then 0–3 dig snapshots if you inject signals)"
+        )
+    )
     parser.add_argument("--rcid", type=int, default=0)
     parser.add_argument("--name", default="Stub Company")
     parser.add_argument("--homepage-url", default=None)

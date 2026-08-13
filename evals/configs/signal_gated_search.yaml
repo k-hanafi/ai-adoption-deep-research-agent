@@ -35,4 +35,4 @@ notes: >-
   → dig every signaled channel with effort ladder (1=max, 2=high, 3=medium).
   Luna digs steps=10 search=low. Rescue off. τ=0.5 provisional (moderate+).
   Contracts: prompts/signal_gated_search/scout_contracts.md.
-  Stub gate.py still Top-1 until impl chat rewires.
+  Gate is dig-all signaled + effort ladder. Live fan-out is a later PR.

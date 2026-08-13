@@ -280,7 +280,7 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 
 **Alternatives rejected:** Warm-start hints in dig input (even with “not a cage” wording).
 
-**Open follow-ups:** live runner.
+**Open follow-ups:** live fan-out (gate ladder + dry orchestrator landed).
 
 ---
 
@@ -294,7 +294,7 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 
 **Alternatives rejected:** Copying UAS few-shots A–E; copying UAS’s full all-room source tour into shared (would collapse channel identity).
 
-**Open follow-ups:** SGS live runner (prompts for extract are ready).
+**Open follow-ups:** SGS live fan-out (dry orchestrator is on `sgs/03-dry-runner`). Envelope `channel_id` now wins over a mislabeled model `channel` (hotfix #23).
 
 ---
 
@@ -304,11 +304,25 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 
 **Why:** Live scout rows will typically carry both tags. Trusting the model undoes the assigned-room override (same policy as Parallel Channel Search forcing parsed findings onto the envelope room) and can send dig spend to the wrong source or skip a real presence hit.
 
-**Evidence:** Bugbot on PR #21 after merge; `signal_gated_search/gate.py`; `tests/test_sgs_gate.py` (`test_envelope_channel_id_wins_over_model_channel`, `test_unknown_model_channel_does_not_drop_valid_envelope`).
+**Evidence:** Bugbot on PR #21 after merge; hotfix PR #23; `signal_gated_search/gate.py`; `tests/test_sgs_gate.py` (`test_envelope_channel_id_wins_over_model_channel`, `test_unknown_model_channel_does_not_drop_valid_envelope`).
 
 **Alternatives rejected:** Preferring `channel` because dry-run fixtures already set it. That field remains the fallback when no envelope is present.
 
 **Open follow-ups:** live runner should keep tagging envelope `channel_id` on scout snapshots.
+
+---
+
+## 2026-08-13: SGS dry orchestrator (scout snapshots then gated dig snapshots)
+
+**Decision:** Dry-run SGS always composes three presence-scout Agent API snapshots, runs the frozen gate, then composes 0–3 cold dig snapshots. Default dry injects empty (`none`) scout rows so N=0. Tests pass `scout_outputs` to inspect N=1/2/3 effort. Ledger always lists `scout_*`. `dig_{channel}` rows appear only when the gate would spend. Live fan-out stays unwired.
+
+**Why:** You can inspect the expensive dig requests (and confirm they do not carry scout URLs) without paying. Empty default scouts stay honest: dry-run did not observe presence, so it does not pretend a dig would fire.
+
+**Evidence:** `signal_gated_search/runner.py`; `tests/test_sgs_runner.py`; `evals.runner.run_panel("sgs", dry_run=True)` on the fixture panel.
+
+**Alternatives rejected:** Always snapshot three hypothetical digs at medium (would hide the gate). Shipping live ThreadPool in the same slice.
+
+**Open follow-ups:** live scout/dig fan-out, merge, `--live` CLI, paid path smokes.
 
 ---
 
@@ -328,6 +342,7 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 - [x] SGS digs = **cold start** (see [[2026-08-13: SGS digs are cold start]])
 - [x] SGS gate ladder + prompt compose (PR `sgs/02-gate-compose`)
 - [x] SGS gate prefers envelope `channel_id` over the model `channel` field (see [[2026-08-13: SGS gate reads envelope channel_id before the model channel field]])
+- [x] SGS dry orchestrator (scout snapshots → gate → 0–3 dig snapshots)
 - [ ] SGS live fan-out + merge + `--live` CLI
 - [ ] SGS paid path smokes (after live PR, user-approved spend)
 - [ ] 3-arch bake-off in eval suite (needs live SGS + frozen UAS knobs; PCS live ready)
