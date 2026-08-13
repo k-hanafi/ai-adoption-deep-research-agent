@@ -21,6 +21,9 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 - March channel evidence: `.cursor/plans/pcs-march-channel-evidence.md`
 - PCS prompts: `prompts/parallel_channel_search/`
 - PCS config: `evals/configs/parallel_channel_search.yaml`
+- SGS design freeze: `.cursor/plans/sgs-design.md`
+- SGS scout contracts: `prompts/signal_gated_search/scout_contracts.md`
+- SGS config: `evals/configs/signal_gated_search.yaml`
 - Agent rule: `.cursor/rules/decision-log.mdc`
 
 ---
@@ -42,7 +45,9 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 **Decision:** Keep three named systems for the bake-off:
 - **UAS** — one adaptive Agent API call per company (knobs, not fan-out)
 - **PCS** — three equal-depth channel extractors (jobs / owned / third_party), then merge
-- **SGS** — channel scouts with gated dig (later; not PCS)
+- **SGS** — channel scouts with gated dig (not PCS)
+
+**SGS detail:** superseded in specificity by [[2026-08-08: SGS design frozen (signal-count effort ladder)]] (signal-count → effort ladder; dig-all signaled).
 
 **Why:** Separates hypotheses: single deep thread vs forced breadth vs gated depth. Fair comparison needs each class to hit roughly the same $/company.
 
@@ -87,7 +92,7 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 
 **Locked prompts:** `prompts/parallel_channel_search/{shared_preamble,channel_jobs,channel_owned,channel_third_party}.txt`.
 
-**Status:** Design freeze. Dry-run request builder landed 2026-08-08; live fan-out still open (see Open follow-ups).
+**Status:** Design freeze. Live package + Jam smoke confirmed 2026-08-08 (see [[2026-08-08: PCS one-company live smoke confirmed]]). Shared preamble extract-teaching amended by [[2026-08-13: PCS and SGS extract prompts share UAS use-vs-sell teaching]]. Channel files unchanged.
 
 **Evidence:** Tuning #14; `evals/configs/parallel_channel_search.yaml`; user approval 2026-08-08.
 
@@ -207,6 +212,92 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 
 ---
 
+## 2026-08-08: PCS one-company live smoke confirmed
+
+**Decision:** PCS live package is bake-off-ready for Stage 2 implementation. One-company paid smoke on Jam (`rcid=610194`) metered three equal-depth channels and landed inside the projected band.
+
+**Evidence (Jam live smoke):**
+- Duration ≈ 41s (parallel fan-out)
+- Ledger: jobs `$0.03174` + owned `$0.01743` + third_party `$0.02092` = **`$0.07009`** (projection ≈ `$0.06–0.07`)
+- Findings: 19 merged, channel-tagged (jobs 8 / owned 4 / third_party 7); `error=None`
+- Dry-run still returns zero-cost ledger with `dry_run_no_api`
+
+**Why this closes PCS impl:** Live path, metering, merge, and CLI smoke entrypoint all exercised on a real company under frozen knobs.
+
+**Open follow-ups (not PCS package work):** optional Stage B search=high re-test; UAS bake-off yaml lock; SGS impl; 3-arch panel bake-off. No paid 50-co PCS tuning planned.
+
+---
+
+## 2026-08-08: SGS design frozen (signal-count effort ladder)
+
+**Status:** Ladder / dig knobs still current. Scout *role* wording superseded by [[2026-08-11: SGS scouts are channel presence screens]].
+
+**Decision:** Freeze Signal Gated Search bake-off design as **3 scouts → dig every signaled channel**, with dig `reasoning_effort` chosen by dig count:
+
+| # signaled | Digs | Dig effort | Planning path $ (digs + ~$0.02 scouts) |
+|---:|---|---|---:|
+| 0 | 0 | — | ~0.02 |
+| 1 | 1 | **max** | ~0.12 |
+| 2 | 2 | **high** | ~0.11 |
+| 3 | 3 | **medium** | ~0.09 |
+
+**Locked dig knobs (each dig):** Luna / `max_steps=10` / `web_search_depth=low` / effort from table.  
+**Locked scouts:** Agent `preset=fast` × 3; signal JSON only.  
+**Locked gate:** dig-all signaled; `signal_threshold=0.5`; rescue **off**; `max_digs_per_company=3`.  
+**Card:** `.cursor/plans/sgs-design.md`. **Config:** `evals/configs/signal_gated_search.yaml`.
+
+**Why:** PCS cannot afford 3× high (~$0.13). SGS spends high/max only when few channels signal, concentrating Tuning #14’s effort→findings lift (medium 1.66f → high 2.30f → max 2.80f) on the rooms that matter. User accepts dig paths **above** the ~$0.10 target and will ask the professor for headroom on that basis. Ranked Top-1 Dig (§3.2) is superseded as the default (kept as ablation only).
+
+**Evidence:** Tuning #14 `evals/instances/tuning/014_2026-08-07_1045/summary.json`; user freeze approval 2026-08-08.
+
+**Alternatives rejected:** Ranked Top-1 + optional rescue as default; forcing dig effort down to guarantee ≤$0.10/path; dig-all at equal medium only (collapses toward PCS + scout tax without the high/max upside).
+
+**Open follow-ups:** replace stub gate with ladder; scout/dig prompts; live runner + ledger; paid path smokes; professor budget ask.
+
+---
+
+## 2026-08-11: SGS scouts are channel presence screens
+
+**Decision:** SGS scouts detect whether a **diggable channel source exists** (jobs board / substantial owned web / third-party coverage). They do **not** hunt internal GenAI adoption. Digs remain the adoption extractors. Escalate on most real presence cases; provisional `signal_threshold=0.5` (evidence bins: none/weak/moderate/strong → 0.0/0.35/0.65/0.90).
+
+**Why:** Many startups lack a job board, have only a stealth landing page, or have no press footprint. Digging empty rooms wastes the effort ladder. Separation of concerns: scout = corpus/presence screen; dig = adoption research. Adoption-smoke scouts were too strict and mixed two jobs.
+
+**Evidence:** User design lock 2026-08-11; card `.cursor/plans/sgs-design.md`; contracts `prompts/signal_gated_search/scout_contracts.md`.
+
+**Alternatives rejected:** Scout-as-adoption-smoke (prior draft); requiring Fortune-500-sized presence before escalate; keeping Ranked Top-1 as default.
+
+**Open follow-ups:** write live `scout_*.txt` from contracts; dig prompt contracts; presence-labeled τ sweep; gate ladder impl.
+
+---
+
+## 2026-08-13: SGS digs are cold start
+
+**Decision:** SGS dig Agent calls start from **company identity only** (same as a PCS channel). Do **not** pass scout URLs, snippets, or bins into dig `instructions` or `input`. Scout outputs stay in traces for debugging.
+
+**Why:** Scouts prove room presence, not adoption leads. Feeding `fast` URLs into a high/max dig risks anchoring search on the wrong pages. Digs have full tool loops; SGS’s bake-off identity is gating + effort ladder, not cheap breadcrumbs.
+
+**Evidence:** User lock 2026-08-13; `.cursor/plans/sgs-design.md`; `prompts/signal_gated_search/dig_shared_preamble.txt`.
+
+**Alternatives rejected:** Warm-start hints in dig input (even with “not a cage” wording).
+
+**Open follow-ups:** gate ladder; live runner.
+
+---
+
+## 2026-08-13: PCS and SGS extract prompts share UAS use-vs-sell teaching
+
+**Decision:** Amend PCS `shared_preamble.txt` and SGS `dig_shared_preamble.txt` so both carry the same extract teaching as UAS, minus few-shots: quoted use-vs-sell INCLUDE/EXCLUDE lines, a per-function internal-use catalog (recognize in your room, do not leave the room), and stricter SPECIFICITY (no vague "AI coding tool"). Channel overlay files unchanged. No JSON few-shots.
+
+**Why:** Bake-off fairness. UAS still had concrete use-vs-sell quotes and a function catalog. PCS/SGS had the same rule in abstract form. Few-shots were rejected (famous-tool templates, wrong-room examples, SGS digs already passed a presence screen).
+
+**Evidence:** User lock 2026-08-13; `prompts/stage_2_perplexity_prompt.txt` as the UAS source; `prompts/parallel_channel_search/shared_preamble.txt`; `prompts/signal_gated_search/dig_shared_preamble.txt`.
+
+**Alternatives rejected:** Copying UAS few-shots A–E; copying UAS’s full all-room source tour into shared (would collapse channel identity).
+
+**Open follow-ups:** SGS gate ladder + live runner (prompts for extract are ready).
+
+---
+
 ## Open follow-ups (PCS)
 
 - [x] Freeze prompts + Agent API knobs (design)
@@ -215,8 +306,11 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 - [x] Wire live PCS runner: parallel fan-out of 3 channel calls + per-channel cost ledger from usage
 - [x] Merge/dedupe: normalize URL + (tool, url) across channels; keep provenance
 - [x] CLI `--live` entrypoint for one-company smoke
-- [ ] Tiny paid smoke to confirm 3× metered cost ≈ projection (needs user OK)
+- [x] Tiny paid smoke to confirm 3× metered cost ≈ projection (Jam `$0.070`)
 - [ ] Optional Stage B: steps=50 × search=high if we want to re-test deeper search with the steps budget
 - [ ] Lock UAS **bake-off** knobs in `evals/configs/unified_adaptive_search.yaml` (package works; yaml still baseline-ish, not Tuning #14 winner)
-- [ ] SGS design + implement (next Phase 1 arch)
-- [ ] 3-arch bake-off in eval suite (needs live PCS + live SGS + frozen UAS knobs)
+- [x] SGS **design** freeze (signal-count effort ladder; see [[2026-08-08: SGS design frozen (signal-count effort ladder)]])
+- [x] SGS scout semantics = **presence screen** (see [[2026-08-11: SGS scouts are channel presence screens]])
+- [x] SGS digs = **cold start** (see [[2026-08-13: SGS digs are cold start]])
+- [ ] SGS **implement** (gate ladder, live runner, path smokes)
+- [ ] 3-arch bake-off in eval suite (needs live SGS + frozen UAS knobs; PCS live ready)

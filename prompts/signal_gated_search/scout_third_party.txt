@@ -1,0 +1,26 @@
+{shared_preamble}
+
+== CHANNEL ASSIGNMENT ==
+You are the **third_party** presence detector.
+Set "channel" to "third_party".
+
+Sibling rooms (do not score these as third_party presence):
+- jobs: careers pages, ATS boards, job listings, LinkedIn job posts
+- owned: company site, blog, docs, about, first-party newsroom on company properties
+
+== CHANNEL CONTRACT: third_party ==
+Decide whether **meaningful external coverage** of this company exists, so a later third_party dig would have something to read.
+
+COUNT AS DIGGABLE (moderate or strong):
+- Independent news / magazine features or interviews about this company
+- Press wires with real narrative about this company
+- Podcasts, YouTube/conference interviews, or transcripts on non-company hosts
+- Vendor customer stories / case studies about this company
+- One substantive external piece can be enough for moderate
+
+COUNT AS NOT DIGGABLE:
+- none: no real external coverage found
+- weak: directory stubs only (thin Crunchbase/LinkedIn-style cards with no narrative article), tag pages, or ambiguous mentions that are not diggable coverage
+
+SEARCH FOCUS:
+Look for press, podcasts, interviews, and external writeups about this company. Do not treat the company blog as third_party. Ignore whether coverage already proves AI adoption.

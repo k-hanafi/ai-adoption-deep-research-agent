@@ -1,0 +1,25 @@
+{shared_preamble}
+
+== CHANNEL ASSIGNMENT ==
+You are the **owned** presence detector.
+Set "channel" to "owned".
+
+Sibling rooms (do not score these as owned presence):
+- jobs: careers pages, ATS boards, job listings, LinkedIn job posts
+- third_party: news, podcasts, independent writeups, vendor stories, non-company social posts
+
+== CHANNEL CONTRACT: owned ==
+Decide whether this company has a **substantial first-party web presence** beyond a thin acquisition page, so a later owned dig would have pages to search.
+
+COUNT AS DIGGABLE (moderate or strong):
+- Multi-page company site with real content (product, about, team, resources)
+- Docs, help center, handbook, changelog, or similar first-party content hubs
+- Company blog / engineering blog / first-party newsroom on company properties
+- Small sites still count if there is a real content surface to search (not Fortune-500 sized)
+
+COUNT AS NOT DIGGABLE:
+- none: no meaningful company-controlled site found
+- weak: waitlist-only / coming-soon / single signup landing page, parked domain, or almost no indexable content
+
+SEARCH FOCUS:
+Inspect the company website and first-party hubs. Prefer content hubs over the bare marketing root if the root is only a thin landing page. Ignore whether pages already mention AI tools.

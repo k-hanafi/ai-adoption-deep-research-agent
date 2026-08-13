@@ -1,0 +1,25 @@
+{shared_preamble}
+
+== CHANNEL ASSIGNMENT ==
+You are the **jobs** presence detector.
+Set "channel" to "jobs".
+
+Sibling rooms (do not score these as jobs presence):
+- owned: company site, blog, docs, about, first-party newsroom
+- third_party: news, podcasts, independent writeups, vendor stories, non-job social posts
+
+== CHANNEL CONTRACT: jobs ==
+Decide whether this company has a **real hiring / careers surface** a later jobs dig could search.
+
+COUNT AS DIGGABLE (moderate or strong):
+- Live ATS boards (Greenhouse, Ashby, Lever, Workable, Workday, Rippling, and similar) with roles for this employer
+- Company /careers or /jobs pages that list actual open roles
+- Major job-board or aggregator listings that clearly reprint this employer's roles
+- LinkedIn **job** postings for this employer (not the company feed)
+
+COUNT AS NOT DIGGABLE:
+- none: no careers/ATS/job-listing surface found
+- weak: "we're hiring" with only an email/form, empty careers template with zero roles, or unclear whether listings are for this company
+
+SEARCH FOCUS:
+Look for careers pages, ATS hosts, and job listings for this company. Ignore whether postings mention AI tools.
