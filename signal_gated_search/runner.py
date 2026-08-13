@@ -116,8 +116,8 @@ def run(
         genai_adoption_found=False,
         no_finding_reason="phase1_stub",
         no_finding_analysis=(
-            "Signal Gated Search Phase 1 stub: 3× fast scouts → ranked top-1 "
-            f"dig at {dig_preset!r} + optional rescue at {rescue_dig_preset!r}. "
+            "Signal Gated Search stub: 3× fast presence scouts → "
+            "dig-all signaled at effort ladder (1=max, 2=high, 3=medium). "
             "No Perplexity Agent API call was made."
         ),
         traces={
@@ -125,9 +125,8 @@ def run(
             "phase": "stub",
             "gate": gate.to_dict(),
             "scout_preset": scout_preset,
-            "dig_preset": dig_preset,
-            "rescue_dig_preset": rescue_dig_preset,
-            "rescue_enabled": rescue_enabled,
+            "dig_effort_by_count": {"1": "max", "2": "high", "3": "medium"},
+            "rescue_enabled": False,
         },
         stub=True,
         dry_run=True,

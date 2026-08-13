@@ -1,6 +1,7 @@
-"""Gate policy skeleton: threshold, rank, top-1 dig, optional rescue.
+"""Gate policy: presence bins → signal → dig-all + effort ladder.
 
-Phase 1: documents decision shape only. No live scout outputs yet.
+Scouts emit evidence_bin only. Code maps bin to confidence, then signal vs
+threshold. Dig effort is chosen by how many channels cleared the bar.
 """
 
 from __future__ import annotations
@@ -8,122 +9,151 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
-from signal_gated_search.channels import CHANNEL_IDS, DEFAULT_CHANNEL_PRIOR
-
-# Owned > jobs > third_party when confidence×prior ties (locked March order).
-_CHANNEL_TIEBREAK = {
-    channel: index
-    for index, channel in enumerate(
-        sorted(DEFAULT_CHANNEL_PRIOR, key=DEFAULT_CHANNEL_PRIOR.get, reverse=True)
-    )
-}
+from signal_gated_search.channels import (
+    BIN_CONFIDENCE,
+    CHANNEL_IDS,
+    DEFAULT_SIGNAL_THRESHOLD,
+    DIG_EFFORT_BY_COUNT,
+    EVIDENCE_BINS,
+)
 
 
 @dataclass
 class GateDecision:
-    """Record of whether/how SGS escalates beyond scouts."""
+    """Whether/how SGS escalates beyond scouts."""
 
     stop_at_scouts: bool
-    dig_1_channel: Optional[str] = None
-    dig_1_score: Optional[float] = None
-    rescue_channel: Optional[str] = None
-    rescue_triggered: bool = False
+    dig_channels: list[str] = field(default_factory=list)
+    dig_count: int = 0
+    reasoning_effort: Optional[str] = None
     rationale: str = ""
-    ranked: list[dict[str, Any]] = field(default_factory=list)
+    signaled: list[dict[str, Any]] = field(default_factory=list)
+    normalized: list[dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "stop_at_scouts": self.stop_at_scouts,
-            "dig_1_channel": self.dig_1_channel,
-            "dig_1_score": self.dig_1_score,
-            "rescue_channel": self.rescue_channel,
-            "rescue_triggered": self.rescue_triggered,
+            "dig_channels": list(self.dig_channels),
+            "dig_count": self.dig_count,
+            "reasoning_effort": self.reasoning_effort,
             "rationale": self.rationale,
-            "ranked": list(self.ranked),
+            "signaled": list(self.signaled),
+            "normalized": list(self.normalized),
         }
 
 
-def rank_signals(
-    signals: list[dict[str, Any]],
-    *,
-    signal_threshold: float = 0.5,
-    channel_prior: Optional[dict[str, float]] = None,
-) -> list[dict[str, Any]]:
-    """Rank signaled channels by confidence × channel_prior."""
-    prior = channel_prior or DEFAULT_CHANNEL_PRIOR
-    known_channels = set(CHANNEL_IDS)
-    ranked: list[dict[str, Any]] = []
-    for signal in signals:
-        # Require a real boolean True. Loose JSON strings like "false" must not escalate.
-        if signal.get("signal") is not True:
-            continue
-        channel = str(signal.get("channel") or "").strip().lower()
-        if channel not in known_channels:
-            continue
-        confidence = _as_float(signal.get("confidence"), default=0.0)
-        if confidence < signal_threshold:
-            continue
-        score = confidence * float(prior.get(channel, 0.0))
-        ranked.append({**signal, "channel": channel, "rank_score": score})
-    ranked.sort(
-        key=lambda row: (
-            -row["rank_score"],
-            _CHANNEL_TIEBREAK.get(row["channel"], len(_CHANNEL_TIEBREAK)),
-        )
-    )
-    return ranked
-
-
-def _as_float(value: Any, *, default: float = 0.0) -> float:
-    """Coerce scout numeric fields. null / missing become default."""
+def _urls(value: Any) -> list[str]:
     if value is None:
-        return default
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return default
+        return []
+    if isinstance(value, str):
+        text = value.strip()
+        return [text] if text else []
+    if isinstance(value, list):
+        out: list[str] = []
+        for item in value:
+            text = str(item).strip()
+            if text:
+                out.append(text)
+        return out
+    return []
+
+
+def _snippets(value: Any) -> list[str]:
+    return _urls(value)
+
+
+def normalize_scout_output(
+    raw: dict[str, Any],
+    *,
+    assigned_channel: str,
+    signal_threshold: float = DEFAULT_SIGNAL_THRESHOLD,
+) -> dict[str, Any]:
+    """Map one scout JSON blob to a gate row. Code owns confidence and signal."""
+    channel = str(assigned_channel or "").strip().lower()
+    if channel not in CHANNEL_IDS:
+        known = ", ".join(CHANNEL_IDS)
+        raise ValueError(f"Unknown SGS channel {assigned_channel!r}. Choose: {known}")
+
+    bin_name = str(raw.get("evidence_bin") or "none").strip().lower()
+    if bin_name not in EVIDENCE_BINS:
+        bin_name = "none"
+
+    urls = _urls(raw.get("urls"))
+    downgraded = None
+    if bin_name in ("moderate", "strong") and not urls:
+        bin_name = "none"
+        downgraded = "missing_url"
+
+    confidence = BIN_CONFIDENCE[bin_name]
+    signal = confidence >= signal_threshold
+    return {
+        "channel": channel,
+        "evidence_bin": bin_name,
+        "confidence": confidence,
+        "signal": signal,
+        "urls": urls,
+        "snippets": _snippets(raw.get("snippets")),
+        "rationale": str(raw.get("rationale") or "").strip(),
+        "downgraded": downgraded,
+    }
+
+
+def effort_for_dig_count(dig_count: int) -> Optional[str]:
+    if dig_count <= 0:
+        return None
+    if dig_count not in DIG_EFFORT_BY_COUNT:
+        raise ValueError(
+            f"dig_count must be 1, 2, or 3, got {dig_count!r}"
+        )
+    return DIG_EFFORT_BY_COUNT[dig_count]
 
 
 def decide_gate(
-    signals: list[dict[str, Any]],
+    scouts: list[dict[str, Any]],
     *,
-    signal_threshold: float = 0.5,
-    rescue_threshold: float = 0.7,
-    rescue_enabled: bool = True,
-    dig_1_had_findings: bool = False,
+    signal_threshold: float = DEFAULT_SIGNAL_THRESHOLD,
 ) -> GateDecision:
-    """Apply Ranked Top-1 Dig (+ optional rescue) policy."""
-    ranked = rank_signals(signals, signal_threshold=signal_threshold)
-    if not ranked:
+    """Dig every signaled channel. Effort rises as dig count falls."""
+    normalized: list[dict[str, Any]] = []
+    by_channel: dict[str, dict[str, Any]] = {}
+    for row in scouts:
+        assigned = str(
+            row.get("assigned_channel")
+            or row.get("channel")
+            or row.get("channel_id")
+            or ""
+        ).strip().lower()
+        if assigned not in CHANNEL_IDS:
+            continue
+        parsed = normalize_scout_output(
+            row,
+            assigned_channel=assigned,
+            signal_threshold=signal_threshold,
+        )
+        normalized.append(parsed)
+        # First scout for a channel wins if duplicates appear.
+        if parsed["channel"] not in by_channel:
+            by_channel[parsed["channel"]] = parsed
+
+    signaled = [
+        by_channel[cid] for cid in CHANNEL_IDS if by_channel.get(cid, {}).get("signal")
+    ]
+    dig_channels = [row["channel"] for row in signaled]
+    dig_count = len(dig_channels)
+    if dig_count == 0:
         return GateDecision(
             stop_at_scouts=True,
             rationale="no_channel_above_signal_threshold",
-            ranked=[],
+            signaled=[],
+            normalized=normalized,
         )
-
-    top = ranked[0]
-    dig_1_channel = str(top["channel"])
-    rescue_channel = None
-    rescue_triggered = False
-    if rescue_enabled and not dig_1_had_findings and len(ranked) >= 2:
-        # Locked policy: rescue only when the true runner-up (ranked[1]) is a
-        # different channel and clears the rescue confidence bar.
-        runner_up = ranked[1]
-        runner_up_channel = str(runner_up.get("channel") or "")
-        if (
-            runner_up_channel
-            and runner_up_channel != dig_1_channel
-            and _as_float(runner_up.get("confidence"), default=0.0) >= rescue_threshold
-        ):
-            rescue_channel = runner_up_channel
-            rescue_triggered = True
 
     return GateDecision(
         stop_at_scouts=False,
-        dig_1_channel=dig_1_channel,
-        dig_1_score=float(top["rank_score"]),
-        rescue_channel=rescue_channel,
-        rescue_triggered=rescue_triggered,
-        rationale="ranked_top1_dig",
-        ranked=ranked,
+        dig_channels=dig_channels,
+        dig_count=dig_count,
+        reasoning_effort=effort_for_dig_count(dig_count),
+        rationale="signal_count_effort_ladder",
+        signaled=signaled,
+        normalized=normalized,
     )
