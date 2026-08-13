@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from contracts.types import CompanyInput
 from evals.runner import run_panel
 from signal_gated_search.agent_call import build_dig_request_kwargs
@@ -134,11 +132,6 @@ def test_dry_dig_input_is_cold_start() -> None:
     )
     assert scout_url not in kwargs["input"]
     assert "Jam" in kwargs["input"]
-
-
-def test_live_still_unimplemented() -> None:
-    with pytest.raises(NotImplementedError, match="next PR"):
-        run(COMPANY, dry_run=False)
 
 
 def test_run_panel_sgs_dry(tmp_path, monkeypatch) -> None:
