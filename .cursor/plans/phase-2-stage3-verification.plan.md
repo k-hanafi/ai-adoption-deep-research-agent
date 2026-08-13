@@ -11,9 +11,10 @@ Parent: [prod-architecture-eval.plan.md](./prod-architecture-eval.plan.md)
 
 | Field | State |
 |---|---|
-| **Current state** | Blocked on Phase 1. |
-| **Next** | After Phase 1: spike API options for evidence fetch + binary judge + logprobs. |
+| **Current state** | Partial spike: **Perplexity does not expose usable logprobs** (docs-verified 2026-08-13). Full Stage 3 still blocked on Phase 1 exit + remaining spike (Tavily mismatch + OpenAI judge shape). |
+| **Next** | Confirm OpenAI `reasoning.effort=none` binary+logprobs path; measure Tavily scrape ≠ Perplexity page-view mismatch; choose fetch+judge hybrid vs Tavily+OpenAI. |
 | **Exit** | Stage 3 shipped enough for Phase 3 eval (schema + runnable judge + smoke). |
+| **Spike finding** | See [[2026-08-13: Perplexity APIs do not expose usable logprobs]] in `docs/decision-log.md`. |
 
 ---
 
@@ -67,4 +68,5 @@ Update plan STATUS when spike lands and when smoke passes.
 
 ## Changelog
 
+- 2026-08-13: Docs spike: Perplexity Gateway accepts `logprobs` only as `false`; rejects `top_logprobs`. Agent API examples return empty `logprobs: []` / `top_logprobs: 0` (schema stubs, not token probs). Logprob confidence proxy must come from OpenAI (or similar) with `reasoning.effort=none`.
 - 2026-08-04: Created; formerly discussed as “Stage 5,” now correctly **Stage 3**.

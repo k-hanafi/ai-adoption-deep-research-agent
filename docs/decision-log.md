@@ -25,6 +25,7 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 - SGS scout contracts: `prompts/signal_gated_search/scout_contracts.md`
 - SGS config: `evals/configs/signal_gated_search.yaml`
 - Agent rule: `.cursor/rules/decision-log.mdc`
+- Stage 3 verification plan: `.cursor/plans/phase-2-stage3-verification.plan.md`
 
 ---
 
@@ -326,6 +327,23 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 
 ---
 
+## 2026-08-13: Perplexity APIs do not expose usable logprobs
+
+**Decision:** Reject Perplexity-alone as the Stage 3 logprob confidence path. Binary hallucination/supported scoring that needs token logprobs must use a provider that returns them (planned: OpenAI with `reasoning.effort=none`). Perplexity may still be used for page fetch / evidence text if a hybrid wins the rest of the spike.
+
+**Why:** Stage 3’s primary confidence proxy is logprob on a binary classification token. Without real logprobs, a Perplexity-only judge cannot meet the plan contract (binary + logprob + 1–5 backup).
+
+**Evidence (official docs, 2026-08-13):**
+- Gateway Chat Completions (`docs.perplexity.ai` Create Chat Completion / `/router/v1/chat/completions`): **Honored** list does not include logprobs. **`logprobs` accepted only at default `false`**. **`top_logprobs` rejected with HTTP 400**.
+- Agent API quickstart / response examples: output text shows `"logprobs": []` and response-level `"top_logprobs": 0` (empty stubs for OpenAI-shaped schema; not populated token probabilities).
+- Third-party integrations (e.g. LangChain `ChatPerplexity` capability table) mark Logprobs as unsupported, consistent with the above.
+
+**Alternatives rejected:** Assuming Perplexity’s OpenAI-compatible schema means logprobs work; using empty `logprobs: []` as a confidence signal.
+
+**Open follow-ups:** Lock Stage 3 stack after remaining spike (Tavily vs Perplexity/`fetch_url` for page text + OpenAI binary judge); watch OpenAI gotcha that structured `json_schema` can empty logprobs even with `reasoning.effort=none` (prefer plain binary token output for the logprob field).
+
+---
+
 ## Open follow-ups (PCS)
 
 - [x] Freeze prompts + Agent API knobs (design)
@@ -346,3 +364,6 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 - [ ] SGS live fan-out + merge + `--live` CLI
 - [ ] SGS paid path smokes (after live PR, user-approved spend)
 - [ ] 3-arch bake-off in eval suite (needs live SGS + frozen UAS knobs; PCS live ready)
+- [x] Stage 3 spike: Perplexity logprobs? (**No** usable logprobs; see [[2026-08-13: Perplexity APIs do not expose usable logprobs]])
+- [ ] Stage 3 spike: Tavily scrape mismatch vs Perplexity page view; choose fetch path
+- [ ] Stage 3 spike: OpenAI `reasoning.effort=none` binary+logprobs smoke (avoid json_schema emptying logprobs)

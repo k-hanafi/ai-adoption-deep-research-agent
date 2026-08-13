@@ -27,7 +27,7 @@
 | Eval budget | **≤ $150** total for eval phase (expect ~3 full iterations of 3 archs + Stage 3). |
 | Golden set size | Ideal **100 found + 100 not-found**. Likely cut to **50+50**; **defer cut decision to Phase 3** after Phase 1–2 assumptions lock. |
 | Winner metric | **Not precision alone** (Stage 3 is architecture-agnostic). Track **yield with cost** (e.g. verified or raw findings per dollar / per company at comparable unit cost). Maximize yield while **9.45k Stage 2 spend ≤ ~$1k**. |
-| Stage 3 API choice | **Defer research to after Phase 1** (Tavily+OpenAI logprobs vs Perplexity vs hybrid). |
+| Stage 3 API choice | **Partial spike 2026-08-13:** Perplexity does **not** expose usable logprobs (Gateway: `logprobs` only `false`; `top_logprobs` 400). Logprob judge path → OpenAI `reasoning.effort=none` (+ Tavily or hybrid fetch still open). See `docs/decision-log.md` [[2026-08-13: Perplexity APIs do not expose usable logprobs]]. |
 
 ### Open questions
 
