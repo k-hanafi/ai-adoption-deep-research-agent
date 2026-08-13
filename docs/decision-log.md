@@ -26,6 +26,7 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 - SGS config: `evals/configs/signal_gated_search.yaml`
 - Agent rule: `.cursor/rules/decision-log.mdc`
 - Stage 3 verification plan: `.cursor/plans/phase-2-stage3-verification.plan.md`
+- Stage 3 package (planned): `citation_verification/` (production; not under `evals/`)
 
 ---
 
@@ -327,6 +328,23 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 
 ---
 
+## 2026-08-13: Stage 3 is a production top-level package
+
+**Decision:** Stage 3 lives as its own top-level package, **`citation_verification/`**, peer to the Stage 2 architectures and to `evals/`. It is **production software**: after bake-off picks a Stage 2 winner, prod runs that arch, then runs Stage 3 on the prod findings. Evals only **import and exercise** the same package (logprobs validity, hallucination rate on the eval company set) before prod spend. Stage 3 must **not** live inside `evals/`.
+
+**Why:** Packaging follows ownership. Stage 3 is a post-research production guardrail, not an eval-only report. Burying it under `evals/hooks/` would make prod depend on harness internals and signal the wrong product boundary. Keeping one package means eval validation and prod verification cannot drift.
+
+**Evidence:** User lock 2026-08-13. Prior scaffolding stub `evals/hooks/stage3_judge.py` and tree sketch in `.cursor/plans/eval-harness.plan.md` are **superseded for packaging home** (thin eval adapter may still call the package). Phase 2 plan: `.cursor/plans/phase-2-stage3-verification.plan.md`.
+
+**Alternatives rejected:**
+- Implementing Stage 3 only inside `evals/hooks/` (eval-specific)
+- A fourth competing Stage 2 architecture identity (Stage 3 is arch-agnostic verification, not a research strategy)
+- Separate eval-only and prod-only judges (drift risk)
+
+**Open follow-ups:** Implement `citation_verification/` (fetch + OpenAI logprob judge); wire `python -m evals run-verification` as a consumer; retire or thin-wrap `evals/hooks/stage3_judge.py`.
+
+---
+
 ## 2026-08-13: Perplexity APIs do not expose usable logprobs
 
 **Decision:** Reject Perplexity-alone as the Stage 3 logprob confidence path. Binary hallucination/supported scoring that needs token logprobs must use a provider that returns them (planned: OpenAI with `reasoning.effort=none`). Perplexity may still be used for page fetch / evidence text if a hybrid wins the rest of the spike.
@@ -365,5 +383,7 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 - [ ] SGS paid path smokes (after live PR, user-approved spend)
 - [ ] 3-arch bake-off in eval suite (needs live SGS + frozen UAS knobs; PCS live ready)
 - [x] Stage 3 spike: Perplexity logprobs? (**No** usable logprobs; see [[2026-08-13: Perplexity APIs do not expose usable logprobs]])
+- [x] Stage 3 packaging: top-level production `citation_verification/` (see [[2026-08-13: Stage 3 is a production top-level package]])
 - [ ] Stage 3 spike: Tavily scrape mismatch vs Perplexity page view; choose fetch path
 - [ ] Stage 3 spike: OpenAI `reasoning.effort=none` binary+logprobs smoke (avoid json_schema emptying logprobs)
+- [ ] Implement `citation_verification/` + evals `run-verification` consumer
