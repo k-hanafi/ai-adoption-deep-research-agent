@@ -22,7 +22,7 @@ API `response_format` will enforce JSON shape; code maps `evidence_bin` → conf
 |---|---|
 | `dig_shared_preamble.txt` | Adoption extract (PCS-like). Cold start. Presence is not adoption. |
 | `dig_jobs.txt` | Jobs-room extract overlay (PCS `channel_jobs.txt`) |
-| `dig_owned.txt` | Owned-room extract overlay (PCS `channel_owned.txt`) |
-| `dig_third_party.txt` | Third-party extract overlay (PCS `channel_third_party.txt`) |
+| `dig_owned.txt` | Owned-room extract overlay (SGS: site + official accounts; diverges from PCS host-only owned) |
+| `dig_third_party.txt` | Third-party extract overlay (independent narrators; official company accounts are owned) |
 
 Dig `response_format` reuses the PCS findings schema. Scout URLs are traces only, not dig input.

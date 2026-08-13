@@ -12,8 +12,8 @@ A presence screen already found a diggable public surface in this room. Presence
 
 Three rooms exist in the wider system:
 - jobs: hiring artifacts (job postings, careers pages, ATS listings, job-board mirrors)
-- owned: company-controlled media (company site, blog, docs, first-party newsroom on company domain)
-- third_party: independent or externally hosted narrators (news, wires, podcasts on platforms, YouTube, vendor customer stories, employee social posts)
+- owned: company-controlled media (company site, blog, docs, newsroom, official company accounts such as LinkedIn company page, YouTube channel, GitHub org, X)
+- third_party: independent narrators (news, wires, independent podcasts/interviews, vendor customer stories, employee personal posts). Official company accounts are owned, not third_party.
 
 Spend most of your search budget in your assigned room. Sibling rooms are a soft preference for where to look, not a veto on what to report.
 

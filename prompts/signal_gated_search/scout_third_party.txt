@@ -6,21 +6,24 @@ Set "channel" to "third_party".
 
 Sibling rooms (do not score these as third_party presence):
 - jobs: careers pages, ATS boards, job listings, LinkedIn job posts
-- owned: company site, blog, docs, about, first-party newsroom on company properties
+- owned: company site, blog, docs, about, newsroom, official company accounts (LinkedIn company page, YouTube channel, GitHub org, X)
 
 == CHANNEL CONTRACT: third_party ==
-Decide whether **meaningful external coverage** of this company exists, so a later third_party dig would have something to read.
+Decide whether **meaningful independent coverage** of this company exists, so a later third_party dig would have something to read.
 
 COUNT AS DIGGABLE (moderate or strong):
 - Independent news / magazine features or interviews about this company
 - Press wires with real narrative about this company
-- Podcasts, YouTube/conference interviews, or transcripts on non-company hosts
+- Independent podcasts, YouTube/conference interviews, or transcripts where the host is not this company
 - Vendor customer stories / case studies about this company
+- Employee or founder personal posts/blogs not on official company accounts
 - One substantive external piece can be enough for moderate
 
 COUNT AS NOT DIGGABLE:
-- none: no real external coverage found
+- none: no real independent coverage found
 - weak: directory stubs only (thin Crunchbase/LinkedIn-style cards with no narrative article), tag pages, or ambiguous mentions that are not diggable coverage
+- Official company LinkedIn / YouTube / GitHub / X accounts are owned, not third_party. Do not score those as third_party presence.
 
 SEARCH FOCUS:
-Look for press, podcasts, interviews, and external writeups about this company. Do not treat the company blog as third_party. Ignore whether coverage already proves AI adoption.
+Look for press, independent interviews, and external writeups about this company. Do not treat the company blog or the company's own YouTube/LinkedIn as third_party. Ignore whether coverage already proves AI adoption.
+- If the homepage is down, still search by company name for independent coverage.

@@ -1,6 +1,6 @@
 # SGS design card (Phase 1) — FROZEN
 
-**Status:** FROZEN (2026-08-08 ladder; **2026-08-11 scout semantics** = channel **presence screen**).  
+**Status:** FROZEN (2026-08-08 ladder; **2026-08-11 scout semantics** = channel **presence screen**; **2026-08-13 owned surface** = site + official accounts, homepage is not a gate).  
 **Identity:** Signal Gated Search = channel **presence scouts** + **signal-count → dig effort ladder**. Not equal-depth always-on PCS. Not single ungated UAS.  
 **Supersedes:** eval-harness §3.2 Ranked Top-1 Dig (+ optional rescue) as the bake-off default. That policy remains a future ablation only.  
 **Scout role supersedes:** any earlier “adoption smoke” scout wording (scouts do **not** hunt GenAI adoption).
@@ -44,10 +44,12 @@ Related:
 | Channel | `signal=true` when… | `signal=false` when… |
 |---|---|---|
 | **jobs** | Real careers/ATS/job-listing surface exists | No jobs surface, placeholder “email us,” empty board |
-| **owned** | Substantial company-owned web presence beyond a thin acquisition/waitlist page | One-page signup/stealth landing, parked domain, almost no indexable content |
+| **owned** | Company site **or** official company accounts (LinkedIn company page, YouTube channel, GitHub org, X, company-operated CMS). Homepage does not have to load. | No site AND no official accounts; waitlist/parked page with empty account shells |
 | **third_party** | Meaningful external coverage exists (news, podcasts, nontrivial writeups, vendor stories) | No real footprint; directory stubs only |
 
-**Operating point:** escalate on **most** cases where a diggable source exists (recall-leaning on **presence**). Provisional `signal_threshold=0.5` = escalate `moderate` + `strong` bins. Tune τ later on labeled presence labels (not adoption labels).
+**Operating point:** escalate on **most** cases where a diggable source exists (recall-leaning on **presence**). Provisional `signal_threshold=0.5` = escalate `moderate` + `strong` bins. Tune τ later on labeled presence labels (not adoption labels). Homepage is identity, not a gate: code must not require `homepage_url` to fire digs. Official company accounts can signal owned when the site is down or unretrieved.
+
+**SGS vs PCS owned:** PCS owned stays host-based (company CMS on company domain; YouTube/LinkedIn posts default third_party). SGS owned is narrator-based (site **plus** official accounts). Bake-off identity difference is intentional after the Tern smoke FN.
 
 **Evidence bins → confidence (code may hard-map):**
 

@@ -24,6 +24,7 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 - SGS design freeze: `.cursor/plans/sgs-design.md`
 - SGS scout contracts: `prompts/signal_gated_search/scout_contracts.md`
 - SGS config: `evals/configs/signal_gated_search.yaml`
+- SGS paid 5-co smoke: `outputs/stage2/test_runs/sgs_smoke_5co/`
 - Agent rule: `.cursor/rules/decision-log.mdc`
 
 ---
@@ -260,6 +261,8 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 
 **Decision:** SGS scouts detect whether a **diggable channel source exists** (jobs board / substantial owned web / third-party coverage). They do **not** hunt internal GenAI adoption. Digs remain the adoption extractors. Escalate on most real presence cases; provisional `signal_threshold=0.5` (evidence bins: none/weak/moderate/strong → 0.0/0.35/0.65/0.90).
 
+**Owned-surface detail:** amended by [[2026-08-13: SGS owned includes official accounts; homepage is not a gate]].
+
 **Why:** Many startups lack a job board, have only a stealth landing page, or have no press footprint. Digging empty rooms wastes the effort ladder. Separation of concerns: scout = corpus/presence screen; dig = adoption research. Adoption-smoke scouts were too strict and mixed two jobs.
 
 **Evidence:** User design lock 2026-08-11; card `.cursor/plans/sgs-design.md`; contracts `prompts/signal_gated_search/scout_contracts.md`.
@@ -294,7 +297,7 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 
 **Alternatives rejected:** Copying UAS few-shots A–E; copying UAS’s full all-room source tour into shared (would collapse channel identity).
 
-**Open follow-ups:** SGS paid path smokes (live fan-out is on `sgs/04-live-fanout`). Envelope `channel_id` wins over a mislabeled model `channel` (hotfix #23).
+**Open follow-ups:** SGS paid 5-co smoke landed (see [[2026-08-13: SGS paid 5-company smoke]]). Envelope `channel_id` wins over a mislabeled model `channel` (hotfix #23).
 
 ---
 
@@ -322,7 +325,7 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 
 **Alternatives rejected:** Always snapshot three hypothetical digs at medium (would hide the gate). Shipping live ThreadPool in the same slice.
 
-**Open follow-ups:** paid path smokes (user-approved spend). Cost-preview prior refresh.
+**Open follow-ups:** paid 5-co smoke landed (see [[2026-08-13: SGS paid 5-company smoke]]). Cost-preview prior refresh.
 
 ---
 
@@ -336,7 +339,47 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 
 **Alternatives rejected:** Sequential scout/dig calls (same dollars, slower). A second merge implementation. Paid smoke inside this PR.
 
-**Open follow-ups:** user-approved one-company paid smoke (N=0/1/2/3 paths if possible). Cost-preview YAML still uses the old Top-1 prior.
+**Open follow-ups:** paid 5-co smoke landed (see [[2026-08-13: SGS paid 5-company smoke]]). Cost-preview YAML still uses the old Top-1 prior.
+
+---
+
+## 2026-08-13: SGS paid 5-company smoke
+
+**Decision:** Signal Gated Search live path is bake-off-ready for Stage 2 implementation. A 5-company paid smoke on March strata exercised N=0, N=1/`max`, and N=2/`high`. Metering, gate, merge, and `--live` all worked (`error=None` on every company). N=3/`medium` did not appear in this set.
+
+**Evidence:** `outputs/stage2/test_runs/sgs_smoke_5co/` (gitignored JSON). Dry first: 36 pytest, `python -m signal_gated_search` on Jam, `evals.runner.run_panel("sgs", dry_run=True)` fixture panel, dry compose on the 5 live picks. Then live, sequential, `dry_run=False`. Total metered **`$0.28252`**.
+
+| Company | rcid | March n | SGS gate | Effort | Cost | Findings | Notes |
+|---|---:|---:|---|---|---:|---:|---|
+| Easy Fill AI | 97943259 | 0 | N=0 | (scouts only) | $0.022 | 0 | Matches ~$0.02 scout-tax prior |
+| CoverTree | 1314132 | 1 jobs | N=0 | (scouts only) | $0.022 | 0 | Presence FN vs March |
+| Statsig | 103497 | 2 owned+tp | N=1 owned | **max** | $0.151 | 11 owned | Dig alone $0.128; above ~$0.12 path prior |
+| Tern Travel | 26492430 | 6 owned | N=0 | (scouts only) | $0.019 | 0 | Presence FN: owned scout said no first-party site despite `https://www.tern.travel/` |
+| Jam | 610194 | 8 owned+tp | N=2 owned+tp | **high** | $0.068 | 13 | Jobs correctly `none` (name collision). Close to PCS Jam `$0.070` |
+
+Jam is on the tuning-panel holdout; the other four are not. Scout bins were honest `none` (not URL-downgraded). N=0 scouts finished in ~4s; N=1 Statsig ~205s; N=2 Jam ~69s.
+
+**Why this closes SGS impl:** Live fan-out, frozen gate, cold digs, and component ledger ran on real companies. The N=1/`max` overrun is the cost the user already accepted asking the professor for headroom on.
+
+**Alternatives rejected:** Parallelizing the 5 companies (inner ThreadPool already fans out; sequential isolates failures). Forcing a third company until N=3 lights up (would be extra spend, not required to ship the package).
+
+**Open follow-ups:** optional extra smoke if we want the N=3/`medium` row before bake-off. Presence FN on owned/social patched in prompts (see [[2026-08-13: SGS owned includes official accounts; homepage is not a gate]]); re-smoke Tern after that change. Cost-preview YAML still uses the old Top-1 prior. UAS bake-off YAML lock; 3-arch panel.
+
+---
+
+## 2026-08-13: SGS owned includes official accounts; homepage is not a gate
+
+**Decision:** SGS owned presence is **narrator-based**: company site **or** official company accounts (LinkedIn company page, YouTube/Vimeo channel, GitHub org, X, company-operated CMS/newsletter). Homepage is identity, not a gate. Scouts must not emit `none` solely because the site is missing, down, or not returned by search. Official accounts can light owned (and independent coverage can still light third_party) even when the website fails. Employee personal posts stay third_party. Gate, ladder, and `rescue_enabled=false` unchanged. No code path keys digs on `homepage_url`.
+
+SGS owned **digs** may search official socials. Company YouTube/LinkedIn are owned-shaped. Independent interviews stay third_party. This diverges from PCS, which keeps a host-based split (YouTube/LinkedIn posts default third_party).
+
+**Why:** Paid smoke Tern Travel (`rcid=26492430`) gated N=0 after all three `fast` scouts returned `none`. March evidence was a company YouTube webinar. The owned scout was a website checker; a homepage miss zeroed owned even though socials existed. Lowering τ would not have helped (`none`, not `weak`). A homepage floor would have coupled spend to Stage 1 URL and still missed a down-site + rich-socials case.
+
+**Evidence:** User lock 2026-08-13; smoke `outputs/stage2/test_runs/sgs_smoke_5co/26492430.json`; prompts `prompts/signal_gated_search/scout_{shared_preamble,owned,third_party,jobs}.txt` and `dig_{shared_preamble,owned,third_party}.txt`; tests in `tests/test_sgs_prompting.py`.
+
+**Alternatives rejected:** Homepage floor / always-dig-owned-if-URL-exists (user: website may be down; socials should still motivate digs). Lowering `signal_threshold` to include `weak`. All-none rescue (still optional later). Changing the gate to require a homepage.
+
+**Open follow-ups:** re-smoke Tern (and ideally a down-site + socials case) on the new prompts. Optional all-none name-based social rescue if `fast` scouts still miss official accounts.
 
 ---
 
@@ -358,5 +401,8 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 - [x] SGS gate prefers envelope `channel_id` over the model `channel` field (see [[2026-08-13: SGS gate reads envelope channel_id before the model channel field]])
 - [x] SGS dry orchestrator (scout snapshots → gate → 0–3 dig snapshots)
 - [x] SGS live fan-out + merge + `--live` CLI
-- [ ] SGS paid path smokes (after live PR, user-approved spend)
-- [ ] 3-arch bake-off in eval suite (needs live SGS + frozen UAS knobs; PCS live ready)
+- [x] SGS paid path smokes (5-co March strata; see [[2026-08-13: SGS paid 5-company smoke]])
+- [x] SGS owned = site **or** official accounts; homepage is not a gate (see [[2026-08-13: SGS owned includes official accounts; homepage is not a gate]])
+- [ ] Re-smoke Tern Travel on the new owned/social prompts
+- [ ] Optional extra SGS smoke if we want the N=3/`medium` row before bake-off
+- [ ] 3-arch bake-off in eval suite (needs frozen UAS knobs; PCS + SGS live ready)

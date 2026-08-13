@@ -40,6 +40,31 @@ def test_dig_prompt_is_pcs_extract_plus_presence_note() -> None:
     assert "company-controlled" in text.lower()
 
 
+def test_owned_scout_counts_official_accounts_without_homepage() -> None:
+    text = build_scout_prompt(COMPANY, "owned")
+    assert "HOMEPAGE IS IDENTITY, NOT A GATE" in text
+    assert "Do not emit evidence_bin none solely because the homepage was not retrieved." in text
+    assert "Official company accounts" in text
+    assert "YouTube or Vimeo channel" in text
+    assert "A live official account is enough even when the website is down" in text
+
+
+def test_owned_dig_searches_official_accounts() -> None:
+    text = build_dig_prompt(COMPANY, "owned")
+    assert "The homepage does not have to load." in text
+    assert "YouTube or Vimeo channel" in text
+    assert "The company's own YouTube/LinkedIn/GitHub is owned-shaped" in text
+    assert "Prefer leaving wire hosts, independent news, platform podcasts, YouTube, and vendor case studies to third_party" not in text
+
+
+def test_third_party_does_not_claim_company_youtube() -> None:
+    scout = build_scout_prompt(COMPANY, "third_party")
+    assert "Official company LinkedIn / YouTube / GitHub / X accounts are owned" in scout
+    dig = build_dig_prompt(COMPANY, "third_party")
+    assert "The company's own channel is owned-shaped" in dig
+    assert "Default YouTube/conference video to this room unless the page lives on the company domain" not in dig
+
+
 def test_dig_schema_matches_pcs() -> None:
     assert DIG_RESPONSE_SCHEMA is RESPONSE_SCHEMA
 
