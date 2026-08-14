@@ -25,6 +25,8 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 - SGS scout contracts: `prompts/signal_gated_search/scout_contracts.md`
 - SGS config: `evals/configs/signal_gated_search.yaml`
 - SGS paid 5-co smoke: `outputs/stage2/test_runs/sgs_smoke_5co/`
+- Hill-climb panel (20-co, not bake-off): `evals/panel/hillclimb_panel.json`
+- PCS hill-climb v1 live: `outputs/stage2/test_runs/pcs_hillclimb_20/`
 - Agent rule: `.cursor/rules/decision-log.mdc`
 
 ---
@@ -231,7 +233,7 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 
 ## 2026-08-08: SGS design frozen (signal-count effort ladder)
 
-**Status:** Ladder / dig knobs still current. Scout *role* wording superseded by [[2026-08-11: SGS scouts are channel presence screens]].
+**Status:** Effort table superseded by [[2026-08-13: Bake-off effort lock (UAS xhigh, PCS 3× medium, SGS digs high)]]. Dig-all signaled, scout knobs, and rescue-off still current. Scout *role* wording superseded by [[2026-08-11: SGS scouts are channel presence screens]].
 
 **Decision:** Freeze Signal Gated Search bake-off design as **3 scouts → dig every signaled channel**, with dig `reasoning_effort` chosen by dig count:
 
@@ -261,7 +263,7 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 
 **Decision:** SGS scouts detect whether a **diggable channel source exists** (jobs board / substantial owned web / third-party coverage). They do **not** hunt internal GenAI adoption. Digs remain the adoption extractors. Escalate on most real presence cases; provisional `signal_threshold=0.5` (evidence bins: none/weak/moderate/strong → 0.0/0.35/0.65/0.90).
 
-**Owned-surface detail:** amended by [[2026-08-13: SGS owned includes official accounts; homepage is not a gate]].
+**Presence bar:** amended by [[2026-08-13: SGS scouts are existence checks, not source-quality filters]]. Owned-surface detail: amended by [[2026-08-13: SGS owned includes official accounts; homepage is not a gate]].
 
 **Why:** Many startups lack a job board, have only a stealth landing page, or have no press footprint. Digging empty rooms wastes the effort ladder. Separation of concerns: scout = corpus/presence screen; dig = adoption research. Adoption-smoke scouts were too strict and mixed two jobs.
 
@@ -379,7 +381,176 @@ SGS owned **digs** may search official socials. Company YouTube/LinkedIn are own
 
 **Alternatives rejected:** Homepage floor / always-dig-owned-if-URL-exists (user: website may be down; socials should still motivate digs). Lowering `signal_threshold` to include `weak`. All-none rescue (still optional later). Changing the gate to require a homepage.
 
-**Open follow-ups:** re-smoke Tern (and ideally a down-site + socials case) on the new prompts. Optional all-none name-based social rescue if `fast` scouts still miss official accounts.
+**Open follow-ups:** re-smoke Tern+CoverTree on new prompts landed (see [[2026-08-13: Tern and CoverTree re-smoke still N=0]]). Prompt wording was not enough. Optional all-none name-based social rescue or stronger scouts (`fetch_url` / more steps) if `fast` still misses official accounts.
+
+---
+
+## 2026-08-13: Tern and CoverTree re-smoke still N=0
+
+**Decision:** The owned/social prompt patch did **not** close the smoke false-negative. CoverTree and Tern Travel still gated to zero digs under `preset=fast`, `max_steps=2`, web_search only. Do not treat the prompt change as a recall fix until a later scout-tool or rescue change is smoked.
+
+**Evidence:** `outputs/stage2/test_runs/sgs_smoke_covertree_tern_v2/` vs first smoke `outputs/stage2/test_runs/sgs_smoke_5co/` and March `outputs/stage2/production_results.jsonl`.
+
+| Company | March n | March source | v1 digs / findings | v2 digs / findings | v2 cost | v2 duration |
+|---|---:|---|---|---|---:|---:|
+| CoverTree (`1314132`) | 1 | job-board repost (`jobright.ai`) | 0 / 0 | 0 / 0 | $0.022 | 4.9s |
+| Tern Travel (`26492430`) | 6 | company YouTube webinar | 0 / 0 | 0 / 0 | $0.022 | 4.2s |
+
+v2 owned rationales now mention official accounts and still emit `none` with zero URLs. CoverTree's March hit is a **jobs** aggregator listing, so the owned/social prompt was the wrong lever for that row. Tern is the owned/YouTube case the patch targeted, and `fast` search still did not return the channel.
+
+**Why record this:** Prompt-only recall upgrades can look done in git and still miss the live failure mode. Next lever is scout capability (more steps, `fetch_url`, or a name-based rescue), not another wording pass.
+
+**Alternatives rejected:** Calling this a successful prompt fix. Lowering τ (bins were still `none`).
+
+**Open follow-ups:** scout-tool or all-none rescue experiment (user-approved spend). Cost-preview YAML. UAS bake-off YAML. 3-arch panel.
+
+---
+
+## 2026-08-13: SGS scouts are existence checks, not source-quality filters
+
+**Decision:** SGS scouts answer only "does this room exist on the public web for this company?" They do not judge ATS quality, require current open roles, or look for GenAI adoption. Jobs is present if any jobs-related pages exist (ATS, careers, aggregators including JobRight, LinkedIn jobs, email-us hiring pages, stale listings). Owned is present if a website exists (including a thin/waitlist page) or official accounts exist. Third-party is present if any independent pages exist. `weak` is for name-collision doubt only, not for thin/email-only pages. Digs still own adoption extract. Empty dig findings are allowed.
+
+**Why:** CoverTree's jobs scout used a quality bar (live board with roles). Email-only hiring and aggregators were treated as not worth a dig. That is stricter than the bake-off identity: skip a room only when it does not exist, so we do not pay Luna for a channel with nothing to search. Scouts are too cheap/weak to hunt AI signals.
+
+**Evidence:** User lock 2026-08-13; CoverTree March hit was a JobRight aggregator listing (`jobright.ai`, now 404) plus a live `jobs@covertree.com` page. Prompts `prompts/signal_gated_search/scout_{shared_preamble,jobs,owned,third_party}.txt`; contracts `prompts/signal_gated_search/scout_contracts.md`.
+
+**Alternatives rejected:** Keeping email-only / empty careers as `weak` (does not clear τ=0.5). Treating aggregator brands with "AI" in the name as adoption-related noise. Homepage code floor.
+
+**Open follow-ups:** re-smoke CoverTree jobs room landed (see [[2026-08-13: CoverTree existence-bar smoke]]). Jobs scout still `none`. `fast` search may still miss pages even with a looser bar.
+
+---
+
+## 2026-08-13: CoverTree existence-bar smoke
+
+**Decision:** Loosening scouts to existence checks **did** get CoverTree a dig and **matched March's finding count (1)**. It did **not** light the jobs room. The owned scout found `https://covertree.com` (`moderate`). The owned `max` dig recovered the same Senior Applied AI Engineer role March had, via LinkedIn jobs, using the safety valve (jobs-shaped URL reported from the owned room). Jobs and third_party scouts stayed `none` with zero URLs.
+
+**Evidence:** `outputs/stage2/test_runs/sgs_smoke_covertree_existence/1314132.json` vs March `jobright.ai` listing (now 404) and prior smokes that were N=0.
+
+| | March | v1/v2 smokes | Existence-bar smoke |
+|---|---|---|---|
+| Digs | (single UAS-style call) | 0 | 1 owned at `max` |
+| Findings | 1 (JobRight aggregator) | 0 | 1 (LinkedIn jobs URL, owned channel tag) |
+| Cost | March deep-research | ~$0.022 | **$0.165** |
+| Duration | | ~5s | 141s |
+
+**Why this matters:** The website-existence bar unblocked owned. The jobs-existence bar did not unblock jobs. `fast` still failed to retrieve LinkedIn jobs / `jobs@` in the jobs scout, and the finding leaked in through an owned dig. N=1 `max` is the expensive path (~$0.14 of the $0.165).
+
+**Alternatives rejected:** Treating this as a jobs-scout success. It is an owned-scout + safety-valve success.
+
+**Open follow-ups:** jobs scout still misses live hiring pages that a sibling dig can find. Scout-tool / more steps / rescue remain open if we want jobs to light on its own.
+
+---
+
+## 2026-08-13: Bake-off effort lock (UAS xhigh, PCS 3× medium, SGS digs high)
+
+**Decision:** Freeze Stage 2 bake-off reasoning effort as:
+
+| Architecture | Effort | Notes |
+|---|---|---|
+| UAS | **xhigh** | One Luna call. Package default + `evals/configs/unified_adaptive_search.yaml`. |
+| PCS | **medium** × 3 | Already locked. Equal-depth, `max_steps=50`, search medium. |
+| SGS digs | **high** | Every signaled channel. Not `max`. Count still decides *how many* rooms, not how hard. |
+
+SGS `DIG_EFFORT_BY_COUNT` is 1/2/3 → high. Gate rationale `dig_all_signaled_high`. UAS `DEFAULT_REASONING_EFFORT` is `xhigh`.
+
+**Why:** One-room SGS at `max` cost **$0.165** on CoverTree (dig alone $0.141). That is too high for the ~$0.10 Stage 2 target. High keeps SGS cheaper than max while still above PCS medium. UAS stays one deeper call (xhigh). PCS stays three mediums.
+
+**Evidence:** User lock 2026-08-13; CoverTree existence-bar smoke `outputs/stage2/test_runs/sgs_smoke_covertree_existence/1314132.json`; `signal_gated_search/channels.py`; `evals/configs/{unified_adaptive_search,parallel_channel_search,signal_gated_search}.yaml`.
+
+**Alternatives rejected:** Keeping SGS 1=max (cost). Flattening SGS to medium (collapses toward PCS plus scout tax). Changing PCS off 3× medium.
+
+**Open follow-ups:** cost-preview YAML still uses old SGS Top-1 prior. 3-arch panel. Optional CoverTree re-smoke at high to re-measure $ vs the $0.165 max run.
+
+---
+
+## 2026-08-13: Hill-climb panel v1 (20 companies, not bake-off)
+
+**Decision:** Write a 20-company **hill-climb** panel (`hillclimb_pcs_v1_march_20`) for PCS prompt/architecture iteration, then SGS/UAS on the same IDs. 5 high / 5 medium / 5 low / 5 none by March findings count. Soft refs only. Disjoint from `tuning_panel_v2` (those 50 IDs stay held out forever, including Jam). This is **not** the bake-off panel. Bake-off starts only after the user is happy on these 20. Swap IDs in `MEMBERSHIP` and regenerate if a company is a bad fit; do not silently reuse tuning-50.
+
+Membership is chosen for failure-mode coverage, not random richness:
+
+| Stratum | Stress |
+|---|---|
+| high | Company YouTube (Tern), ATS+YouTube (Chainguard), dense owned + noisy TP (ClickHouse), owned+YC jobs (Alguna), Ashby+blog (Vendelux) |
+| medium | Owned+vendor CS (Statsig), podcast+blog (Unwrap), product-AI help center + Lever (Secureframe), aggregator jobs pair (SQOR), owned podcast transcripts (Blue Sky Robotics) |
+| low | JobRight aggregator that 404s (CoverTree), clean Ashby (LiveKit), vendor CS (K1x), YT interview (Momentic), LinkedIn embedded on site (Sudozi) |
+| none | AI sellers (Easy Fill, Sully.ai), SaaS with no GenAI found (RightRev), non-AI industrial (Oso Electric), non-AI insurance (Ahoy) |
+
+**Why:** The last SGS smokes showed FNs that a 5-co convenience sample cannot keep exposing. PCS always-on is the coverage ceiling, so hill-climb it first on a stratified set that includes those FNs plus jobs/owned/third_party mix and use-vs-sell zeros. Tuning-50 stays untouched so later bake-off IDs are still unused.
+
+**Evidence:** `evals/panel/hillclimb_panel.json`; builder `evals/panel/build_hillclimb_panel_v1.py`; path `evals/paths.py` `HILLCLIMB_PANEL_PATH`; tests `tests/test_hillclimb_panel.py`. Known regressions in-panel: Tern `26492430`, CoverTree `1314132`, Easy Fill `97943259`, Statsig `103497`.
+
+**Alternatives rejected:** Reusing tuning-50 (holdout contamination). Jumping to 3-arch bake-off before the 20 are green. A none-only or jobs-only slice (would miss YouTube / vendor / use-vs-sell). Putting Jam on this panel (Jam is in the tuning holdout).
+
+**Open follow-ups:** first paid PCS pass landed (see [[2026-08-14: PCS hill-climb v1 live 20-co]]). Iterate prompts until the user is happy. Then SGS/UAS on the same 20. Then bake-off on a **new** disjoint panel.
+
+---
+
+## 2026-08-14: PCS hill-climb v1 live 20-co
+
+**Decision:** Record the first paid PCS pass on `hillclimb_pcs_v1_march_20`. Not bake-off. Not a prompt freeze. Membership unchanged.
+
+**Why:** Need a coverage-ceiling baseline before editing PCS prompts. Sequential resume-safe run after the first process aborted at 10/20.
+
+**Evidence:** `outputs/stage2/test_runs/pcs_hillclimb_20/` (`run_twenty.py`, `summary.jsonl`, per-rcid JSON). 20/20 companies wrote a live result. Total **$1.19131**, mean **$0.05957**/co (under the ~$0.10 target). Max $0.08858 (Secureframe). Two timeout rows: Sudozi owned+third_party (jobs still returned 1 finding, $0.015); RightRev all three channels (cost $0, so this none is not a real empty).
+
+Soft March comparison (count only, not quality):
+
+| Pattern | Companies |
+|---|---|
+| PCS ≥ March on positives | 14/15 (Tern 6=6; CoverTree 2>1 jobs; highs all ≥ March) |
+| PCS miss vs March | SQOR (March 2 aggregator jobs, PCS 0) |
+| PCS extra on March-none | Ahoy (privacy-policy ChatGPT + employee LinkedIn Assistants API); Sully.ai (ATS + Cursor/Claude LinkedIn) |
+| PCS 0 on March-none | Easy Fill, Oso Electric; RightRev invalid (timeout) |
+
+Tern (the SGS N=0 case) is 6 findings / 3 channels / $0.05054. CoverTree jobs room lit under always-on PCS.
+
+**Alternatives rejected:** Treating RightRev as a confirmed none. Treating Ahoy/Sully extras as automatically correct (likely use-vs-sell / privacy-policy / employee-profile noise). Re-running the 18 clean rows.
+
+**Open follow-ups:** timeout retries landed (see [[2026-08-14: PCS hill-climb timeout retries (Sudozi, RightRev)]]). Inspect Ahoy/Sully/Secureframe product-chatbot rows for prompt tightening. SQOR aggregator FN. User reviews this baseline before prompt edits. Then SGS/UAS on the same 20.
+
+---
+
+## 2026-08-14: PCS hill-climb timeout retries (Sudozi, RightRev)
+
+**Decision:** Re-run only the two timeout companies from the v1 live pass. Same PCS knobs (3× medium). Per-channel timeout 600s for the retry only. Keep first-pass timeout JSONs as `*.timeout.json`. Rebuild `summary.jsonl` from the current 20 live files.
+
+**Why:** RightRev’s empty was invalid (all three channels timed out at $0). Sudozi’s owned + third_party never ran, so the LinkedIn-on-site case was incomplete.
+
+**Evidence:** `outputs/stage2/test_runs/pcs_hillclimb_20/{743085,42877}.json` plus `{743085,42877}.timeout.json`. Both retries `error=None` in ~30s.
+
+| Company | First pass | Retry |
+|---|---|---|
+| Sudozi `743085` | 1 finding (jobs), owned+tp timeout, $0.015 | 1 finding (jobs, Vaia board), owned 0 / tp 0, **$0.06267** |
+| RightRev `42877` | 0 findings, 3× timeout, $0 | 0 findings, 3 channels ran, **$0.06836**, `has_presence_no_evidence` |
+
+Current-panel total (latest 20 rows): **$1.30686**, mean **$0.06534**. All-in metered including the two timeout attempts: **~$1.32**. No remaining API errors. RightRev is now a real none. Sudozi still misses March’s owned LinkedIn-on-site row (jobs-only).
+
+**Alternatives rejected:** Re-running the 18 clean companies. Treating the first Sudozi jobs row as a complete company result.
+
+**Open follow-ups:** prompt lock landed (see [[2026-08-14: Hill-climb prompt lock (jobs boards, unnamed tools, adopt vs product-AI)]]). Re-smoke SQOR, Sudozi, and the ops/help-center cases after the prompt change.
+
+---
+
+## 2026-08-14: Hill-climb prompt lock (jobs boards, unnamed tools, adopt vs product-AI)
+
+**Decision:** After the 20-co PCS baseline, lock these prompt rules on **UAS, PCS, and SGS digs** (SGS scouts stay presence-only, but jobs/owned scout search lists match):
+
+1. Jobs must search off-site boards (LinkedIn Jobs, YC Work at a Startup, Techstars, Wellfound, Built In, Indeed, JobRight), not only the company careers page.
+2. A cited "we use AI in content creation" (or similar) is a finding even with no brand name. Label `unspecified AI …`. Never invent a vendor.
+3. Adopt vs sell: AI that automates staff work (help-center / live-chat bot replacing a rep) is adopt. AI that processes customer requests or documents (including on a privacy/policy page) is operations adopt. AI for legal/compliance internally is adopt. Sell is only marketing that the **product** has AI features, with no internal-process claim.
+4. Owned must search official accounts and company-hosted social walls (`/linkedin-posts`, `/news` embeds), not only the website blog.
+5. One URL may emit many findings when the tool and/or use case differs. Do not cap count. Merge dedupe is `(tool, use_case, url)`, not `(tool, url)`.
+
+V2 goal is **more** verified findings, not March-like counts.
+
+**Why:** SQOR was a jobs-board + unnamed-tool miss. Sudozi owned missed a company LinkedIn wall. The earlier precision advice to drop Ahoy privacy-policy AI and Secureframe help-center bots was wrong for this project: those are operations / staff-replacement, not product marketing.
+
+**Evidence:** User lock 2026-08-14. Prompts: `prompts/parallel_channel_search/`, `prompts/signal_gated_search/dig_*.txt` + `scout_{jobs,owned}.txt`, `prompts/stage_2_perplexity_prompt.txt`. Merge: `parallel_channel_search/merge.py`. Tests: `tests/test_pcs_prompting.py`, `tests/test_sgs_prompting.py`.
+
+**Alternatives rejected:** Dropping privacy-policy or help-center-bot rows as sell. Biasing prompts or merge toward March finding counts. Jobs search limited to company-owned boards.
+
+**Open follow-ups:** paid re-smoke of SQOR and Sudozi (then a wider hill-climb pass). Do not treat Ahoy/Secureframe extras as bugs to delete.
 
 ---
 
@@ -393,8 +564,9 @@ SGS owned **digs** may search official socials. Company YouTube/LinkedIn are own
 - [x] CLI `--live` entrypoint for one-company smoke
 - [x] Tiny paid smoke to confirm 3× metered cost ≈ projection (Jam `$0.070`)
 - [ ] Optional Stage B: steps=50 × search=high if we want to re-test deeper search with the steps budget
-- [ ] Lock UAS **bake-off** knobs in `evals/configs/unified_adaptive_search.yaml` (package works; yaml still baseline-ish, not Tuning #14 winner)
-- [x] SGS **design** freeze (signal-count effort ladder; see [[2026-08-08: SGS design frozen (signal-count effort ladder)]])
+- [x] Lock UAS **bake-off** knobs: `reasoning_effort=xhigh` in package default + `evals/configs/unified_adaptive_search.yaml` (see [[2026-08-13: Bake-off effort lock (UAS xhigh, PCS 3× medium, SGS digs high)]])
+- [x] SGS **design** freeze (dig-all signaled. Effort table superseded: SGS digs high, not 1=max)
+- [x] SGS digs = **high** on every signaled channel (see [[2026-08-13: Bake-off effort lock (UAS xhigh, PCS 3× medium, SGS digs high)]])
 - [x] SGS scout semantics = **presence screen** (see [[2026-08-11: SGS scouts are channel presence screens]])
 - [x] SGS digs = **cold start** (see [[2026-08-13: SGS digs are cold start]])
 - [x] SGS gate ladder + prompt compose (PR `sgs/02-gate-compose`)
@@ -403,6 +575,15 @@ SGS owned **digs** may search official socials. Company YouTube/LinkedIn are own
 - [x] SGS live fan-out + merge + `--live` CLI
 - [x] SGS paid path smokes (5-co March strata; see [[2026-08-13: SGS paid 5-company smoke]])
 - [x] SGS owned = site **or** official accounts; homepage is not a gate (see [[2026-08-13: SGS owned includes official accounts; homepage is not a gate]])
-- [ ] Re-smoke Tern Travel on the new owned/social prompts
+- [x] Re-smoke Tern Travel on the new owned/social prompts (still N=0. See [[2026-08-13: Tern and CoverTree re-smoke still N=0]])
+- [x] SGS scouts = existence checks, not source-quality or adoption (see [[2026-08-13: SGS scouts are existence checks, not source-quality filters]])
+- [x] Re-smoke CoverTree jobs room on the existence-bar prompts (owned lit, jobs still `none`. See [[2026-08-13: CoverTree existence-bar smoke]])
+- [ ] Scout-tool or all-none rescue if `fast` presence screens still return empty rooms that exist
 - [ ] Optional extra SGS smoke if we want the N=3/`medium` row before bake-off
-- [ ] 3-arch bake-off in eval suite (needs frozen UAS knobs; PCS + SGS live ready)
+- [x] Hill-climb PCS first paid pass on `evals/panel/hillclimb_panel.json` (20-co, $1.19 total; see [[2026-08-14: PCS hill-climb v1 live 20-co]])
+- [x] Retry PCS timeouts on Sudozi + RightRev (see [[2026-08-14: PCS hill-climb timeout retries (Sudozi, RightRev)]])
+- [x] Hill-climb prompt lock: external job boards, unnamed-tool findings, owned social walls, adopt vs product-AI (see [[2026-08-14: Hill-climb prompt lock (jobs boards, unnamed tools, adopt vs product-AI)]])
+- [ ] Re-smoke affected hill-climb companies after the prompt lock (SQOR, Sudozi, then a wider pass)
+- [ ] Hill-climb PCS until user is happy (maximize findings, not March-like counts)
+- [ ] Then SGS / UAS on the same 20 before bake-off
+- [ ] 3-arch bake-off in eval suite (only after the 20-co hill-climb is green; new disjoint panel, never tuning-50 or this hill-climb set)

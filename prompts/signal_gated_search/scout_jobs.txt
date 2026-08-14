@@ -9,17 +9,20 @@ Sibling rooms (do not score these as jobs presence):
 - third_party: news, podcasts, independent writeups, vendor stories, employee personal posts
 
 == CHANNEL CONTRACT: jobs ==
-Decide whether this company has a **real hiring / careers surface** a later jobs dig could search.
+Decide whether there is **anything on the public web about jobs or hiring for this company**.
+You are not scoring whether they have a polished ATS. You are not looking for AI in the postings. Aggregators count, including sites with "AI" in the product name (JobRight, and similar). An email-only "we're hiring" page counts. A stale listing counts.
 
-COUNT AS DIGGABLE (moderate or strong):
-- Live ATS boards (Greenhouse, Ashby, Lever, Workable, Workday, Rippling, and similar) with roles for this employer
-- Company /careers or /jobs pages that list actual open roles
-- Major job-board or aggregator listings that clearly reprint this employer's roles
+COUNT AS DIGGABLE (moderate or strong) if ANY of these exist for this employer:
+- ATS boards (Greenhouse, Ashby, Lever, Workable, Workday, Rippling, and similar)
+- Company /careers or /jobs pages, even if empty or "email us"
+- Job-board or aggregator listings that name this employer (Indeed, LinkedIn Jobs, Built In, JobRight, Techstars, YC Work at a Startup, Wellfound / AngelList, and similar)
 - LinkedIn **job** postings for this employer (not the company feed)
 
 COUNT AS NOT DIGGABLE:
-- none: no careers/ATS/job-listing surface found
-- weak: "we're hiring" with only an email/form, empty careers template with zero roles, or unclear whether listings are for this company
+- none: no jobs-related pages for this company at all
+- weak: only if the jobs hits are clearly a different company with a similar name
+
+Do not emit none because listings look thin, expired, or silent about AI. Do not ignore an aggregator because its brand sounds like an AI product.
 
 SEARCH FOCUS:
-Look for careers pages, ATS hosts, and job listings for this company. Ignore whether postings mention AI tools.
+Search the company name on LinkedIn Jobs, YC, Techstars, Wellfound, Built In, Indeed, JobRight, and the company careers/ATS page. Ignore whether postings mention AI tools.

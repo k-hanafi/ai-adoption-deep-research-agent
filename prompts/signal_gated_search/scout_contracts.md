@@ -1,13 +1,13 @@
 # SGS scout prompt contracts (presence screen)
 
-**Status:** Live Agent instructions are `scout_*.txt`. Owned-surface detail amended 2026-08-13 (official accounts; homepage is not a gate).  
+**Status:** Live Agent instructions are `scout_*.txt`. Presence bar amended 2026-08-13: existence check, not source-quality or adoption.  
 **SoT:** `.cursor/plans/sgs-design.md`  
 **Separation of concerns:** scouts decide **channel source presence**; digs decide **GenAI adoption**. Never ask scouts for adoption findings.
 
 Shared rules for all three contracts:
 - No UAS / PCS / SGS product names in prompts.
 - No dollar budget / effort ladder wording in prompts (code owns the ladder).
-- Prefer recall on real presence: escalate most diggable sources (`τ=0.5` ⇒ moderate+).
+- Prefer recall: if this room exists on the web for this company, escalate. Do not require adoption evidence or a polished source.
 - No URL ⇒ cannot be `moderate`/`strong`; force `none`.
 - Homepage is identity, not a gate. Unreachable homepage is not by itself `none`.
 - `rationale` must be about presence of a source surface, not about AI tools.
@@ -37,10 +37,10 @@ FORMAT:
 
 FAILURE (any of these = bad scout):
 - Sets `signal=true` because the company “seems AI-related” with no channel source
-- Sets `signal=true` on a one-page waitlist / empty careers stub / directory-only hit
 - Returns adoption findings, tool names as the main claim, or full finding rows
 - Omits URLs while claiming moderate/strong
 - Emits `none` solely because the homepage was missing, down, or not returned by search
+- Emits `none` because pages in the room are thin, stale, email-only, or silent about AI
 - Confuses rooms (e.g. treats a news article as owned, or a careers page as third_party) without noting the correct room
 
 ### Schema
@@ -63,22 +63,23 @@ FAILURE (any of these = bad scout):
 
 ### Contract
 
-GOAL: Detect whether this company has a **real jobs/careers hiring surface** worth a jobs-channel dig (ATS, careers page with roles, or active job listings). Measurable success: high recall on companies with real boards; low escalate rate on companies with no hiring surface.
+GOAL: Detect whether **any jobs/hiring pages exist** for this company on the public web (ATS, careers, aggregators, LinkedIn jobs, email-us hiring pages). Measurable success: escalate when anything jobs-related exists; skip only when there is no jobs footprint at all. Do not require open roles, a polished ATS, or AI mentions.
 
 CONSTRAINTS:
 - Shared scout shell constraints
-- Count as present: Greenhouse/Lever/Ashby/Workable/etc., `/careers` or `/jobs` with actual roles, major job-board listings clearly for this employer
+- Count as present: ATS, `/careers` or `/jobs` (including empty or email-only), job-board/aggregator listings that name this employer (Indeed, LinkedIn Jobs, JobRight, Built In, Techstars, YC Work at a Startup, Wellfound, and similar)
 - Do not require that postings mention AI tools (that is the dig’s job)
+- Do not ignore an aggregator because its brand contains "AI"
 
 FORMAT:
 - Shared schema with `"channel": "jobs"`
-- Prefer URLs that point at the board or a specific listing index
+- Prefer URLs that point at a jobs-related page (board, listing, or hiring contact page)
 
 FAILURE:
 - Shared failures
-- Escalates on “We’re hiring! email jobs@…” with no board
-- Escalates on an empty careers template with zero roles
-- Misses an obvious live ATS / careers index (false negative)
+- Emits `none` because hiring is email-only, the board is empty, or listings look stale
+- Misses aggregator listings or an obvious ATS / careers page (false negative)
+- Treats JobRight (or similar) as adoption evidence or as a reason to skip
 
 ---
 
@@ -86,24 +87,23 @@ FAILURE:
 
 ### Contract
 
-GOAL: Detect whether the company has a **diggable first-party narrator surface** (company site and/or official company accounts) so an owned dig has somewhere the company itself publishes. Measurable success: escalate when the site OR official LinkedIn/YouTube/GitHub/X exists; do not emit none just because the homepage did not load.
+GOAL: Detect whether this company has a **website or official first-party accounts**. A thin landing page still counts. Measurable success: escalate when a site or official LinkedIn/YouTube/GitHub/X exists; skip only when there is no first-party publishing at all.
 
 CONSTRAINTS:
 - Shared scout shell constraints
 - Company-controlled site **or** official company accounts (LinkedIn company page, YouTube/Vimeo channel, GitHub org, X, company-operated newsletter/CMS)
-- Homepage is identity, not a required proof. Unreachable or stub site is not `none` if official accounts exist
-- Stealth waitlist / empty official shells do **not** count
+- Homepage is identity, not a required proof. Unreachable site is not `none` if official accounts exist
+- Waitlist / one-pager **does** count as a website
 - Employee personal profiles are not official accounts (third_party)
 
 FORMAT:
 - Shared schema with `"channel": "owned"`
-- URLs may be site hubs (docs, blog, about) **or** official account URLs. Do not require the marketing root.
+- URLs may be the site (even a thin root) **or** official account URLs
 
 FAILURE:
 - Shared failures
-- Escalates on waitlist-only / “coming soon” one-pagers with no official accounts
+- Emits `none` because the site is a waitlist or one-pager
 - Emits `none` solely because the homepage was missing, down, or not returned by search
-- Rejects a small but real docs/blog site as “too small” (over-strict FN)
 - Treats a live official LinkedIn company page or company YouTube channel as third_party
 - Treats employee personal LinkedIn as an official company account
 
@@ -113,24 +113,24 @@ FAILURE:
 
 ### Contract
 
-GOAL: Detect whether **meaningful independent coverage** of this company exists (news, independent interviews, vendor stories), such that a third_party dig has something to read. Measurable success: skip stealth firms with zero footprint; escalate when real coverage exists; do not score official company accounts as third_party.
+GOAL: Detect whether **any independent pages about this company exist** (news, interviews, writeups, vendor stories, personal posts). Measurable success: escalate when independent pages exist; skip empty directory stubs and official company accounts (those are owned).
 
 CONSTRAINTS:
 - Shared scout shell constraints
-- Directory stubs (thin Crunchbase/LinkedIn-only cards with no narrative) are not enough alone
-- One substantive article/podcast/case study can be enough for moderate
+- Empty directory stubs (thin Crunchbase/LinkedIn-style cards with no article) are `none`
+- One independent page can be enough for moderate
 - Official company LinkedIn / YouTube / GitHub / X are owned, not third_party
 - Do not require the coverage to already prove GenAI adoption
 - Homepage down is not a reason to skip this room; search by company name
 
 FORMAT:
 - Shared schema with `"channel": "third_party"`
-- URLs should be independent narrators (press, independent interview, case study), not the company homepage or official company accounts
+- URLs should be independent narrators, not the company homepage or official company accounts
 
 FAILURE:
 - Shared failures
-- Escalates on empty profile stubs / tag pages with no article body
-- Misses obvious press coverage (false negative)
+- Escalates on empty directory stubs with no article body
+- Misses independent pages that exist (false negative)
 - Treats the company’s own blog or official YouTube/LinkedIn as third_party (wrong room; that is owned)
 - Emits `none` solely because the homepage was not retrieved
 

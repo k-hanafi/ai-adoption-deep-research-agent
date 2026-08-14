@@ -10,13 +10,13 @@ Sibling rooms (search these less; still report qualifying evidence if you find i
 == CHANNEL CONTRACT: jobs ==
 Search first for internal GenAI adoption evidence in **hiring artifacts**.
 
-PRIORITIZE (source shapes for your budget):
+PRIORITIZE (source shapes for your budget). You MUST search off-site boards, not only the company careers page:
+- LinkedIn **Jobs** (requirements text), not the company feed
+- Startup and accelerator boards: YC Work at a Startup, Techstars, Wellfound / AngelList
+- Industry and aggregator boards: Built In, Indeed, JobRight, and similar mirrors that reprint this employer's role text
 - ATS-hosted listings (Greenhouse, Ashby, Lever, Workable, Workday, Rippling, and similar)
 - Company /careers or /jobs pages, including on the company domain
-- Startup and industry job boards that mirror role requirements
-- Aggregator mirrors that reprint the company's job text
-- LinkedIn **job** postings (requirements text), not feed posts
-- Role text that lists GenAI tools as required, preferred, or part of how the team works
+- Role text that lists GenAI tools, OR that says the role uses AI with no brand name ("use AI tools to produce content")
 - Hiring pages that describe internal use of AI assistants as part of the role or team practice
 
 SOFT BOUNDARIES (steer search; do not use these to drop real findings):
@@ -32,4 +32,4 @@ SAFETY VALVE:
 If you already have a citable URL with clear internal GenAI use, report it even when the page is more blog/news-shaped than jobs-shaped. Label source_type honestly. Do not return empty because "a sibling should have caught this."
 
 == SEARCH FOCUS ==
-Spend most of your budget on careers pages, ATS listings, and job-board mirrors. Prefer primary job text over secondary commentary about hiring.
+Search the company name on LinkedIn Jobs, YC, Techstars, Wellfound, Built In, Indeed, and the company ATS/careers page. Do not stop after the company-owned board. Prefer primary job text over commentary about hiring. Report unnamed AI-in-the-role claims.

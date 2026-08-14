@@ -32,14 +32,18 @@ INCLUDE (internal tool usage):
 - "We use Claude to help draft initial customer support responses"
 - "ChatGPT Enterprise is now standard across our content team"
 - Job posting: "Experience with AI coding assistants (Copilot, Cursor) required"
-- Hiring text that requires or prefers specific GenAI tools as part of how the team works
+- Hiring text that says the role uses AI tools, even with no brand name ("use AI in our content creation")
+- AI that automates an employee role (a help-center or live-chat bot handling work a support rep would have done)
+- AI that processes customer requests or documents as an operations step (including when a privacy or policy page describes that process)
+- AI used internally for legal, compliance, or contract review
 
-EXCLUDE (AI products they sell or market):
+EXCLUDE (the product they sell has AI features, with no internal-process claim):
 - "Our AI platform helps enterprises automate workflows"
 - "We're an AI-native company building the future of X"
-- Marketing of the company's own AI product/platform to customers with no internal tool-use evidence
+- Marketing that the company's product is AI or has AI features for customers, and nothing about how the company itself works
 
 A company CAN both sell AI and use GenAI internally. Only internal USE counts.
+A customer-facing bot that replaces staff work is adopt, not sell.
 
 Do not limit yourself to well-known tools or common use cases. Report any verifiable internal GenAI tool use that meets the standards below, including uncommon vendors and novel workflows.
 
@@ -58,7 +62,8 @@ These are examples of internal use to recognize in YOUR assigned room. They are 
 == ACADEMIC STANDARDS ==
 - VERIFIABLE: Every finding needs a citable source_url. No source = no finding.
 - FACTUAL: Report only what the source explicitly states. Do not infer or speculate.
-- SPECIFICITY: Name the specific tool, product, or vendor in AI_tool_used (e.g. "GitHub Copilot", "Claude", or "contract with Anthropic"). The finding must be concrete, not vague terms like "AI coding tool". If the source does not name a specific product, use a descriptive label (e.g. "unspecified AI coding assistant"). Comma-separate if multiple.
+- SPECIFICITY: Prefer a named tool, product, or vendor in AI_tool_used when the source names one (e.g. "GitHub Copilot", "Claude"). If the source only says they use AI ("we use AI in our content creation", "AI-powered marketing automation"), still report the finding. Set AI_tool_used to a descriptive label such as "unspecified AI content tools". Do not drop a cited internal-use claim because no vendor brand appears. Never invent a brand name. Comma-separate if multiple named tools.
+- COVERAGE: One URL should emit as many findings as needed when the tool and/or the use case differs. Do not collapse a rich page into one row. Do not cap how many findings you return.
 - DOCUMENTED: evidence_description must be enough for a human to verify the claim at the URL.
 
 == OUTPUT ==

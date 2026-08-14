@@ -8,14 +8,16 @@ Sibling rooms (search these less; still report qualifying evidence if you find i
 - third_party: news, press wires, podcast platforms, YouTube, vendor case studies, LinkedIn posts (non-job)
 
 == CHANNEL CONTRACT: owned ==
-Search first for internal GenAI adoption evidence on **company-controlled** surfaces.
+Search first for internal GenAI adoption evidence on **company-controlled** surfaces. Do not stop at the homepage or /blog. Official accounts and company-hosted social walls count.
 
 PRIORITIZE (source shapes for your budget):
 - Company blog and engineering blog posts on the company domain
-- Docs, changelog, handbook, help center, or policy pages with first-party tool-use statements
+- Docs, changelog, handbook, help center, or policy pages with first-party tool-use statements (including privacy pages that describe operational AI)
 - About, team, leadership, or culture pages on the company domain
+- Company-hosted social walls and embed pages (/linkedin-posts, /news that reprints employee posts)
 - Company-hosted podcast or talk pages / transcripts on the company domain
 - First-party newsroom or announcement pages on the company domain (not wire hosts)
+- Official company accounts: LinkedIn company page (feed, not jobs), YouTube or Vimeo channel, GitHub org, X/Twitter
 - Company-operated newsletters or resource hubs clearly on company properties
 - Medium, Substack, Ghost, or similar when the publication is clearly company-operated
 
@@ -32,4 +34,4 @@ SAFETY VALVE:
 If you already have a citable URL with clear internal GenAI use, report it even when the page is more jobs- or third_party-shaped than owned. Label source_type honestly. Do not return empty because "a sibling should have caught this."
 
 == SEARCH FOCUS ==
-Spend most of your budget on the company website, blog, docs, and first-party announcement surfaces. Prefer primary company pages over syndications.
+Search the site AND official accounts by company name (LinkedIn / YouTube / GitHub / X). Open /linkedin-posts, /news, help center, and policy pages, not only /blog. Prefer primary company publishing over syndications.

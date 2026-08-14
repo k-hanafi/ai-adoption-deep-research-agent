@@ -24,12 +24,19 @@ COMPANY = CompanyInput(
 )
 
 
-def test_scout_prompt_is_presence_not_adoption() -> None:
+def test_jobs_scout_is_existence_not_quality_or_adoption() -> None:
     text = build_scout_prompt(COMPANY, "jobs")
     assert "Jam" in text
     assert "presence detector" in text.lower()
     assert "Set \"channel\" to \"jobs\"" in text
     assert "GitHub Copilot" not in text
+    assert "anything on the public web about jobs or hiring" in text
+    assert "An email-only \"we're hiring\" page counts" in text
+    assert "Do not ignore an aggregator because its brand sounds like an AI product." in text
+    assert "Techstars" in text
+    assert "YC Work at a Startup" in text
+    assert "with roles for this employer" not in text
+    assert '"we\'re hiring" with only an email/form' not in text
 
 
 def test_dig_prompt_is_pcs_extract_plus_presence_note() -> None:
@@ -47,6 +54,7 @@ def test_owned_scout_counts_official_accounts_without_homepage() -> None:
     assert "Official company accounts" in text
     assert "YouTube or Vimeo channel" in text
     assert "A live official account is enough even when the website is down" in text
+    assert "A thin landing page still counts as a website" in text
 
 
 def test_owned_dig_searches_official_accounts() -> None:
@@ -54,7 +62,18 @@ def test_owned_dig_searches_official_accounts() -> None:
     assert "The homepage does not have to load." in text
     assert "YouTube or Vimeo channel" in text
     assert "The company's own YouTube/LinkedIn/GitHub is owned-shaped" in text
+    assert "/linkedin-posts" in text
+    assert "Do not drop a cited internal-use claim because no vendor brand appears" in text
     assert "Prefer leaving wire hosts, independent news, platform podcasts, YouTube, and vendor case studies to third_party" not in text
+
+
+def test_jobs_dig_searches_external_boards_and_unnamed_ai() -> None:
+    text = build_dig_prompt(COMPANY, "jobs")
+    assert "Techstars" in text
+    assert "YC Work at a Startup" in text
+    assert "LinkedIn Jobs" in text
+    assert "Do not stop after the company-owned board" in text
+    assert "use AI tools to produce content" in text
 
 
 def test_third_party_does_not_claim_company_youtube() -> None:
@@ -91,12 +110,12 @@ def test_scout_request_uses_fast_preset_no_fetch() -> None:
 
 def test_dig_request_is_cold_start_explicit_knobs() -> None:
     kwargs = build_dig_request_kwargs(
-        COMPANY, "jobs", reasoning_effort="max"
+        COMPANY, "jobs", reasoning_effort="high"
     )
     assert "preset" not in kwargs
     assert kwargs["model"] == "openai/gpt-5.6-luna"
     assert kwargs["max_steps"] == 10
-    assert kwargs["reasoning"] == {"effort": "max"}
+    assert kwargs["reasoning"] == {"effort": "high"}
     assert kwargs["response_format"] is DIG_RESPONSE_SCHEMA
     tool_types = [t["type"] for t in kwargs["tools"]]
     assert tool_types == ["web_search", "fetch_url"]
