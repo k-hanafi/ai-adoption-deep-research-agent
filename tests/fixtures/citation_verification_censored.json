@@ -1,0 +1,71 @@
+{
+  "fixture_name": "verification_censored",
+  "output": [
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "{\"verification\":1}",
+          "logprobs": [
+            {
+              "token": "{\"verification\":",
+              "bytes": [
+                123,
+                34,
+                118,
+                101,
+                114,
+                105,
+                102,
+                105,
+                99,
+                97,
+                116,
+                105,
+                111,
+                110,
+                34,
+                58
+              ],
+              "logprob": -0.01,
+              "top_logprobs": [
+                {
+                  "token": "{\"verification\":",
+                  "logprob": -0.01
+                }
+              ]
+            },
+            {
+              "token": "1",
+              "bytes": [
+                49
+              ],
+              "logprob": -0.01005033585350145,
+              "top_logprobs": [
+                {
+                  "token": "1",
+                  "logprob": -0.01005033585350145
+                }
+              ]
+            },
+            {
+              "token": "}",
+              "bytes": [
+                125
+              ],
+              "logprob": -0.01,
+              "top_logprobs": [
+                {
+                  "token": "}",
+                  "logprob": -0.01
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
