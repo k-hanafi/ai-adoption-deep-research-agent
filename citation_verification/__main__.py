@@ -7,11 +7,10 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 from pathlib import Path
 from typing import Any
 
-from citation_verification.runner import LiveNotWiredError, verify_finding, verify_findings
+from citation_verification.runner import verify_finding, verify_findings
 
 
 def _load_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -34,7 +33,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Stage 3 citation verification "
-            "(dry-run default; --live reserved for paid fetch+judge)"
+            "(dry-run default; --live runs paid fetch+judge)"
         )
     )
     mode = parser.add_mutually_exclusive_group()
@@ -47,7 +46,7 @@ def main(argv: list[str] | None = None) -> int:
     mode.add_argument(
         "--live",
         action="store_true",
-        help="Paid fetch+judge (not wired in skeleton commit)",
+        help="Paid Perplexity fetch_url + OpenAI Terra judge",
     )
     parser.add_argument(
         "--findings",
@@ -60,33 +59,29 @@ def main(argv: list[str] | None = None) -> int:
 
     dry_run = not args.live
 
-    try:
-        if args.findings is not None:
-            rows = _load_jsonl(args.findings)
-            if not rows:
-                raise SystemExit(f"{args.findings}: no findings rows")
-            result = verify_findings(rows, dry_run=dry_run)
-            print(json.dumps(result.to_dict(), indent=2))
-            return 0
+    if args.findings is not None:
+        rows = _load_jsonl(args.findings)
+        if not rows:
+            raise SystemExit(f"{args.findings}: no findings rows")
+        result = verify_findings(rows, dry_run=dry_run)
+        print(json.dumps(result.to_dict(), indent=2))
+        return 0
 
-        if args.url is not None or args.claim is not None:
-            if not args.url or not args.claim:
-                raise SystemExit("one-off debug requires both --url and --claim")
-            verdict = verify_finding(
-                {
-                    "finding_id": None,
-                    "source_url": args.url,
-                    "evidence_description": args.claim,
-                },
-                dry_run=dry_run,
-            )
-            print(json.dumps(verdict.to_dict(), indent=2))
-            return 0
+    if args.url is not None or args.claim is not None:
+        if not args.url or not args.claim:
+            raise SystemExit("one-off debug requires both --url and --claim")
+        verdict = verify_finding(
+            {
+                "finding_id": None,
+                "source_url": args.url,
+                "evidence_description": args.claim,
+            },
+            dry_run=dry_run,
+        )
+        print(json.dumps(verdict.to_dict(), indent=2))
+        return 0
 
-        raise SystemExit("provide --findings PATH.jsonl or both --url and --claim")
-    except LiveNotWiredError as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return 2
+    raise SystemExit("provide --findings PATH.jsonl or both --url and --claim")
 
 
 if __name__ == "__main__":
