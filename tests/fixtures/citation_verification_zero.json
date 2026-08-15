@@ -1,0 +1,106 @@
+{
+  "fixture_name": "verification_zero",
+  "output": [
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "{\"verification\":0}",
+          "logprobs": [
+            {
+              "token": "{\"verification\":",
+              "bytes": [
+                123,
+                34,
+                118,
+                101,
+                114,
+                105,
+                102,
+                105,
+                99,
+                97,
+                116,
+                105,
+                111,
+                110,
+                34,
+                58
+              ],
+              "logprob": -0.01,
+              "top_logprobs": [
+                {
+                  "token": "{\"verification\":",
+                  "logprob": -0.01,
+                  "bytes": [
+                    123,
+                    34,
+                    118,
+                    101,
+                    114,
+                    105,
+                    102,
+                    105,
+                    99,
+                    97,
+                    116,
+                    105,
+                    111,
+                    110,
+                    34,
+                    58
+                  ]
+                }
+              ]
+            },
+            {
+              "token": "0",
+              "bytes": [
+                48
+              ],
+              "logprob": -0.030459207484708574,
+              "top_logprobs": [
+                {
+                  "token": "0",
+                  "logprob": -0.030459207484708574,
+                  "bytes": [
+                    48
+                  ]
+                },
+                {
+                  "token": "1",
+                  "logprob": -3.506557897319982,
+                  "bytes": [
+                    49
+                  ]
+                }
+              ]
+            },
+            {
+              "token": "}",
+              "bytes": [
+                125
+              ],
+              "logprob": -0.01,
+              "top_logprobs": [
+                {
+                  "token": "}",
+                  "logprob": -0.01,
+                  "bytes": [
+                    125
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "verification": 0,
+    "sampled_probability": 0.97
+  }
+}

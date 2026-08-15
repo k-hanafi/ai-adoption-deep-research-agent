@@ -1,0 +1,25 @@
+{
+  "id": "resp_fixture_fetch_empty",
+  "output": [
+    {
+      "type": "fetch_url_results",
+      "contents": []
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "Could not fetch the URL."
+        }
+      ]
+    }
+  ],
+  "usage": {
+    "input_tokens": 80,
+    "output_tokens": 10,
+    "total_tokens": 90,
+    "cost": {"currency": "USD", "total_cost": 0.0001}
+  }
+}

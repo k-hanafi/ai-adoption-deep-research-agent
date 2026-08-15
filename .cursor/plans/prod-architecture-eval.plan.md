@@ -27,7 +27,8 @@
 | Eval budget | **≤ $150** total for eval phase (expect ~3 full iterations of 3 archs + Stage 3). |
 | Golden set size | Ideal **100 found + 100 not-found**. Likely cut to **50+50**; **defer cut decision to Phase 3** after Phase 1–2 assumptions lock. |
 | Winner metric | **Not precision alone** (Stage 3 is architecture-agnostic). Track **yield with cost** (e.g. verified or raw findings per dollar / per company at comparable unit cost). Maximize yield while **9.45k Stage 2 spend ≤ ~$1k**. |
-| Stage 3 API choice | **Defer research to after Phase 1** (Tavily+OpenAI logprobs vs Perplexity vs hybrid). |
+| Stage 3 API choice | **Locked 2026-08-13:** Perplexity **`fetch_url`** + OpenAI **`reasoning.effort=none`** binary logprobs (+ 1–5 backup). Not Tavily-only; not Perplexity `web_search` for verify. See [[2026-08-13: Stage 3 stack = Perplexity fetch_url + OpenAI logprob judge]]. |
+| Stage 3 packaging | **Production top-level package `citation_verification/`** (2026-08-13). Evals imports it for pre-prod validation; not implemented inside `evals/`. See [[2026-08-13: Stage 3 is a production top-level package]]. |
 
 ### Open questions
 
