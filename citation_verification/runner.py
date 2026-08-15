@@ -16,6 +16,7 @@ from citation_verification.confidence import (
 from citation_verification.fetch import FetchResult, execute_fetch
 from citation_verification.judge import JudgeParseError, JudgeResult, execute_judge
 from citation_verification.text import (
+    cap_snippet,
     claim_on_topic,
     combine_chunk_verdicts,
     documents_disagree,
@@ -150,7 +151,7 @@ def _verify_live(
         context=context,
     )
     try:
-        page, fetch_cost, fetch_attempts = _resolve_page(source_url, claim)
+        page, fetch_cost, fetch_attempts = _resolve_page(source_url)
     except Exception as exc:  # noqa: BLE001 - surface any fetch transport failure
         return unverifiable_result(
             finding_id=finding_id,
@@ -293,7 +294,7 @@ def _verify_live(
     )
 
 
-def _resolve_page(source_url: str, claim: str) -> tuple[FetchResult, float, int]:
+def _resolve_page(source_url: str) -> tuple[FetchResult, float, int]:
     primary = execute_fetch(source_url)
     fetch_cost = float(primary.cost_usd)
     fetch_attempts = max(1, primary.attempts)
@@ -303,7 +304,8 @@ def _resolve_page(source_url: str, claim: str) -> tuple[FetchResult, float, int]
     if primary.ok and not poisoned:
         return primary, fetch_cost, fetch_attempts
 
-    backup = execute_backup_chain(source_url, query=extract_anchors(claim) or None)
+    # Full-page extract. Claim-chunk query is only for targeted refetch.
+    backup = execute_backup_chain(source_url)
     fetch_cost += float(backup.cost_usd)
     fetch_attempts += max(1, backup.attempts)
     if primary.ok and backup.ok and documents_disagree(
@@ -353,18 +355,44 @@ def _recover_missing_anchors(
     fetch_cost += float(targeted.cost_usd)
     fetch_attempts += max(1, targeted.attempts)
     if targeted.ok and not missing_anchors(targeted.snippet, missing):
-        return targeted, fetch_cost, fetch_attempts
+        return _merge_page(page, targeted), fetch_cost, fetch_attempts
 
     backup = execute_backup_chain(source_url, query=list(missing))
     fetch_cost += float(backup.cost_usd)
     fetch_attempts += max(1, backup.attempts)
     if backup.ok and not missing_anchors(backup.snippet, missing):
-        return backup, fetch_cost, fetch_attempts
+        return _merge_page(page, backup), fetch_cost, fetch_attempts
     if targeted.ok:
-        return targeted, fetch_cost, fetch_attempts
+        return _merge_page(page, targeted), fetch_cost, fetch_attempts
     if backup.ok:
-        return backup, fetch_cost, fetch_attempts
+        return _merge_page(page, backup), fetch_cost, fetch_attempts
     return page, fetch_cost, fetch_attempts
+
+
+def _merge_page(original: FetchResult, recovered: FetchResult) -> FetchResult:
+    """Keep both extracts. Recovered text goes first so the 32k cap cannot drop it."""
+    left = (original.snippet or "").strip()
+    right = (recovered.snippet or "").strip()
+    if not left:
+        combined = right
+    elif not right or right in left:
+        combined = left
+    elif left in right:
+        combined = right
+    else:
+        combined = f"{right}\n\n{left}"
+    snippet, truncated = cap_snippet(combined)
+    return FetchResult(
+        url=recovered.url or original.url,
+        title=recovered.title or original.title,
+        snippet=snippet,
+        cost_usd=recovered.cost_usd,
+        raw=recovered.raw,
+        error=None,
+        source=recovered.source,
+        attempts=recovered.attempts,
+        truncated=truncated or original.truncated,
+    )
 
 
 def _judge_window(

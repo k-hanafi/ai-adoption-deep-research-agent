@@ -207,6 +207,150 @@ def test_poison_primary_recovers_via_backup(
     assert "illustrative examples" in (result.evidence_snippet or "")
 
 
+def test_poison_backup_requests_full_page_not_claim_chunks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from citation_verification import runner as runner_mod
+
+    poison = FetchResult(
+        url="https://example.com/",
+        title="Instant Vehicle MOT Status Lookup",
+        snippet=(
+            "An annual test that checks whether your vehicle meets road "
+            "safety standards in the United Kingdom for MOT status lookup."
+        ),
+        cost_usd=0.001,
+        source=config.FETCH_SOURCE_PERPLEXITY,
+    )
+    iana = FetchResult(
+        url="https://example.com/",
+        title="Example Domain",
+        snippet=(
+            "This domain is for use in illustrative examples in documents. "
+            "You may use this domain in literature without prior coordination "
+            "or asking for permission."
+        ),
+        cost_usd=0.002,
+        source=config.FETCH_SOURCE_TAVILY,
+    )
+    seen: dict[str, object] = {}
+
+    def _backup(url: str, **kwargs: object) -> FetchResult:
+        seen["url"] = url
+        seen["kwargs"] = kwargs
+        return iana
+
+    monkeypatch.setattr(runner_mod, "execute_fetch", lambda url, **_: poison)
+    monkeypatch.setattr(runner_mod, "execute_backup_chain", _backup)
+    monkeypatch.setattr(
+        runner_mod,
+        "execute_judge",
+        lambda **_: _judge_one("citation_verification_one.json", 1),
+    )
+    result = verify_finding(
+        {
+            "finding_id": 32,
+            "source_url": "https://example.com/",
+            "evidence_description": (
+                "This domain is for use in illustrative examples in documents."
+            ),
+        },
+        dry_run=False,
+    )
+    assert result.verification == 1
+    assert seen["url"] == "https://example.com/"
+    assert seen["kwargs"].get("query") in (None, [])
+
+
+def test_merge_page_keeps_recovered_anchors_when_primary_fills_cap() -> None:
+    from citation_verification.runner import _merge_page
+
+    body = "Engineers use GitHub Copilot when reviewing pull requests every day. "
+    primary_text = (body * 800)[: config.MAX_SNIPPET_CHARS]
+    assert len(primary_text) == config.MAX_SNIPPET_CHARS
+    merged = _merge_page(
+        FetchResult(
+            url="https://www.rightrev.com/why-you-cant-vibe-code-revenue-recognition/",
+            title="Why you can't vibe code revenue recognition",
+            snippet=primary_text,
+            cost_usd=0.001,
+        ),
+        FetchResult(
+            url="https://www.rightrev.com/why-you-cant-vibe-code-revenue-recognition/",
+            title="Why you can't vibe code revenue recognition",
+            snippet=(
+                "RightRev founder and CEO Jagan Reddy describes using AI "
+                "constantly for asking questions in a chat window."
+            ),
+            cost_usd=0.002,
+        ),
+    )
+    assert "Jagan Reddy" in merged.snippet
+    assert "GitHub Copilot" in merged.snippet
+
+
+def test_targeted_refetch_keeps_original_anchors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from citation_verification import runner as runner_mod
+
+    primary = FetchResult(
+        url="https://www.rightrev.com/why-you-cant-vibe-code-revenue-recognition/",
+        title="Why you can't vibe code revenue recognition",
+        snippet=(
+            "Engineers use GitHub Copilot when reviewing pull requests "
+            "every day across the revenue recognition product."
+        ),
+        cost_usd=0.001,
+        source=config.FETCH_SOURCE_PERPLEXITY,
+    )
+    recovered = FetchResult(
+        url="https://www.rightrev.com/why-you-cant-vibe-code-revenue-recognition/",
+        title="Why you can't vibe code revenue recognition",
+        snippet=(
+            "RightRev founder and CEO Jagan Reddy describes using AI "
+            "constantly for asking questions in a chat window."
+        ),
+        cost_usd=0.002,
+        source=config.FETCH_SOURCE_PERPLEXITY,
+    )
+
+    def _fetch(url: str, **kwargs: object) -> FetchResult:
+        if kwargs.get("extract_for"):
+            return recovered
+        return primary
+
+    monkeypatch.setattr(runner_mod, "execute_fetch", _fetch)
+    monkeypatch.setattr(
+        runner_mod,
+        "execute_backup_chain",
+        lambda url, **_: recovered,
+    )
+    monkeypatch.setattr(
+        runner_mod,
+        "execute_judge",
+        lambda **_: _judge_one("citation_verification_one.json", 1),
+    )
+    result = verify_finding(
+        {
+            "finding_id": 33,
+            "source_url": (
+                "https://www.rightrev.com/why-you-cant-vibe-code-revenue-recognition/"
+            ),
+            "evidence_description": (
+                "RightRev founder and CEO Jagan Reddy says engineers use "
+                "GitHub Copilot when reviewing pull requests."
+            ),
+        },
+        dry_run=False,
+    )
+    snippet = result.evidence_snippet or ""
+    assert "Jagan Reddy" in snippet
+    assert "GitHub Copilot" in snippet
+    assert result.verification == 1
+    assert result.unverifiable is False
+
+
 def test_vendor_disagreement_unresolved_is_null(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

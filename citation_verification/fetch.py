@@ -138,6 +138,7 @@ def execute_fetch(
     last: Optional[FetchResult] = None
     last_exc: Optional[BaseException] = None
     attempts = max(1, int(retries) + 1)
+    spent = 0.0
     for attempt in range(attempts):
         try:
             result = _execute_fetch_once(
@@ -151,11 +152,12 @@ def execute_fetch(
             if attempt == attempts - 1:
                 raise
             continue
+        spent += float(result.cost_usd)
         tagged = FetchResult(
             url=result.url,
             title=result.title,
             snippet=result.snippet,
-            cost_usd=result.cost_usd,
+            cost_usd=round(spent, 6),
             raw=result.raw,
             error=result.error,
             source=result.source,

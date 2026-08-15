@@ -62,6 +62,41 @@ def test_execute_fetch_retries_timeout_then_succeeds(
     assert "Python" in result.snippet
 
 
+def test_execute_fetch_sums_retry_costs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from citation_verification.fetch import FetchResult, execute_fetch
+
+    calls = {"n": 0}
+
+    def _once(url: str, **_kwargs: object) -> FetchResult:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return FetchResult(
+                url=url,
+                title="",
+                snippet="",
+                cost_usd=0.001,
+                error="no fetch_url_results contents",
+            )
+        return FetchResult(
+            url=url,
+            title="About",
+            snippet="Python is a programming language used by millions of developers worldwide.",
+            cost_usd=0.002,
+        )
+
+    monkeypatch.setattr(
+        "citation_verification.fetch._execute_fetch_once",
+        _once,
+    )
+    result = execute_fetch("https://www.python.org/about/")
+    assert calls["n"] == 2
+    assert result.ok is True
+    assert result.attempts == 2
+    assert result.cost_usd == pytest.approx(0.003)
+
+
 def test_empty_fetch_error_is_retryable() -> None:
     from citation_verification.fetch import FetchResult, _is_retryable_fetch
 
