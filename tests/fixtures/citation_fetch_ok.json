@@ -1,0 +1,38 @@
+{
+  "id": "resp_fixture_fetch_ok",
+  "output": [
+    {
+      "type": "fetch_url_results",
+      "contents": [
+        {
+          "url": "https://example.com/careers",
+          "title": "Careers — Example Co",
+          "snippet": "We use GitHub Copilot across the engineering team to speed up pull request reviews and boilerplate generation. Engineers are expected to document AI-assisted changes in PR descriptions."
+        }
+      ]
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "Fetched careers page content."
+        }
+      ]
+    }
+  ],
+  "usage": {
+    "input_tokens": 100,
+    "output_tokens": 20,
+    "total_tokens": 120,
+    "cost": {
+      "currency": "USD",
+      "total_cost": 0.0003,
+      "tool_calls_cost": 0.00025
+    },
+    "tool_calls_details": {
+      "fetch_url": {"invocation": 1}
+    }
+  }
+}
