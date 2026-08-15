@@ -1,8 +1,9 @@
-# Phase 2 — Stage 3 citation verification (post-research guardrail)
+# Phase 2 — Stage 3 citation verification (production package)
 
 Parent: [prod-architecture-eval.plan.md](./prod-architecture-eval.plan.md)
 
-**Depends on Phase 1 exit** for full bake-off wiring. Package scaffold + API smokes can start now (stack locked below).
+**Scope of this plan:** ship production package `citation_verification/` end-to-end.  
+**Out of scope here:** evals `run-verification` wiring, eval dashboards, hallucination-rate panels on the bake-off set (separate follow-up plan after the package exists).
 
 ---
 
@@ -10,203 +11,224 @@ Parent: [prod-architecture-eval.plan.md](./prod-architecture-eval.plan.md)
 
 | Field | State |
 |---|---|
-| **Current state** | **Stack + packaging locked.** Build plan ready for `citation_verification/`. |
-| **Locked stack** | Perplexity **`fetch_url`** (page text for known `source_url`) → OpenAI **binary + logprobs** (`reasoning.effort=none`) + prompt **1–5** backup. |
-| **Next** | Implement package slices below; dry-run first; tiny paid smoke; then evals consumer. |
-| **Exit** | Package runnable for prod + exercised via evals: schema, real logprobs, hallucination-rate check on eval companies. |
-| **Decision log** | Packaging [[2026-08-13: Stage 3 is a production top-level package]]; no Perplexity logprobs [[2026-08-13: Perplexity APIs do not expose usable logprobs]]; stack [[2026-08-13: Stage 3 stack = Perplexity fetch_url + OpenAI logprob judge]]. |
+| **Current state** | Stack + packaging locked. **Awaiting user design locks** (schema + knobs below) before coding PRs. |
+| **Locked stack** | Perplexity **`fetch_url`** → OpenAI Responses binary+logprobs (`reasoning.effort=none`), taxonomy Pass A extraction pattern. |
+| **Package home** | Top-level `citation_verification/` (not under `evals/`). |
+| **Next** | User answers §Design decisions needed → freeze schemas → PR1. |
+| **Exit (this plan)** | Package can verify findings in dry + live modes via `python -m citation_verification`, with real logprob confidence, cost metering, and package tests. |
+| **Decision log** | Packaging / logprobs / stack entries 2026-08-13. |
 
 ---
 
-## Locked design
+## Locked (do not reopen)
 
-### Why this stack
-
-| Piece | Choice | Why |
-|---|---|---|
-| Fetch | Perplexity `fetch_url` | Same tool family Stage 2 uses; reduces Tavily≠Perplexity false “hallucination.” Input is an already-known citation URL (not discovery). |
-| Judge | OpenAI, `reasoning.effort=none` | Only practical path to token **logprobs** for a confidence proxy. |
-| Backup | Prompt confidence 1–5 | Survives if logprobs flake; not the primary score. |
-| Package | Top-level `citation_verification/` | Production software; evals only imports it. |
-
-**Not** Perplexity `web_search` for Stage 3: search rediscovers pages; verification needs the cited URL’s text.  
-**Not** Tavily-only fetch: scrape mismatch risk (plan failure mode).  
-**Not** Perplexity-only judge: no usable logprobs.
-
-### I/O contract
-
-**Input (per finding):** shared `contracts.Finding` (at least `finding_id`, `AI_tool_used`, `evidence_description` / claim text, `source_url`) plus company identity for traces.
-
-**Output (per finding):**
-
-| Field | Type | Notes |
-|---|---|---|
-| `verdict` | `SUPPORTED` \| `UNSUPPORTED` \| `UNVERIFIABLE` | Binary-ish; third class for fetch fail / empty snippet |
-| `supported` | `bool \| null` | `null` when unverifiable |
-| `label_logprob` | `float \| null` | Logprob of the chosen binary token (primary confidence) |
-| `label_prob` | `float \| null` | `exp(logprob)` convenience |
-| `confidence_1_5` | `int \| null` | Backup self-score |
-| `evidence_snippet` | `str \| null` | Truncated Perplexity `fetch_url` snippet used |
-| `fetch_ok` | `bool` | Whether fetch returned usable text |
-| `cost_usd` | `float` | Fetch + judge for this finding |
-| `model_judge` | `str` | OpenAI model id |
-| `error` | `str \| null` | Transport / parse failures |
-
-**Company rollup:** list of per-finding results + `CostLedger` components (`fetch_url`, `openai_judge`) + totals.
-
-### Preprocessing
-
-No HTML→markdown pipeline. Use Perplexity `snippet` as-is, with:
-
-1. Empty / too-short → `UNVERIFIABLE` (do **not** map to `UNSUPPORTED`)
-2. Truncate to a token/char budget before OpenAI
-3. Optional whitespace normalize
-
-### Judge shape (logprobs-safe)
-
-- Ask for a **single classification token** first: `SUPPORTED` or `UNSUPPORTED` (plain text, **not** `json_schema`, which can empty logprobs).
-- Request logprobs / `include` for that token under `reasoning.effort=none`.
-- Optionally a second short line or second cheap call for `confidence_1_5` if one-shot parsing is messy; prefer one call if both fit without structured JSON.
-
----
-
-## Packaging (locked)
-
-**Production package:** top-level `citation_verification/` (peer of Stage 2 arches + `evals/`).
-
-| Consumer | Role |
+| Topic | Choice |
 |---|---|
-| **Prod** | Stage 2 winner → findings → `citation_verification` |
-| **Evals** | Same import for pre-prod checks (`run-verification`) |
-
-**Superseded as home:** `evals/hooks/stage3_judge.py` (thin wrap or delete when package lands).
+| Stack | Perplexity `fetch_url` + OpenAI logprob judge |
+| Not | Tavily-only fetch; Perplexity `web_search` for verify; Perplexity-only judge |
+| Packaging | `citation_verification/` production package |
+| Confidence ownership | Computed in-package from token logprobs (never ask model to emit logprob confidence) |
+| Fetch fail | System `UNVERIFIABLE` (not model `UNSUPPORTED`) |
+| Preprocess | No HTML→markdown; use snippet as-is + truncate + empty guard |
+| Judge API knobs | `reasoning.effort=none`, `include=["message.output_text.logprobs"]`, strict JSON schema OK (taxonomy-proven) |
+| Reference | `k-hanafi/ai-startups-taxonomy-research` → `two_pass_classifier/{confidence,request_builder,schema}.py` |
 
 ---
 
-## Target folder layout
+## Design decisions needed from you
 
-Mirror Stage 2 package habits (thin CLI, `runner.py` public API, dry-run default):
+Answer these before PR1. Draft proposals are marked **proposal**; say lock / change.
+
+### D1 — Model JSON schema (what OpenAI must emit)
+
+Taxonomy Pass A emits: `ai_native` (0/1) + short reasoning + sources + critique.
+
+**Proposal for Stage 3 judge schema:**
+
+```text
+supported: Literal[0, 1]          # 1 = page supports the claim; 0 = does not
+support_reasoning: str            # ≤100 words, why
+support_critique: str             # ≤100 words, self-check / doubt
+```
+
+**Questions:**
+1. Lock field name `supported` (0/1), or prefer another name?
+2. Keep `support_reasoning` + `support_critique` in v1, or binary-only (smaller/cheaper)?
+3. Include verbalized `confidence_1_5` (1–5) in the **model** schema for v1, or defer (logprob is primary)?
+
+### D2 — Package output schema (what we persist / return in Python)
+
+Separate from the model schema. This is the product row after fetch+judge.
+
+**Proposal `VerdictResult` fields:**
+
+| Field | Type | Source |
+|---|---|---|
+| `finding_id` | int | input |
+| `source_url` | str | input |
+| `fetch_ok` | bool | fetch |
+| `evidence_snippet` | str \| null | fetch (truncated) |
+| `supported` | int \| null | model 0/1; null if unverifiable |
+| `verdict` | `SUPPORTED` \| `UNSUPPORTED` \| `UNVERIFIABLE` | derived |
+| `sampled_probability` | float \| null | confidence.py (P of chosen label) |
+| `p_supported` | float \| null | renormalized P(supported=1) |
+| `margin` | float \| null | taxonomy-style |
+| `censored` | bool \| null | opposing digit missing |
+| `confidence_extraction_ok` | bool | extractor succeeded |
+| `confidence_1_5` | int \| null | only if D1 includes it |
+| `support_reasoning` | str \| null | model (if kept) |
+| `model_judge` | str | config |
+| `cost_usd` | float | fetch + judge |
+| `error` | str \| null | transport/parse |
+
+**Questions:**
+4. Lock this row shape, or add/drop fields?
+5. Prefer taxonomy names (`sampled_probability`) vs shorter (`label_prob`)?
+
+### D3 — What text is the “claim”?
+
+Judge compares **claim** vs **page snippet**.
+
+**Proposal claim bundle** (concat into user message):
+- `AI_tool_used`
+- `use_case`
+- `business_function`
+- `evidence_description`
+- company `name` (context only)
+
+**Questions:**
+6. Lock that bundle, or claim = `evidence_description` only?
+
+### D4 — Models / knobs
+
+**Proposals:**
+- Judge model: `gpt-5.6-luna` (or your taxonomy default if you prefer nano/mini for cost)
+- `top_logprobs`: `5`
+- Snippet max chars before judge: `12000` (tune after smoke)
+- Perplexity fetch wrapper: cheapest Agent path that still runs `fetch_url` (need your preference: specific model id vs `preset=fast`)
+
+**Questions:**
+7. Lock judge model id?
+8. Lock fetch Agent model / preset?
+9. Sync Responses only for v1 (like taxonomy two-pass), or plan Batch API in a later PR?
+
+### D5 — CLI / public API surface
+
+**Proposal:**
+```bash
+python -m citation_verification --dry-run --findings path.jsonl
+python -m citation_verification --live --findings path.jsonl
+python -m citation_verification --live --url URL --claim "..."
+```
+
+Library:
+```python
+verify_finding(finding, *, dry_run=True) -> VerdictResult
+verify_findings(findings, *, dry_run=True) -> VerifyResult
+```
+
+**Questions:**
+10. Need `run(ArchitectureResult)` helper in v1, or findings-list only?
+
+---
+
+## Target package layout
 
 ```text
 citation_verification/
-  __init__.py              # export run / verify_finding
-  __main__.py              # python -m citation_verification [--live]
-  types.py                 # VerdictResult, VerifyResult (dataclasses)
-  fetch.py                 # Perplexity Agent API fetch_url → snippet
-  judge.py                 # OpenAI binary + logprobs + 1–5 backup
-  runner.py                # verify_finding / verify_findings / run(company_result)
-  prompting.py             # load judge prompt text
-  cost.py                  # meter fetch + judge into CostComponent rows
+  __init__.py
+  __main__.py
+  types.py                 # VerdictResult, VerifyResult, cost rollup
+  schema.py                # OpenAI strict judge schema (D1)
+  fetch.py                 # Perplexity fetch_url
+  judge.py                 # OpenAI Responses request + raw parse
+  confidence.py            # port taxonomy BinaryConfidence (decision key = supported)
+  runner.py                # fetch → judge → VerdictResult
+  prompting.py
+  cost.py
+  config.py                # model ids, top_logprobs, snippet cap, censor width
 
 prompts/citation_verification/
-  judge.txt                # system/user template for binary judge
+  judge.txt
 
 tests/
   test_citation_verification_types.py
   test_citation_verification_runner_dry.py
-  test_citation_verification_judge_parse.py   # parse logprobs from fixtures
+  test_citation_verification_confidence.py
+  test_citation_verification_fetch_parse.py
+  fixtures/                # anonymized Responses JSON for confidence tests
 ```
 
-**Public API (sketch):**
+---
 
-```python
-# One finding
-verify_finding(finding: Finding, *, dry_run: bool = True) -> VerdictResult
+## PR plan (package only)
 
-# Many findings (prod / eval batch)
-verify_findings(findings: list[Finding], *, dry_run: bool = True) -> VerifyResult
+Sequential PRs onto `main`. Each PR green on its own. **No evals changes in these PRs.**
 
-# Optional: accept ArchitectureResult and attach scores
-run(stage2_result: ArchitectureResult, *, dry_run: bool = True) -> VerifyResult
+| PR | Branch suffix idea | Delivers | Done when |
+|---|---|---|---|
+| **PR1** | `citation-skeleton` | Package skeleton: `types` (D2 draft), dry `runner`/`__main__`, empty-URL → `UNVERIFIABLE`, config stubs, dry tests | `python -m citation_verification --dry-run` works; pytest dry tests green; live paths raise “not wired” |
+| **PR2** | `citation-fetch` | `fetch.py` + parse `fetch_url_results` + cost component + fixture unit test | Dry runner can inject fixture snippets; optional **1-URL paid smoke** (user OK) |
+| **PR3** | `citation-confidence` | Port/adapt taxonomy `confidence.py` + fixtures + offline tests (no API) | Pytest proves extract on supported/unsupported/censored fixtures |
+| **PR4** | `citation-judge` | `schema.py` + `judge.txt` + `judge.py` request builder (`reasoning=none`, logprobs, strict schema) | Offline request-shape tests; optional **1-claim paid smoke** shows non-empty logprobs |
+| **PR5** | `citation-wire` | Wire `verify_finding` = fetch → judge → confidence → `VerdictResult`; batch `verify_findings`; full cost ledger; live CLI | Dry E2E; user-approved **2-finding live smoke** (1 true citation, 1 false); package README usage |
+
+**After PR5 (not in this plan):** separate plan/PRs for evals consumer + eval-set quality gates.
+
+### PR dependency graph
+
+```text
+PR1 skeleton
+  → PR2 fetch
+  → PR3 confidence   (can parallel with PR2 after PR1)
+  → PR4 judge        (needs PR3 for extract; schema from D1)
+  → PR5 wire         (needs PR2+PR4)
 ```
 
-Dry-run: no paid APIs; returns ledger-shaped stubs + `dry_run_no_api` (same spirit as UAS/PCS/SGS).
+Preferred sequence if serial: **1 → 2 → 3 → 4 → 5**.  
+Allowed parallel: **PR2 ∥ PR3** after PR1.
+
+### Per-PR rules
+
+- Default `dry_run=True`; `--live` explicit
+- No evals/ edits
+- Paid smokes only with your OK
+- Author = Khaled; no Cursor attribution trailers
+- Update this STATUS + decision log when a design lock or PR lands
 
 ---
 
-## Build plan (slices)
+## Cost sketch (package v1)
 
-Each slice: implement → unit/dry tests green → commit. Paid smokes only with explicit user OK.
-
-### Slice A — Skeleton + types + dry runner
-
-**Build:** Package tree, `types.py`, `runner.py` dry path, `__main__.py` (`--live` flag present but live unwired), empty/short-URL → `UNVERIFIABLE` logic without network.
-
-**Verify:** `python -m citation_verification` dry; `pytest tests/test_citation_verification_*.py`.
-
-### Slice B — Perplexity `fetch_url` client
-
-**Build:** `fetch.py`: given URL, Agent API call with tools=`[{type: fetch_url}]`, extract `fetch_url_results.contents[].snippet`, meter `$0.00025` + token cost from usage. Cheap/small model or minimal steps; force fetch of the given URL in instructions/input.
-
-**Verify:** Unit test with recorded fixture payload; optional **one-URL paid smoke** (user-approved).
-
-### Slice C — OpenAI logprob judge
-
-**Build:** `judge.py` + `prompts/citation_verification/judge.txt`. `reasoning.effort=none`, binary token, parse logprob, backup 1–5. No `json_schema` on the logprob call.
-
-**Verify:** Fixture-based parse tests; optional **one-claim paid smoke** proving `label_logprob` is non-null.
-
-### Slice D — Wire runner + cost ledger
-
-**Build:** `verify_finding` = fetch → (if ok) judge → `VerdictResult`; batch helper; cost components `fetch_*` + `judge_*`.
-
-**Verify:** Dry end-to-end; one hand-picked true citation + one false citation live smoke (user-approved).
-
-### Slice E — Evals consumer (thin)
-
-**Build:** `evals` `run-verification` imports `citation_verification` (replace stub). Archive instance shows per-finding verdicts + costs. Keep package ownership outside evals.
-
-**Verify:** `python -m evals run-verification` dry on a small finding set; later live panel for hallucination-rate read.
-
-### Slice F — Eval quality gate (pre-prod)
-
-**Build:** Script or eval mode: run Stage 3 on eval-set findings (from bake-off or March soft refs), report:
-
-- % `SUPPORTED` / `UNSUPPORTED` / `UNVERIFIABLE`
-- logprob distribution (are probs real, not always ~1.0?)
-- spot-check disagreement rate vs human on a tiny labeled slice
-
-**Verify:** User accepts “hallucination rate / unverifiable rate good enough for prod,” then freeze config.
+| Piece | Ballpark |
+|---|---|
+| `fetch_url` tool | $0.00025 / finding URL |
+| OpenAI judge | dominates; depends on D4 model + schema verbosity |
 
 ---
 
-## Cost sketch (tool fees only; judge tokens extra)
+## Failure modes (package)
 
-| Findings / company | `fetch_url` @ $0.00025 |
-|---:|---:|
-| ~1 (March positive median) | ~$0.00025 |
-| ~2 (bake-off-ish) | ~$0.00050 |
-
-OpenAI judge will dominate Stage 3 $; keep model small and output tiny. Revisit after Slice D smoke.
+- No real logprobs / empty `logprobs[]` shipped as “confidence”
+- Fetch fail labeled `UNSUPPORTED`
+- Second confidence extractor living outside the package
+- Scope creep into evals inside these PRs
 
 ---
 
-## Failure modes (do not ship)
-
-- No binary field / no real logprobs path
-- Fetch fail → labeled `UNSUPPORTED` (must be `UNVERIFIABLE`)
-- Tavily-only without mismatch mitigation
-- Judge coupled to UAS/PCS/SGS internals
-- Implementation only under `evals/`
-
----
-
-## Kickoff prompt (implementation chat)
+## Kickoff (after D1–D5 answered)
 
 ```
-Implement Stage 3 as top-level citation_verification/ only.
-Read: .cursor/plans/phase-2-stage3-verification.plan.md and docs/decision-log.md
-Stack: Perplexity fetch_url → OpenAI reasoning.effort=none binary+logprobs (+ 1–5 backup).
-Follow slices A→D first (dry before live). Evals is a thin consumer later (slice E).
-Do not put implementation under evals/. Do not open PRs for tiny doc-only tweaks.
-Update this plan STATUS as slices land.
+Implement citation_verification/ per .cursor/plans/phase-2-stage3-verification.plan.md PR plan.
+Respect locked D1–D5 answers in docs/decision-log.md.
+Start PR1 only. No evals/ changes. Dry before live.
 ```
 
 ---
 
 ## Changelog
 
-- 2026-08-13: Stack lock + full build plan for `citation_verification/` (fetch_url + OpenAI logprob judge; slices A–F).
-- 2026-08-13: Packaging lock: Stage 3 is production top-level `citation_verification/`; evals only tests/consumes it. Supersedes `evals/hooks/` as home.
-- 2026-08-13: Docs spike: Perplexity Gateway accepts `logprobs` only as `false`; rejects `top_logprobs`. Logprob confidence proxy must come from OpenAI with `reasoning.effort=none`.
-- 2026-08-04: Created; formerly discussed as “Stage 5,” now correctly **Stage 3**.
+- 2026-08-13: Package-only PR plan (PR1–PR5); evals testing removed from this plan; explicit D1–D5 design questions for user.
+- 2026-08-13: Align judge pattern with taxonomy Pass A + production-owned `confidence.py`.
+- 2026-08-13: Stack lock + packaging lock + logprobs spike notes.
+- 2026-08-04: Created; formerly “Stage 5,” now Stage 3.
