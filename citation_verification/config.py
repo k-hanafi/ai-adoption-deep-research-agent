@@ -6,7 +6,14 @@ from __future__ import annotations
 JUDGE_MODEL: str = "gpt-5.6-terra"
 JUDGE_REASONING_EFFORT: str = "none"
 JUDGE_TOP_LOGPROBS: int = 5
+JUDGE_MAX_OUTPUT_TOKENS: int = 400
 LOGPROB_INCLUDE: tuple[str, ...] = ("message.output_text.logprobs",)
+
+# OpenAI short-context sync rates ($ / 1M tokens) for gpt-5.6-terra.
+# Used when Responses usage has tokens but no dollar total_cost field.
+JUDGE_INPUT_USD_PER_MTOK: float = 2.0
+JUDGE_CACHED_INPUT_USD_PER_MTOK: float = 0.20
+JUDGE_OUTPUT_USD_PER_MTOK: float = 12.0
 
 # Decision field in the judge JSON schema (0 = hallucination, 1 = verified).
 DECISION_KEY: str = "verification"

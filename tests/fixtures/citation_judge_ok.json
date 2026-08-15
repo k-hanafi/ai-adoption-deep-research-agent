@@ -1,0 +1,22 @@
+{
+  "id": "resp_fixture_judge_ok",
+  "model": "gpt-5.6-terra",
+  "output": [
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "{\"verification\":1,\"confidence_1_5\":4,\"verification_reasoning\":\"Snippet states the team uses Copilot for PR review, matching the claim.\",\"verification_critique\":\"Snippet is short; could be marketing rather than an internal practice.\"}",
+          "logprobs": []
+        }
+      ]
+    }
+  ],
+  "usage": {
+    "input_tokens": 200,
+    "output_tokens": 80,
+    "total_tokens": 280
+  }
+}
