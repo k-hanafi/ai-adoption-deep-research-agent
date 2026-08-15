@@ -9,9 +9,13 @@ def test_unverifiable_does_not_set_verification_zero() -> None:
         source_url="",
         claim="x",
         reason="missing source_url",
+        company_name="Acme",
     )
     assert row.verification is None
     assert row.unverifiable is True
+    assert row.model_judge is None
+    assert row.evidence_description == "x"
+    assert row.company_name == "Acme"
 
 
 def test_ledger_sums_component_costs() -> None:
