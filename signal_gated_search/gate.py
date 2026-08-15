@@ -1,7 +1,7 @@
-"""Gate policy: presence bins → signal → dig-all + effort ladder.
+"""Gate policy: presence bins → signal → dig-all at high.
 
 Scouts emit evidence_bin only. Code maps bin to confidence, then signal vs
-threshold. Dig effort is chosen by how many channels cleared the bar.
+threshold. Every signaled channel is dug at the same high effort.
 """
 
 from __future__ import annotations
@@ -113,7 +113,7 @@ def decide_gate(
     *,
     signal_threshold: float = DEFAULT_SIGNAL_THRESHOLD,
 ) -> GateDecision:
-    """Dig every signaled channel. Effort rises as dig count falls."""
+    """Dig every signaled channel. Every dig uses high effort."""
     normalized: list[dict[str, Any]] = []
     by_channel: dict[str, dict[str, Any]] = {}
     for row in scouts:
@@ -153,7 +153,7 @@ def decide_gate(
         dig_channels=dig_channels,
         dig_count=dig_count,
         reasoning_effort=effort_for_dig_count(dig_count),
-        rationale="signal_count_effort_ladder",
+        rationale="dig_all_signaled_high",
         signaled=signaled,
         normalized=normalized,
     )

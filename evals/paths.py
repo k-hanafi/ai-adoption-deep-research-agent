@@ -17,6 +17,12 @@ EVAL_RUNS_DIR = EVALS_PACKAGE_DIR / "runs"
 # Tiny fixture used until Anchor / tuning panel membership is frozen.
 FIXTURE_PANEL_PATH = PANEL_DIR / "fixture_panel.json"
 TUNING_PANEL_PATH = PANEL_DIR / "tuning_panel.json"
+# PCS (then SGS/UAS) hill-climb set. Disjoint from tuning-50. Not bake-off.
+HILLCLIMB_PANEL_PATH = PANEL_DIR / "hillclimb_panel.json"
+# PCS high confirmation set. Disjoint from tuning-50 and hill-climb 20. Not bake-off.
+PCS_CONFIRM_PANEL_PATH = PANEL_DIR / "pcs_confirm_panel.json"
+# SGS skip-rate set: March none/low only. Disjoint from the three panels above. Not bake-off.
+SGS_SKIP_PANEL_PATH = PANEL_DIR / "sgs_skip_panel.json"
 TUNING_CONFIGS_DIR = CONFIGS_DIR / "tuning"
 # March Stage 2 production dump (panel / cost-diagnose selection source).
 MARCH_STAGE2_JSONL = PROJECT_ROOT / "outputs" / "stage2" / "production_results.jsonl"

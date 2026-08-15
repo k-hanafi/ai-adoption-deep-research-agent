@@ -1,7 +1,7 @@
 # SGS design card (Phase 1) — FROZEN
 
-**Status:** FROZEN (2026-08-08 ladder; **2026-08-11 scout semantics** = channel **presence screen**; **2026-08-13 owned surface** = site + official accounts, homepage is not a gate).  
-**Identity:** Signal Gated Search = channel **presence scouts** + **signal-count → dig effort ladder**. Not equal-depth always-on PCS. Not single ungated UAS.  
+**Status:** FROZEN (2026-08-13 bake-off effort: SGS digs **high**, not max. Scout preset = **low**. Scout semantics = presence/existence screen. Owned = site + official accounts, homepage is not a gate. 2026-08-14: dig leash matches PCS, `max_steps=50` / `web_search_depth=medium`).  
+**Identity:** Signal Gated Search = channel **presence scouts** + **dig every signaled channel at high**. Not equal-depth always-on PCS. Not single ungated UAS.  
 **Supersedes:** eval-harness §3.2 Ranked Top-1 Dig (+ optional rescue) as the bake-off default. That policy remains a future ablation only.  
 **Scout role supersedes:** any earlier “adoption smoke” scout wording (scouts do **not** hunt GenAI adoption).
 
@@ -15,37 +15,39 @@ Related:
 
 ---
 
-## Locked policy: signal-count → effort ladder
+## Locked policy: dig-all signaled at high
 
 1. Run **3 parallel channel scouts** (jobs / owned / third_party).
-2. Each scout answers: **does a diggable channel source exist?** (not “did we find GenAI adoption?”).
+2. Each scout answers: **does this room exist on the public web?** (not “did we find GenAI adoption?”).
 3. Count channels that clear `signal_threshold` (`signal=true` and confidence ≥ threshold).
-4. Dig **every** signaled channel, with dig **effort** chosen by dig count:
+4. Dig **every** signaled channel. Every dig uses **`reasoning_effort=high`** (not max, not a count ladder):
 
-| # signaled channels | Digs | Dig effort (each) | Planning dig $ (Tuning #14 means) | + scouts (~$0.02) |
-|---:|---|---|---:|---:|
-| 0 | none | — | 0 | ~0.02 |
-| 1 | 1× that channel | **max** | ~0.102 | ~**0.12** |
-| 2 | 2× those channels | **high** | ~0.086 | ~**0.11** |
-| 3 | 3× all channels | **medium** | ~0.065 | ~**0.09** |
+| # signaled channels | Digs | Dig effort (each) |
+|---:|---|---|
+| 0 | none | — |
+| 1 | 1× that channel | **high** |
+| 2 | 2× those channels | **high** |
+| 3 | 3× all channels | **high** |
 
-5. Digs extract **internal GenAI adoption** (PCS-like). Scouts only gate whether the room is worth paying for.
+Bake-off effort lock (2026-08-13): **UAS = xhigh**, **PCS = 3× medium**, **SGS digs = high**.
+
+5. Digs extract **internal GenAI adoption** (PCS-like). Scouts only gate whether the room exists.
 6. Merge/dedupe dig findings (PCS-like). Persist scout + gate traces always.
 7. Agent API only. No domain-filter allowlists in v1 (prompt-only targeting, parity with PCS).
 
-**Budget stance (locked):** Dig paths may land **above** the ~$0.10/company Stage 2 target (especially 1-dig max ≈ 12¢ and 2-dig high ≈ 11¢). User accepts this and will argue professor headroom using Tuning #14 effort→findings lift. Production **average** may still sit nearer 10¢ if many companies are 0-dig (no diggable channels). Do not silently cut effort to force ≤10¢ without a new freeze.
+**Budget stance (locked):** Do not use `max` on SGS. CoverTree existence-bar smoke at 1× max cost **$0.165**. High is the SGS spend cap per dig. Count still changes how many rooms we pay for, not how hard each room is searched.
 
 ---
 
 ## Locked scout semantics: channel presence screen
 
-**Motivation:** Many startups lack a job board, have only a thin stealth landing page, and/or have no third-party coverage. Digging those empty rooms wastes the effort ladder. Scouts skip absent rooms; digs hunt adoption only where a source surface exists.
+**Motivation:** Skip a room only when it does not exist on the public web. Scouts do not judge source quality and do not hunt GenAI adoption. Digs do the adoption extract. A thin careers page or aggregator listing is still a jobs room.
 
 | Channel | `signal=true` when… | `signal=false` when… |
 |---|---|---|
-| **jobs** | Real careers/ATS/job-listing surface exists | No jobs surface, placeholder “email us,” empty board |
-| **owned** | Company site **or** official company accounts (LinkedIn company page, YouTube channel, GitHub org, X, company-operated CMS). Homepage does not have to load. | No site AND no official accounts; waitlist/parked page with empty account shells |
-| **third_party** | Meaningful external coverage exists (news, podcasts, nontrivial writeups, vendor stories) | No real footprint; directory stubs only |
+| **jobs** | Any jobs-related pages exist for this employer (ATS, careers, aggregators, LinkedIn jobs, email-us hiring pages, stale listings) | No jobs-related pages at all (or only a different company with a similar name) |
+| **owned** | A company website exists (including a thin/waitlist page) **or** official company accounts | No site AND no official accounts |
+| **third_party** | Any independent pages exist (news, interviews, writeups, vendor stories, personal posts) | No independent pages. Empty directory stubs only |
 
 **Operating point:** escalate on **most** cases where a diggable source exists (recall-leaning on **presence**). Provisional `signal_threshold=0.5` = escalate `moderate` + `strong` bins. Tune τ later on labeled presence labels (not adoption labels). Homepage is identity, not a gate: code must not require `homepage_url` to fire digs. Official company accounts can signal owned when the site is down or unretrieved.
 
@@ -68,7 +70,7 @@ Related:
 
 | Knob | Value |
 |---|---|
-| Packaging | Agent `preset=fast` (stock mini quick lookup) |
+| Packaging | Agent `preset=low` (stock low; more web than `fast`) |
 | Role | **Presence screen** only (JSON); not adoption extract |
 | Tools | `web_search`; no `fetch_url` on scouts |
 | Planning tax | ~**$0.02** for 3× (user planning figure; smoke-measure before spend claims) |
@@ -78,9 +80,9 @@ Related:
 | Knob | Value | Notes |
 |---|---|---|
 | `model` | `openai/gpt-5.6-luna` | No Sol |
-| `max_steps` | **10** | Matches Tuning #14 effort arms |
-| `web_search_depth` | **low** | Matches Tuning #14 effort arms |
-| `reasoning_effort` | **max** if 1 dig; **high** if 2; **medium** if 3 | The spend dial |
+| `max_steps` | **50** | Matches PCS channel leash (was 10 / Tuning #14) |
+| `web_search_depth` | **medium** | Matches PCS channel leash (was low / Tuning #14) |
+| `reasoning_effort` | **high** (every dig) | Not max. Count does not change effort. |
 | Dig input | **Cold start** (company identity only) | No scout URLs in the dig prompt/input. Scout URLs stay in traces. |
 
 ### Gate / thresholds
@@ -88,7 +90,7 @@ Related:
 | Knob | Value |
 |---|---|
 | `signal_threshold` | **0.5** (provisional; presence operating point) |
-| Dig-all signaled | **true** (effort ladder applies) |
+| Dig-all signaled | **true** (every dig at high) |
 | `rescue_enabled` | **false** |
 | `max_digs_per_company` | **3** |
 | Channel prior | unused for dig selection under dig-all |

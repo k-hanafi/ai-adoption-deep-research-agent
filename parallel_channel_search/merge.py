@@ -27,20 +27,22 @@ def normalize_source_url(url: str) -> str:
     return urlunsplit((scheme, netloc, path, parts.query, ""))
 
 
-def _dedupe_key(finding: Finding) -> tuple[str, str]:
+def _dedupe_key(finding: Finding) -> tuple[str, str, str]:
     tool = (finding.AI_tool_used or "").strip().lower()
+    use_case = (finding.use_case or "").strip().lower()
     url = normalize_source_url(finding.source_url or "")
-    return (tool, url)
+    return (tool, use_case, url)
 
 
 def merge_findings(channel_findings: list[Finding]) -> list[Finding]:
-    """Union channel findings and drop duplicates by normalized (tool, url).
+    """Union channel findings and drop duplicates by (tool, use_case, url).
 
+    Same URL may keep many rows when the tool or the use case differs.
     First occurrence wins (callers should pass channels in stable order:
     jobs → owned → third_party). Provenance `channel` on the kept finding is
     preserved. `finding_id` is renumbered 1..N on copies.
     """
-    seen: set[tuple[str, str]] = set()
+    seen: set[tuple[str, str, str]] = set()
     merged: list[Finding] = []
     for finding in channel_findings:
         key = _dedupe_key(finding)

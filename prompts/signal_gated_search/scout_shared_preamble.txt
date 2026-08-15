@@ -24,16 +24,20 @@ If the homepage is missing, unreachable, a stub, or search does not return it, k
 Do not emit evidence_bin none solely because the homepage was not retrieved.
 
 == WHAT "PRESENT" MEANS ==
-Ask: is there enough real material in this room that a later adoption dig would have somewhere useful to search?
+Ask: does this room exist on the public web for this company?
+You are not judging how good the pages are. You are not looking for generative-AI adoption.
 
-- Diggable presence (use moderate or strong): a real source surface in your room for this company
-- Not diggable (use none or weak): absent, empty, stub-like, or too ambiguous to trust
+- Present (use moderate or strong): you found any real pages in YOUR room about this company
+- Absent (use none): you found nothing in this room for this company
+- weak: only if it is unclear whether the pages belong to this company (name collision)
+
+The later dig decides whether those pages contain adoption evidence. Empty findings after a dig are allowed. The failure to avoid is paying for a dig on a room that does not exist at all.
 
 Bin meanings:
-- none: no real surface found in your room
-- weak: a hint exists, but it is too thin, empty, or ambiguous to justify a dig
-- moderate: clear diggable surface exists
-- strong: rich, obvious surface exists
+- none: no pages in your room for this company
+- weak: hits exist, but they may be the wrong company
+- moderate: this room exists (any supporting URL in your room)
+- strong: this room is obvious and well populated
 
 Do not require proof of generative-AI adoption. That is the later dig's job.
 Do not return adoption findings, tool names as claims, or full research writeups.
@@ -55,4 +59,4 @@ Rules:
 - moderate or strong requires at least one supporting URL in urls. If you have no URL, use none.
 - urls / snippets: 0–3 presence proofs (hub pages, boards, articles). Empty arrays are OK for none.
 - rationale must be about presence of a source surface, not about AI tools or adoption.
-- Prefer recall on real diggable surfaces: if the room clearly exists, prefer moderate over weak.
+- Prefer recall: if the room exists, use moderate (or strong), not weak. Do not use weak because the pages are thin, stale, email-only, or silent about AI.

@@ -1,0 +1,968 @@
+{
+  "panel_id": "sgs_skip_v1_march_50",
+  "reference_kind": "soft",
+  "note": "SGS skip-rate panel. Fifty unused March Stage 2 companies: 40 none + 10 low. Seeded sample (seed=20260815) with a March-channel mix inside low. Soft march_reference only. Disjoint from tuning_panel_v2, hillclimb_pcs_v1_march_20, and pcs_confirm_v1_march_20. Not a bake-off panel. Bake-off still needs a later disjoint set. This panel measures whether existence scouts skip rooms on March none/low companies.",
+  "source": {
+    "march_run": "outputs/stage2/production_results.jsonl",
+    "selection_axis": "march_none_low_plus_low_channel_mix",
+    "selection_seed": 20260815,
+    "population": "Stage 2 companies excluding tuning_panel_v2, hillclimb_pcs_v1_march_20, and pcs_confirm_v1_march_20",
+    "strata_cutpoints": {
+      "none": {
+        "min_findings_count": 0,
+        "max_findings_count": 0
+      },
+      "low": {
+        "min_findings_count": 1,
+        "max_findings_count": 1
+      }
+    },
+    "strata_targets": {
+      "none": 40,
+      "low": 10
+    },
+    "channel_mapping": "Soft-mapped from March finding source_type strings into owned | jobs | third_party for sampling mix only. Same helper as evals/panel/build_tuning_panel_v2.py."
+  },
+  "companies": [
+    {
+      "rcid": 274517,
+      "name": "Within Health",
+      "homepage_url": "https://withinhealth.com",
+      "short_description": "Within Health is a virtual treatment solution designed specifically for people suffering from eating disorders.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "ChatGPT"
+        ],
+        "channels": [
+          "owned"
+        ],
+        "cost_usd": 0.34871
+      },
+      "skip_role": "march_stratum_fill"
+    },
+    {
+      "rcid": 7892070,
+      "name": "VigiLife",
+      "homepage_url": "https://www.vigilife.com/",
+      "short_description": "VigiLife is SaaS connected health & safety company working to protect and enrich the lives of those at risk.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "ChatGPT (OpenAI)"
+        ],
+        "channels": [
+          "owned"
+        ],
+        "cost_usd": 0.32102
+      },
+      "skip_role": "march_stratum_fill"
+    },
+    {
+      "rcid": 9932337,
+      "name": "Bug Mars",
+      "homepage_url": "https://bugmars.com",
+      "short_description": "AI for Alternative Protein",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "Unspecified generative AI blog-writing system (internal \u201cBug Blog Bot\u201d/trained AI)"
+        ],
+        "channels": [
+          "owned"
+        ],
+        "cost_usd": 0.282
+      },
+      "skip_role": "march_owned_only"
+    },
+    {
+      "rcid": 11310263,
+      "name": "Digilatics",
+      "homepage_url": "https://digilatics.com",
+      "short_description": "Digilatics is a digital marketing agency that offers marketing, SEO, and web design services.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "ChatGPT,Perplexity"
+        ],
+        "channels": [
+          "owned"
+        ],
+        "cost_usd": 0.32325
+      },
+      "skip_role": "march_owned_only"
+    },
+    {
+      "rcid": 13120873,
+      "name": "HappyRobot",
+      "homepage_url": "https://happyrobot.ai",
+      "short_description": "HappyRobot is a voice AI tool that automates phone operations used in the the logistics and fleet management sectors.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "unspecified AI copy and design tools"
+        ],
+        "channels": [
+          "jobs"
+        ],
+        "cost_usd": 0.3254
+      },
+      "skip_role": "march_jobs_only"
+    },
+    {
+      "rcid": 92783449,
+      "name": "Harbinger",
+      "homepage_url": "https://harbingermotors.com",
+      "short_description": "Harbinger is a commercial electric vehicle company that focuses on chassis architecture design.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "ChatGPT,Midjourney,Pika"
+        ],
+        "channels": [
+          "jobs"
+        ],
+        "cost_usd": 0.2668
+      },
+      "skip_role": "march_jobs_only"
+    },
+    {
+      "rcid": 93929941,
+      "name": "SpeedX",
+      "homepage_url": "https://www.speedx.io",
+      "short_description": "SpeedX is a delivery company that provides packaging and shipping services.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "Miles (SpeedX support chatbot; unspecified AI assistant)"
+        ],
+        "channels": [
+          "owned"
+        ],
+        "cost_usd": 0.37277
+      },
+      "skip_role": "march_owned_only"
+    },
+    {
+      "rcid": 94052731,
+      "name": "Pavewise",
+      "homepage_url": "https://pavewisepro.com/",
+      "short_description": "Pavewise is an IT company that offers management and solution software to improve efficiency in the road construction industry.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "Gemini in Google Meet"
+        ],
+        "channels": [
+          "third_party"
+        ],
+        "cost_usd": 0.27111
+      },
+      "skip_role": "march_third_party_only"
+    },
+    {
+      "rcid": 94082213,
+      "name": "Synqly",
+      "homepage_url": "https://synqly.com",
+      "short_description": "Synqly is an Integration-as-a-Service Platform.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "Cursor,Claude"
+        ],
+        "channels": [
+          "third_party"
+        ],
+        "cost_usd": 0.21146
+      },
+      "skip_role": "march_third_party_only"
+    },
+    {
+      "rcid": 98575576,
+      "name": "Loman",
+      "homepage_url": "https://www.loman.ai/",
+      "short_description": "Loman provides a 24/7 AI phone agent for restaurants, handling calls, taking orders, answering questions, and booking reservations.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "OpenAI GPT(unspecified),Anthropic Claude"
+        ],
+        "channels": [
+          "jobs"
+        ],
+        "cost_usd": 0.27201
+      },
+      "skip_role": "march_jobs_only"
+    },
+    {
+      "rcid": 290842,
+      "name": "Nucla",
+      "homepage_url": "https://www.nucla.com",
+      "short_description": "Map every external relationship, company-wide.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.31395
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 327223,
+      "name": "AnthemIQ",
+      "homepage_url": "https://www.anthemiq.com/",
+      "short_description": "AnthemIQ builds technology that helps commercial real estate brokers manage their deals from search to signed lease.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.28992
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 468119,
+      "name": "Osteoid",
+      "homepage_url": "https://www.osteoidinc.com",
+      "short_description": "Osteoid is digital dentistry that provides 3D imaging software for medical and dental sectors.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.29259
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 499382,
+      "name": "Enterpret",
+      "homepage_url": "https://www.enterpret.com",
+      "short_description": "Enterpret analyzes customer feedback using AI and NLP, offering tailored insights for product growth.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.2908
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 627635,
+      "name": "Community Solar Platform",
+      "homepage_url": "https://www.communitysolarplatform.com/",
+      "short_description": "Community Solar Platform makes community solar possible.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.28306
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 736540,
+      "name": "Verifiable",
+      "homepage_url": "https://verifiable.com",
+      "short_description": "Verifiable develops real-time credential verification platform intended to verify licenses, sanctions, and other important records.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.36451
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 877926,
+      "name": "qBraid",
+      "homepage_url": "https://qbraid.com",
+      "short_description": "qBraid is the one-stop platform for the quantum ecosystem",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.34882
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 976529,
+      "name": "Common Sense Machines",
+      "homepage_url": "https://csm.ai/",
+      "short_description": "Common Sense Machines is building artificial intelligence that learns to translate the world into a 3D simulation.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.33884
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 1165387,
+      "name": "eqtble",
+      "homepage_url": "https://eqtble.com/",
+      "short_description": "Next generation HR data platform, turning employee data into insights",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.36154
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 1926024,
+      "name": "Alfahive",
+      "homepage_url": "https://www.alfahive.com/",
+      "short_description": "Alfahive is a software company that offers cybersecurity, risk management, digital signage, analytics, and database management solutions.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.33617
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 2882360,
+      "name": "Connective Health Strategies",
+      "homepage_url": "https://www.connectivehs.com/",
+      "short_description": "Connective Health Strategies is a healthcare management firm that offers medical practioners management and consultancy services.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.33792
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 7755115,
+      "name": "FreightFlows",
+      "homepage_url": "https://freightflows.com",
+      "short_description": "FreightFlows is a maritime company that offers predictive analytics for global trade.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.31413
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 7918884,
+      "name": "Teren",
+      "homepage_url": "https://www.teren4d.com/",
+      "short_description": "Teren transforms geospatial data into operational climate resilience for assets and infrastructure.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.25171
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 14636280,
+      "name": "Lega",
+      "homepage_url": "https://lega.ai",
+      "short_description": "Lega empowers firm to safely explore, evaluate, adopt, and drive value from generative AI.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.35497
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 15369079,
+      "name": "DocNexus",
+      "homepage_url": "https://www.docnexus.ai/",
+      "short_description": "Reinventing the global healthcare ecosystem with search",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.32974
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 16332622,
+      "name": "Opkit",
+      "homepage_url": "https://opkit.co",
+      "short_description": "Opkit is a Y Combinator-backed startup building AI phone calls for the healthcare industry.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.32762
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 16599291,
+      "name": "Peblla",
+      "homepage_url": "https://www.peblla.com",
+      "short_description": "Peblla is a marketing-centric restaurant POS company that provides an all-in-one solution for SMB restaurants.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.30493
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 19318553,
+      "name": "The Investory",
+      "homepage_url": "https://www.theinvestory.com",
+      "short_description": "The Investory offers real estate services like buying, selling, leasing, and property management, focusing on tech and data.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.33727
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 21084738,
+      "name": "Agency Focus",
+      "homepage_url": "https://www.agency-focus.com",
+      "short_description": "Agency Focus offers consulting for independent insurance agencies, focusing on growth and valuation strategies.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.28054
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 21625875,
+      "name": "Lifeform",
+      "homepage_url": "https://lifeform.cc/",
+      "short_description": "Lifeform provides decentralized identity systems for Web3 avatars.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.36784
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 22090217,
+      "name": "LinqAlpha",
+      "homepage_url": "https://www.linqalpha.com",
+      "short_description": "Investment Research Solutions for Hedge Funds and Asset Managers Powered by Generative AI Search",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.3282
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 22617108,
+      "name": "ParaWave",
+      "homepage_url": "https://www.parawave.us",
+      "short_description": "ParaWave is developing drone technology to assist first responders in saving lives.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.29126
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 22741032,
+      "name": "TravelFlap",
+      "homepage_url": "https://www.travelflap.com/",
+      "short_description": "TravelFlap is a New York -based privately owned leading tourism brand with over 15 years of experience in the travel and hospitality domain.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.36975
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 22759190,
+      "name": "Virtare Health",
+      "homepage_url": "https://virtarehealth.com",
+      "short_description": "Virtare Health provides remote patient monitoring, chronic care management, and transitional care management services.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.34302
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 26497230,
+      "name": "Doxci",
+      "homepage_url": "https://doxci.ai/",
+      "short_description": "Doxci uses Artificial Intelligence to put paperwork on autopilot and help enterprises streamline their operations.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.32461
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 26576327,
+      "name": "The Optech Group",
+      "homepage_url": "https://www.optechgroup.co",
+      "short_description": "The Optech Group offers professional services in operational technology and business consulting.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.29268
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 27739905,
+      "name": "Detecteam",
+      "homepage_url": "https://detecteam.com",
+      "short_description": "SaaS, detection validation, detection engineering, adversary behavior, cybersecurity",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.30146
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 35484274,
+      "name": "Terralytiq",
+      "homepage_url": "https://terralytiq.com",
+      "short_description": "Terralytiq builds SaaS solutions and implements supply chain decarbonization.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.30566
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 49740787,
+      "name": "AI Innovators Community",
+      "homepage_url": "https://ai-innovators.com",
+      "short_description": "AI Innovators Community is a non profit organization.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.29826
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 93350562,
+      "name": "Easel AI, Inc.",
+      "homepage_url": "https://easelapps.ai/",
+      "short_description": "Social and AI",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.27321
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 93918294,
+      "name": "1Director, Inc.",
+      "homepage_url": "https://www.1director.com/",
+      "short_description": "1Director is a B2B SaaS product for the funeral home industry.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.30631
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 93976299,
+      "name": "ArchiStella",
+      "homepage_url": "https://archistella.com/",
+      "short_description": "A marketplace for all maritime procurement. Browse, buy and sell maritime products & services. All in one place.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.58551
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 94244935,
+      "name": "Abluva",
+      "homepage_url": "https://abluva.com",
+      "short_description": "Abluva is a first-of-its-kind, deep research-based, multi-layered data protection platform.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.3497
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 94767030,
+      "name": "iVerify",
+      "homepage_url": "https://www.iverify.io/",
+      "short_description": "IVerify is a mobile threat hunting company that provides mobile security solutions.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.29588
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 94836286,
+      "name": "Dreamwave AI",
+      "homepage_url": "https://www.dreamwave.ai",
+      "short_description": "Dreamwave is an AI research lab augmenting human creativity with next-gen AI creative tools.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.31395
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 94958011,
+      "name": "House Analytics",
+      "homepage_url": "https://houseanalytics.com",
+      "short_description": "House Analytics is dedicated to providing real estate professionals with reliable, timely data to make informed decisions.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.34049
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 95573156,
+      "name": "Diagnal3",
+      "homepage_url": "https://diagnal3.com/",
+      "short_description": "Welcome to Diagonal 3, your trusted partner in innovative software solutions and technology transformation.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.34418
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 95706031,
+      "name": "SciTide",
+      "homepage_url": "https://scitide.com",
+      "short_description": "SciTide is a company that offers custom peptide synthesis services, specializing in producing peptides with purities exceeding 98%.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.28585
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 96799991,
+      "name": "Fornidos",
+      "homepage_url": "https://www.fornidos.com/",
+      "short_description": "Fornidos specializes in plug-and-play building components, seamlessly integrating panels, flooring, and roofing systems.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.27511
+      },
+      "skip_role": "march_none"
+    },
+    {
+      "rcid": 98289728,
+      "name": "Cornerstone Financing",
+      "homepage_url": "https://www.cornerstonefinancing.com/",
+      "short_description": "Cornerstone Financing facilitates homeowners to use their home equity to plan for a better financial future.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.32727
+      },
+      "skip_role": "march_none"
+    }
+  ]
+}

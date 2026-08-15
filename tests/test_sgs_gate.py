@@ -93,7 +93,7 @@ def test_gate_n0_stops() -> None:
     assert decision.rationale == "no_channel_above_signal_threshold"
 
 
-def test_gate_n1_max() -> None:
+def test_gate_n1_high() -> None:
     decision = decide_gate(
         [
             _scout("jobs", "none", []),
@@ -104,7 +104,7 @@ def test_gate_n1_max() -> None:
     assert decision.stop_at_scouts is False
     assert decision.dig_channels == ["owned"]
     assert decision.dig_count == 1
-    assert decision.reasoning_effort == "max"
+    assert decision.reasoning_effort == "high"
 
 
 def test_gate_n2_high_stable_channel_order() -> None:
@@ -120,7 +120,7 @@ def test_gate_n2_high_stable_channel_order() -> None:
     assert decision.reasoning_effort == "high"
 
 
-def test_gate_n3_medium() -> None:
+def test_gate_n3_high() -> None:
     decision = decide_gate(
         [
             _scout("jobs", "moderate"),
@@ -130,7 +130,7 @@ def test_gate_n3_medium() -> None:
     )
     assert decision.dig_channels == ["jobs", "owned", "third_party"]
     assert decision.dig_count == 3
-    assert decision.reasoning_effort == "medium"
+    assert decision.reasoning_effort == "high"
 
 
 def test_unknown_bin_is_none() -> None:
@@ -159,7 +159,7 @@ def test_gate_accepts_channel_id_field() -> None:
         ]
     )
     assert decision.dig_channels == ["jobs"]
-    assert decision.reasoning_effort == "max"
+    assert decision.reasoning_effort == "high"
 
 
 def test_envelope_channel_id_wins_over_model_channel() -> None:
@@ -180,7 +180,7 @@ def test_envelope_channel_id_wins_over_model_channel() -> None:
         ]
     )
     assert decision.dig_channels == ["jobs"]
-    assert decision.reasoning_effort == "max"
+    assert decision.reasoning_effort == "high"
 
 
 def test_unknown_model_channel_does_not_drop_valid_envelope() -> None:

@@ -14,16 +14,18 @@ BIN_CONFIDENCE = {
 }
 
 DEFAULT_SIGNAL_THRESHOLD = 0.5
-DEFAULT_SCOUT_PRESET = "fast"
+DEFAULT_SCOUT_PRESET = "low"
 DEFAULT_SCOUT_MAX_STEPS = 2
 
 DEFAULT_DIG_MODEL = "openai/gpt-5.6-luna"
-DEFAULT_DIG_MAX_STEPS = 10
-DEFAULT_DIG_WEB_SEARCH_DEPTH = "low"
+DEFAULT_DIG_MAX_STEPS = 50
+DEFAULT_DIG_WEB_SEARCH_DEPTH = "medium"
+DEFAULT_DIG_EFFORT = "high"
+# Count still decides how many rooms to dig. Every dig uses the same effort.
 DIG_EFFORT_BY_COUNT = {
-    1: "max",
-    2: "high",
-    3: "medium",
+    1: DEFAULT_DIG_EFFORT,
+    2: DEFAULT_DIG_EFFORT,
+    3: DEFAULT_DIG_EFFORT,
 }
 
 

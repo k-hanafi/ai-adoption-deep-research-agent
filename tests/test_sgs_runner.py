@@ -47,6 +47,16 @@ def _component_names(result) -> list[str]:
     return [row.name for row in result.cost_ledger.components]
 
 
+def test_dry_scout_preset_override_is_in_memory_only() -> None:
+    result = run(COMPANY, dry_run=True, scout_preset="fast")
+    assert result.traces["scout_preset"] == "fast"
+    for row in result.cost_ledger.components:
+        if row.name.startswith("scout_"):
+            assert row.preset == "fast"
+    default = run(COMPANY, dry_run=True)
+    assert default.traces["scout_preset"] == "low"
+
+
 def test_dry_default_stops_at_scouts() -> None:
     result = run(COMPANY, dry_run=True)
     assert result.dry_run is True
@@ -69,18 +79,18 @@ def test_dry_default_stops_at_scouts() -> None:
         assert row.skipped_reason == "dry_run_no_api"
 
 
-def test_dry_n1_digs_at_max() -> None:
+def test_dry_n1_digs_at_high() -> None:
     result = run(COMPANY, dry_run=True, scout_outputs=_signaled("jobs"))
     gate = result.traces["gate"]
     assert gate["dig_channels"] == ["jobs"]
     assert gate["dig_count"] == 1
-    assert gate["reasoning_effort"] == "max"
+    assert gate["reasoning_effort"] == "high"
     assert list(result.traces["request_snapshots"]["digs"]) == ["jobs"]
     assert "dig_jobs" in _component_names(result)
     assert "dig_owned" not in _component_names(result)
-    assert result.cost_ledger.components[-1].preset == dig_config_label("max")
+    assert result.cost_ledger.components[-1].preset == dig_config_label("high")
     snap = result.traces["request_snapshots"]["digs"]["jobs"]
-    assert snap["reasoning"] == {"effort": "max"}
+    assert snap["reasoning"] == {"effort": "high"}
     assert snap["has_preset"] is False
 
 
@@ -92,13 +102,13 @@ def test_dry_n2_digs_at_high() -> None:
     assert _component_names(result)[-2:] == ["dig_jobs", "dig_owned"]
 
 
-def test_dry_n3_digs_at_medium() -> None:
+def test_dry_n3_digs_at_high() -> None:
     result = run(
         COMPANY,
         dry_run=True,
         scout_outputs=_signaled("jobs", "owned", "third_party"),
     )
-    assert result.traces["gate"]["reasoning_effort"] == "medium"
+    assert result.traces["gate"]["reasoning_effort"] == "high"
     assert list(result.traces["request_snapshots"]["digs"]) == list(CHANNEL_IDS)
     assert _component_names(result) == [
         "scout_jobs",

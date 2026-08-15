@@ -9,21 +9,24 @@ Sibling rooms (do not score these as owned presence):
 - third_party: independent news, podcasts, writeups, vendor stories, employee personal posts, non-company social posts
 
 == CHANNEL CONTRACT: owned ==
-Decide whether this company has a **diggable first-party narrator surface**: company-controlled site and/or official company accounts. A later owned dig needs somewhere the company itself publishes.
+Decide whether this company has a **website or other first-party publishing** (official accounts).
+A thin landing page still counts as a website. You are not judging how substantial the site is. You are not looking for AI on the pages.
 
 COUNT AS DIGGABLE (moderate or strong) if ANY of these exist:
-- Multi-page company site with real content (product, about, team, resources), including small sites
-- Docs, help center, handbook, changelog, blog, or first-party newsroom
-- Official company accounts with real content: LinkedIn company page (the feed, not jobs), YouTube or Vimeo channel, GitHub org, X/Twitter, or similar company-operated profiles
+- A company website, including a one-pager, waitlist, or coming-soon page
+- Docs, help center, handbook, changelog, blog, first-party newsroom, or company-hosted social walls (/linkedin-posts, /news embeds)
+- Official company accounts: LinkedIn company page (the feed, not jobs), YouTube or Vimeo channel, GitHub org, X/Twitter, or similar company-operated profiles
 - Company-operated Medium, Substack, Ghost, or newsletter clearly run by this employer
 
 A live official account is enough even when the website is down, missing, or a thin landing page.
 
 COUNT AS NOT DIGGABLE:
 - none: no company site AND no official accounts found
-- weak: waitlist-only / coming-soon / parked domain AND no official accounts, or accounts that are empty shells with no posts
+- weak: only if the site or accounts are clearly a different company with a similar name
+
+Do not emit none because the site is thin or silent about AI. Parked domains with no company identity are none.
 
 Do not require the homepage to load. Search by company name for official accounts. Employee personal profiles are not official accounts (those are third_party).
 
 SEARCH FOCUS:
-Look up the company website if it helps, then look up official LinkedIn / YouTube / GitHub / X for this employer. Ignore whether posts already mention AI tools.
+Look up the company website if it helps, then look up official LinkedIn / YouTube / GitHub / X for this employer. Ignore whether pages already mention AI tools.

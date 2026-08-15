@@ -1,0 +1,491 @@
+{
+  "panel_id": "hillclimb_pcs_v1_march_20",
+  "reference_kind": "soft",
+  "note": "PCS (then SGS/UAS) hill-climb panel. Twenty March Stage 2 companies: 5 high + 5 medium + 5 low + 5 none. Soft march_reference only. Disjoint from tuning_panel_v2 (held out forever). Not a bake-off panel. Hill-climb until failure modes are exposed and fixed; bake-off only after the user is happy on this set. Channel map matches tuning v2 (jobs vs owned vs third_party from source_type).",
+  "source": {
+    "march_run": "outputs/stage2/production_results.jsonl",
+    "selection_axis": "march_findings_count_plus_channel_failure_modes",
+    "population": "Stage 2 companies excluding tuning_panel_v2 holdout",
+    "strata_cutpoints": {
+      "none": {
+        "min_findings_count": 0,
+        "max_findings_count": 0
+      },
+      "low": {
+        "min_findings_count": 1,
+        "max_findings_count": 1
+      },
+      "medium": {
+        "min_findings_count": 2,
+        "max_findings_count": 2
+      },
+      "high": {
+        "min_findings_count": 3,
+        "max_findings_count": null
+      }
+    },
+    "strata_targets": {
+      "high": 5,
+      "medium": 5,
+      "low": 5,
+      "none": 5
+    },
+    "channel_mapping": "Soft-mapped from March finding source_type strings into owned | jobs | third_party for reference only. Same helper as evals/panel/build_tuning_panel_v2.py.",
+    "known_regression_ids": [
+      26492430,
+      1314132,
+      97943259,
+      103497
+    ]
+  },
+  "companies": [
+    {
+      "rcid": 26492430,
+      "name": "Tern Travel",
+      "homepage_url": "https://www.tern.travel/",
+      "short_description": "Tern Travel builds an integrated platform that connects the travel advisor to travelers and suppliers.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "high",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 6,
+        "tools": [
+          "Intercom (Fin AI agent)",
+          "Notion AI",
+          "Claude (Anthropic)",
+          "Claude (Anthropic),Granola,Linear",
+          "ChatGPT (OpenAI)",
+          "Gamma"
+        ],
+        "channels": [
+          "owned"
+        ],
+        "cost_usd": 0.19257
+      },
+      "hillclimb_role": "company_youtube_mapped_owned"
+    },
+    {
+      "rcid": 545293,
+      "name": "ClickHouse",
+      "homepage_url": "https://clickhouse.com",
+      "short_description": "ClickHouse is a developer of an online analytical processing (OLAP) database management system.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "high",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 5,
+        "tools": [
+          "Anthropic Claude Sonnet, LibreChat, Model Context Protocol (MCP)",
+          "Anthropic Claude (Sonnet 3.7), LibreChat, MCP GitHub server",
+          "LibreChat, DWAINE (internal agent)",
+          "GitHub Copilot (custom instructions via .github/copilot-instructions.md)",
+          "DWAINE (internal dwh agent)"
+        ],
+        "channels": [
+          "owned",
+          "third_party"
+        ],
+        "cost_usd": 0.34527
+      },
+      "hillclimb_role": "dense_owned_plus_noisy_third_party"
+    },
+    {
+      "rcid": 977674,
+      "name": "Vendelux",
+      "homepage_url": "https://vendelux.com",
+      "short_description": "Vendelux is a provider of an event intelligence platform.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "high",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 5,
+        "tools": [
+          "Cursor,Claude Code",
+          "ChatGPT",
+          "Microsoft Copilot",
+          "v0"
+        ],
+        "channels": [
+          "jobs",
+          "owned"
+        ],
+        "cost_usd": 0.35728
+      },
+      "hillclimb_role": "ashby_jobs_plus_owned_blog"
+    },
+    {
+      "rcid": 95038033,
+      "name": "Alguna",
+      "homepage_url": "https://alguna.io",
+      "short_description": "Alguna is a modern pricing, quoting and billing platform.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "high",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 5,
+        "tools": [
+          "Claude Desktop,Claude Code,Cursor",
+          "LLMs,AI copywriters (unspecified)",
+          "AI tools (unspecified)"
+        ],
+        "channels": [
+          "owned",
+          "jobs"
+        ],
+        "cost_usd": 1.19802
+      },
+      "hillclimb_role": "owned_product_plus_yc_jobs"
+    },
+    {
+      "rcid": 510536,
+      "name": "Chainguard",
+      "homepage_url": "https://chainguard.dev",
+      "short_description": "Chainguard is a cloud-native development platform that provides low-to-zero CVE container images for building and running applications.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "high",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 3,
+        "tools": [
+          "OpenAI, Anthropic, LangChain",
+          "Unspecified LLM/GenAI tools (internal AI assistants)",
+          "Claude (Claude Code)"
+        ],
+        "channels": [
+          "jobs",
+          "owned"
+        ],
+        "cost_usd": 0.13344
+      },
+      "hillclimb_role": "ats_jobs_plus_company_youtube"
+    },
+    {
+      "rcid": 103497,
+      "name": "Statsig",
+      "homepage_url": "https://www.statsig.com",
+      "short_description": "Statsig provides tools for A/B testing, feature management, and product analytics to help teams optimize product development.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "medium",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 2,
+        "tools": [
+          "ChatGPT,OpenAI,Pinecone",
+          "Scout (Statbot,AskSE)"
+        ],
+        "channels": [
+          "owned",
+          "third_party"
+        ],
+        "cost_usd": 0.33286
+      },
+      "hillclimb_role": "owned_blog_plus_vendor_case_study"
+    },
+    {
+      "rcid": 169806,
+      "name": "Unwrap.ai",
+      "homepage_url": "https://www.unwrap.ai/",
+      "short_description": "Unwrap.ai develops an AI-powered natural language processor platform to help companies analyze user feedback.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "medium",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 2,
+        "tools": [
+          "GPT(OpenAI)",
+          "ChatGPT"
+        ],
+        "channels": [
+          "third_party",
+          "owned"
+        ],
+        "cost_usd": 0.41377
+      },
+      "hillclimb_role": "podcast_plus_owned_blog"
+    },
+    {
+      "rcid": 230528,
+      "name": "Secureframe",
+      "homepage_url": "https://secureframe.com",
+      "short_description": "Secureframe is a provider of security and compliance software services.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "medium",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 2,
+        "tools": [
+          "Secureframe AI chatbot (unspecified generative-AI/LLM vendor)",
+          "Unspecified AI tools (hiring/recruiting screening)"
+        ],
+        "channels": [
+          "owned",
+          "jobs"
+        ],
+        "cost_usd": 0.31505
+      },
+      "hillclimb_role": "help_center_product_ai_plus_lever_jobs"
+    },
+    {
+      "rcid": 6353965,
+      "name": "SQOR Technologies Inc.",
+      "homepage_url": "https://www.sqor.ai",
+      "short_description": "A no-code AI platform combining agentic and LLM models to eliminate the complexity of KPI monitoring, enabling agile business intelligence.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "medium",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 2,
+        "tools": [
+          "unspecified AI-based content creation tools",
+          "GoHighLevel, HubSpot, unspecified AI-powered marketing automation tools"
+        ],
+        "channels": [
+          "jobs"
+        ],
+        "cost_usd": 0.16472
+      },
+      "hillclimb_role": "aggregator_jobs_pair"
+    },
+    {
+      "rcid": 96807077,
+      "name": "Blue Sky Robotics",
+      "homepage_url": "https://www.blue-sky-robotics.com/",
+      "short_description": "Blue Sky Robotics is a Robotics Engineering firm offering solutions through their custom automations.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "medium",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 2,
+        "tools": [
+          "OpenAI ChatGPT (Deep Research feature)",
+          "OpenAI ChatGPT (GPT-4.5 model)"
+        ],
+        "channels": [
+          "owned"
+        ],
+        "cost_usd": 0.07505
+      },
+      "hillclimb_role": "owned_podcast_transcripts"
+    },
+    {
+      "rcid": 726354,
+      "name": "LiveKit",
+      "homepage_url": "https://livekit.io/",
+      "short_description": "The Realtime Cloud. Build and scale voice and video applications.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "Claude Code,GitHub Copilot,Cursor"
+        ],
+        "channels": [
+          "jobs"
+        ],
+        "cost_usd": 0.32408
+      },
+      "hillclimb_role": "clean_ashby_jobs"
+    },
+    {
+      "rcid": 743085,
+      "name": "Sudozi",
+      "homepage_url": "https://www.sudozi.com/",
+      "short_description": "Sudozi is a real-time platform that track, collaborate, budget, and approve budget management and vendor management workflow.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "Anthropic Claude"
+        ],
+        "channels": [
+          "owned"
+        ],
+        "cost_usd": 0.16434
+      },
+      "hillclimb_role": "linkedin_embedded_on_owned_site"
+    },
+    {
+      "rcid": 1314132,
+      "name": "CoverTree",
+      "homepage_url": "https://covertree.com",
+      "short_description": "CoverTree is an InsurTech company that specializes in manufactured home insurance solutions.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "unspecified LLMs"
+        ],
+        "channels": [
+          "jobs"
+        ],
+        "cost_usd": 0.42874
+      },
+      "hillclimb_role": "jobs_aggregator_may_404"
+    },
+    {
+      "rcid": 21573684,
+      "name": "K1x",
+      "homepage_url": "https://k1x.io/",
+      "short_description": "K1x is a SaaS financial technology company with long-established tax technology.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "MavenAGI,AgentMaven"
+        ],
+        "channels": [
+          "third_party"
+        ],
+        "cost_usd": 0.48884
+      },
+      "hillclimb_role": "vendor_case_study"
+    },
+    {
+      "rcid": 95170103,
+      "name": "Momentic",
+      "homepage_url": "https://momentic.ai",
+      "short_description": "Momentic enables developers to deploy AI agents to test web apps end-to-end. Just describe user flows using natural language.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "Cursor"
+        ],
+        "channels": [
+          "third_party"
+        ],
+        "cost_usd": 0.92654
+      },
+      "hillclimb_role": "third_party_youtube_interview"
+    },
+    {
+      "rcid": 42877,
+      "name": "RightRev",
+      "homepage_url": "https://rightrev.com",
+      "short_description": "RightRev provides software for revenue recognition that helps to track revenue contracts, quote, orders, invoices, and management reporting.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.43011
+      },
+      "hillclimb_role": "saas_no_genai_found"
+    },
+    {
+      "rcid": 43778,
+      "name": "Ahoy Insurance",
+      "homepage_url": "https://www.ahoy.insure/",
+      "short_description": "Ahoy is a boat insurance company, created by boaters for boaters. We leverage technology to provide a safer experience on the water.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.31357
+      },
+      "hillclimb_role": "non_ai_insurance"
+    },
+    {
+      "rcid": 5396108,
+      "name": "Oso Electric Equipment",
+      "homepage_url": "https://www.osoelectric.com",
+      "short_description": "Oso Electric Equipment is converting medium to heavy duty gas-powered equipment into electric equipment.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.22386
+      },
+      "hillclimb_role": "non_ai_industrial"
+    },
+    {
+      "rcid": 94779671,
+      "name": "Sully.ai",
+      "homepage_url": "https://sully.ai",
+      "short_description": "Autonomous Agents for Healthcare",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 1.12113
+      },
+      "hillclimb_role": "ai_agents_seller_hard_negative"
+    },
+    {
+      "rcid": 97943259,
+      "name": "Easy Fill AI",
+      "homepage_url": "https://easyfill.ai",
+      "short_description": "AI Based SaaS Data Collection and Analysis Tool",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.33405
+      },
+      "hillclimb_role": "ai_product_seller"
+    }
+  ]
+}

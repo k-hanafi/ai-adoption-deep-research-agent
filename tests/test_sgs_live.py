@@ -98,7 +98,7 @@ def test_live_n0_does_not_call_digs(monkeypatch) -> None:
     assert result.cost_ledger.total_usd == 0.003
 
 
-def test_live_n1_digs_jobs_at_max_and_merges(monkeypatch) -> None:
+def test_live_n1_digs_jobs_at_high_and_merges(monkeypatch) -> None:
     dig_efforts: list[str] = []
 
     def fake_scout(request_kwargs, *, channel_id, api_key=None, timeout=300.0):
@@ -119,7 +119,7 @@ def test_live_n1_digs_jobs_at_max_and_merges(monkeypatch) -> None:
     monkeypatch.setattr("signal_gated_search.runner.execute_dig_call", fake_dig)
 
     result = run(COMPANY, dry_run=False, api_key="test-key")
-    assert dig_efforts == ["max"]
+    assert dig_efforts == ["high"]
     assert result.traces["gate"]["dig_channels"] == ["jobs"]
     assert result.genai_adoption_found is True
     assert len(result.findings) == 1
@@ -132,17 +132,17 @@ def test_live_n1_digs_jobs_at_max_and_merges(monkeypatch) -> None:
         "scout_third_party",
         "dig_jobs",
     ]
-    assert result.cost_ledger.components[-1].preset == dig_config_label("max")
+    assert result.cost_ledger.components[-1].preset == dig_config_label("high")
     assert result.cost_ledger.total_usd == 0.023
 
 
-def test_live_n3_digs_at_medium_and_dedupes(monkeypatch) -> None:
+def test_live_n3_digs_at_high_and_dedupes(monkeypatch) -> None:
     def fake_scout(request_kwargs, *, channel_id, api_key=None, timeout=300.0):
         return _scout_payload(channel_id, "strong")
 
     def fake_dig(request_kwargs, *, channel_id, api_key=None, timeout=300.0):
         effort = (request_kwargs.get("reasoning") or {}).get("effort")
-        assert effort == "medium"
+        assert effort == "high"
         url = "https://jam.dev/blog/copilot"
         return _dig_payload(channel_id, [_finding(channel_id, "GitHub Copilot", url)])
 
@@ -152,7 +152,7 @@ def test_live_n3_digs_at_medium_and_dedupes(monkeypatch) -> None:
     result = run(COMPANY, dry_run=False, api_key="test-key")
     assert result.traces["gate"]["dig_count"] == 3
     assert list(result.traces["request_snapshots"]["digs"]) == list(CHANNEL_IDS)
-    # Same (tool, url) across rooms collapses to the first (jobs).
+    # Same (tool, use_case, url) across rooms collapses to the first (jobs).
     assert len(result.findings) == 1
     assert result.findings[0].channel == "jobs"
 
@@ -227,7 +227,7 @@ def test_live_envelope_room_wins_over_model_channel_field(monkeypatch) -> None:
 
     result = run(COMPANY, dry_run=False, api_key="test-key")
     assert result.traces["gate"]["dig_channels"] == ["jobs"]
-    assert result.traces["gate"]["reasoning_effort"] == "max"
+    assert result.traces["gate"]["reasoning_effort"] == "high"
 
 
 def test_scout_parses_json_from_output_items_when_output_text_empty(monkeypatch) -> None:
