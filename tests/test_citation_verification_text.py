@@ -45,37 +45,33 @@ def test_chunk_late_quote_is_selected() -> None:
     assert any("uses AI constantly" in window for window in windows)
 
 
+def test_select_windows_keeps_late_paraphrase_when_names_absent() -> None:
+    claim = "Jagan Reddy uses GitHub Copilot for pull-request review."
+    late = "The founder uses an AI coding assistant on every pull request."
+    page = ("Welcome to the company blog. " * 400) + late
+    assert "Jagan" not in page
+    assert "Copilot" not in page
+    windows = select_windows(page, claim)
+    assert any("AI coding assistant" in window for window in windows)
+    assert len(windows) > 1
+
+
 def test_combine_any_one_wins() -> None:
-    value, error = combine_chunk_verdicts(
-        [0, 1, 0],
-        anchors_present=True,
-        page_complete=True,
-        on_topic=True,
-    )
+    value, error = combine_chunk_verdicts([0, 1, 0])
     assert value == 1
     assert error is None
 
 
-def test_combine_complete_offtopic_is_zero() -> None:
-    value, error = combine_chunk_verdicts(
-        [0],
-        anchors_present=False,
-        page_complete=True,
-        on_topic=False,
-    )
+def test_combine_all_zero_is_zero() -> None:
+    value, error = combine_chunk_verdicts([0, 0])
     assert value == 0
     assert error is None
 
 
-def test_combine_missing_anchors_on_topic_is_null() -> None:
-    value, error = combine_chunk_verdicts(
-        [0],
-        anchors_present=False,
-        page_complete=True,
-        on_topic=True,
-    )
+def test_combine_empty_windows_is_null() -> None:
+    value, error = combine_chunk_verdicts([])
     assert value is None
-    assert error == config.ERROR_SNIPPET_MISSING_ANCHORS
+    assert error == "judge produced no usable window"
 
 
 def test_extract_anchors_keeps_names_not_stopwords() -> None:

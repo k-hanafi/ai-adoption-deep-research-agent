@@ -66,7 +66,7 @@ def build_judge_request(
     model: str = config.JUDGE_MODEL,
     max_output_tokens: int = config.JUDGE_MAX_OUTPUT_TOKENS,
 ) -> dict[str, Any]:
-    """Build Responses API kwargs for the Terra logprob judge."""
+    """Build Responses API kwargs for the Luna logprob judge."""
     return {
         "model": model,
         "instructions": load_judge_prompt(),
@@ -218,7 +218,7 @@ def _output_text(payload: Mapping[str, Any]) -> str:
 
 
 def _total_cost_usd(payload: Mapping[str, Any]) -> float:
-    """Prefer provider dollar total; else estimate from Terra token rates."""
+    """Prefer provider dollar total; else estimate from judge token rates."""
     usage = payload.get("usage") or {}
     if not isinstance(usage, Mapping):
         cost = getattr(usage, "cost", None)
@@ -230,7 +230,7 @@ def _total_cost_usd(payload: Mapping[str, Any]) -> float:
         cached = 0
         if details is not None:
             cached = int(getattr(details, "cached_tokens", 0) or 0)
-        return _estimate_terra_cost_usd(
+        return _estimate_judge_cost_usd(
             input_tokens=input_tokens,
             output_tokens=output_tokens,
             cached_input_tokens=cached,
@@ -244,14 +244,14 @@ def _total_cost_usd(payload: Mapping[str, Any]) -> float:
     cached = 0
     if isinstance(details, Mapping):
         cached = int(details.get("cached_tokens") or 0)
-    return _estimate_terra_cost_usd(
+    return _estimate_judge_cost_usd(
         input_tokens=usage.get("input_tokens"),
         output_tokens=usage.get("output_tokens"),
         cached_input_tokens=cached,
     )
 
 
-def _estimate_terra_cost_usd(
+def _estimate_judge_cost_usd(
     *,
     input_tokens: Any,
     output_tokens: Any,

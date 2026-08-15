@@ -114,7 +114,7 @@ def test_live_happy_path_wires_confidence(monkeypatch: pytest.MonkeyPatch) -> No
     )
     # Attach full judge JSON fields while keeping logprob tokens for "1".
     raw = dict(raw)
-    raw["model"] = "gpt-5.6-terra"
+    raw["model"] = "gpt-5.6-luna"
     raw["usage"] = {"cost": {"total_cost": 0.002}}
 
     def _fake_fetch(url: str, **_kwargs: object) -> FetchResult:
@@ -132,7 +132,7 @@ def test_live_happy_path_wires_confidence(monkeypatch: pytest.MonkeyPatch) -> No
             verification_reasoning="Snippet mentions Copilot for PR review.",
             verification_critique="Could be aspirational copy.",
             cost_usd=0.002,
-            model="gpt-5.6-terra",
+            model="gpt-5.6-luna",
             raw=raw,
         )
 
@@ -151,7 +151,7 @@ def test_live_happy_path_wires_confidence(monkeypatch: pytest.MonkeyPatch) -> No
     assert result.verification == 1
     assert result.log_probs_conf == pytest.approx(0.97, rel=1e-6)
     assert result.confidence_1_5 == 4
-    assert result.model_judge == "gpt-5.6-terra"
+    assert result.model_judge == "gpt-5.6-luna"
     assert result.cost_usd == pytest.approx(0.0023)
     assert result.cost_fetch_usd == pytest.approx(0.0003)
     assert result.cost_judge_usd == pytest.approx(0.002)
@@ -294,7 +294,7 @@ def test_live_logprob_extract_fail_is_unverifiable(
             verification_reasoning="No support in snippet.",
             verification_critique="Snippet is thin.",
             cost_usd=0.002,
-            model="gpt-5.6-terra",
+            model="gpt-5.6-luna",
             raw={"output": []},
         ),
     )
@@ -308,7 +308,7 @@ def test_live_logprob_extract_fail_is_unverifiable(
     )
     assert result.verification is None
     assert result.unverifiable is True
-    assert result.model_judge == "gpt-5.6-terra"
+    assert result.model_judge == "gpt-5.6-luna"
     assert "logprob confidence unavailable" in (result.error or "")
 
 
@@ -322,7 +322,7 @@ def test_live_happy_path_judged_zero(monkeypatch: pytest.MonkeyPatch) -> None:
         (fixtures / "citation_verification_zero.json").read_text(encoding="utf-8")
     )
     raw = dict(raw)
-    raw["model"] = "gpt-5.6-terra"
+    raw["model"] = "gpt-5.6-luna"
     raw["usage"] = {"cost": {"total_cost": 0.002}}
 
     monkeypatch.setattr(
@@ -344,7 +344,7 @@ def test_live_happy_path_judged_zero(monkeypatch: pytest.MonkeyPatch) -> None:
             verification_reasoning="Snippet does not mention Copilot.",
             verification_critique="Page could be incomplete.",
             cost_usd=0.002,
-            model="gpt-5.6-terra",
+            model="gpt-5.6-luna",
             raw=raw,
         ),
     )

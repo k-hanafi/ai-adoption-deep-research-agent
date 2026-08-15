@@ -12,12 +12,12 @@ Master: [prod-architecture-eval.plan.md](./prod-architecture-eval.plan.md).
 
 | Field | State |
 |---|---|
-| **Current state** | Package v1 is on **main** (PR #28 merged). Bulletproof work is on `cursor/bulletproof-citation-verifier`. Offline WS0–WS8 tests green. **WS9 live gold re-score is the remaining gate. Do not start Phase B 221+124.** |
-| **Locked stack (v1)** | Perplexity `fetch_url` (Luna wrapper) → OpenAI `gpt-5.6-terra` binary+logprobs. Unjudged rows stay `verification=null`. |
-| **This plan** | Completeness over pennies. Raise the snippet cap to **≥ Stage 2 high page budget**. Add chrome-strip, claim-window chunking, anchor check + targeted refetch, **Tavily Extract backup** (no Jina), gold expansion, then a live score gate. |
-| **Next** | Implement workstreams in order below. Re-score expanded gold. Khaled merge call. |
-| **Exit** | Almost-zero FP/FN on the expanded gold set. Unread or incomplete page → `null` (re-run / human click), never a hallucinated `0`. Cost metered on every row. |
-| **Decision log** | Gold retries + stricter names 2026-08-15; this plan lock 2026-08-15. |
+| **Current state** | Package v1 is on **main** (PR #28 merged). Bulletproof work is on `cursor/bulletproof-citation-verifier`. Offline WS0–WS8 tests green. **Literal-anchor `null` is retired** (2026-08-15 lenient-judge lock). **WS9 live gold re-score is the remaining gate. Do not start Phase B 221+124.** |
+| **Locked stack (v1)** | Perplexity `fetch_url` (Luna wrapper) → OpenAI `gpt-5.6-luna` binary+logprobs. Unjudged rows stay `verification=null`. After a real fetch, Luna decides 0/1. |
+| **This plan** | Completeness over pennies. Raise the snippet cap to **≥ Stage 2 high page budget**. Add chrome-strip, claim-window chunking, optional targeted refetch (not a verdict veto), **Tavily Extract backup** (no Jina), gold expansion, then a live score gate. |
+| **Next** | Re-run e2e5_bp under the lenient judge. Re-score expanded gold. Khaled merge call. |
+| **Exit** | Almost-zero FP/FN on the expanded gold set. Unread page → `null`. Readable page with no support → `0`. Paraphrase / stand-in support → `1`. Cost metered on every row. |
+| **Decision log** | Lenient judge, no literal-anchor null 2026-08-15. |
 
 ---
 
@@ -162,9 +162,9 @@ Unread or incomplete page → **`null`**, never a hallucinated `0`.
 |---|---|
 | Any chunk **clearly supports** the claim | **`1`** |
 | No chunk supports, and the fetched text looks **complete** (anchors present or page is on-topic and fully extracted) | **`0`** |
-| Claim anchors **never appear** in any chunk | **`null`** (`snippet_missing_claim_anchors`), do not emit `0` |
+| Claim anchors **never appear** in any chunk | **Judge the fetched text anyway.** Package `null` only if the page was unread. **Superseded:** literal-anchor `null` retired 2026-08-15. |
 
-**Success check:** Unit tests for the three combine rules. A planted late-page quote (after the old 12k cut) becomes `1`. A complete off-topic page stays `0`. A page with no anchors stays `null`.
+**Success check:** Unit tests for the combine rules. A planted late-page quote (after the old 12k cut) becomes `1`. A judged all-0 page stays `0`. Missing exact strings do not force `null`.
 
 **Residual risk:** Bad chunk rank can skip the only supporting paragraph. Overlap + "judge every anchor hit" is the mitigation. Cost goes up (more Terra calls). That is acceptable; meter it.
 
@@ -179,8 +179,8 @@ Unread or incomplete page → **`null`**, never a hallucinated `0`.
 1. **Extract anchors** from `evidence_description`: distinctive quote / person / company / tool / number (not stopwords).
 2. If any required anchor is missing from the (stripped, chunked) text: **do not emit `0`.**
 3. **One targeted refetch**, `fetch_url` only, **no `web_search`**: "Extract the section that mentions …" for the missing anchor(s). Same URL.
-4. If the anchor still never appears → `verification=null`, `error=snippet_missing_claim_anchors`, `unverifiable=true`.
-5. If the anchor **is** present and the fact is still wrong → **`0`** (Bezos-as-author pattern).
+4. If the anchor still never appears → **still judge the fetched text**. Do not emit `snippet_missing_claim_anchors`. **Superseded 2026-08-15.**
+5. Sell-vs-use or substance absent → judge **`0`**. Role stand-in / paraphrase → judge **`1`**.
 
 **Judge prompt** (`prompts/citation_verification/judge.txt`):
 
@@ -350,7 +350,7 @@ All of these must be green. None of them is "merge because Bugbot is clean."
 | FN | **Zero** false `0`s on labeled support cases whose page was actually readable after WS1–WS4. python.org incomplete extract is `null` or recovered `1`, not a confident `0`. |
 | False NA | `null` only when unread / incomplete / poison-unresolved / planted dead. No auto-null of LinkedIn / YouTube / Indeed / ATS when snippet is real. |
 | Poison | example.com MOT cannot be judged as a normal `0`/`1` without `fetch_document_mismatch` or a recovered IANA extract. |
-| Names | Missing distinctive name after targeted refetch → `null`. Name present, fact wrong → `0`. |
+| Names | Missing exact name is not a package `null`. Judge is lenient (`1` on paraphrase / role stand-in). `0` only for absent substance or sell-vs-use. |
 | Dead URLs | Stay `null`, not `0`. |
 | Observability | Every live row has `source_url` (clickable), `fetched_url`, `fetched_title`, `cost_usd`, `error` reason when `null`. |
 | Cost | Ledger written for the gold re-score. No silent unmetered vendor calls. |

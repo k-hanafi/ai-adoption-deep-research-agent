@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Iterable, Optional, Sequence
+from typing import Optional, Sequence
 from urllib.parse import urlparse
 
 from citation_verification import config
@@ -217,24 +217,12 @@ def missing_anchors(text: str, anchors: Sequence[str]) -> list[str]:
     return [anchor for anchor in anchors if anchor.lower() not in hay]
 
 
-def rank_windows(windows: Sequence[str], anchors: Sequence[str]) -> list[str]:
-    """Put windows that mention claim anchors first. Keep every hit."""
-    if not windows:
-        return []
-    if not anchors:
-        return list(windows)
-
-    def _score(window: str) -> int:
-        lowered = window.lower()
-        return sum(1 for anchor in anchors if anchor.lower() in lowered)
-
-    indexed = list(enumerate(windows))
-    indexed.sort(key=lambda item: (-_score(item[1]), item[0]))
-    return [window for _idx, window in indexed]
-
-
 def select_windows(text: str, claim: str) -> list[str]:
-    """Windows to judge: every chunk that hits an anchor, else the top chunk."""
+    """Windows to judge: every anchor hit, else every chunk on the page.
+
+    When claim names never appear, a later paraphrase or role stand-in
+    still has to reach the judge. Do not keep only the first chunk.
+    """
     anchors = extract_anchors(claim)
     windows = chunk_text(text)
     if not windows:
@@ -248,64 +236,23 @@ def select_windows(text: str, claim: str) -> list[str]:
     ]
     if hits:
         return hits
-    ranked = rank_windows(windows, anchors)
-    return ranked[:1]
+    return windows
 
 
 def combine_chunk_verdicts(
     verdicts: Sequence[Optional[int]],
-    *,
-    anchors_present: bool,
-    page_complete: bool,
-    on_topic: bool,
 ) -> tuple[Optional[int], Optional[str]]:
     """Merge per-window 0/1 into one package verdict.
 
-    Any clear 1 wins. Missing anchors on an on-topic page stay null.
-    A complete off-topic page with no support is 0.
+    Any 1 wins. All judged 0s stay 0. Missing exact strings do not
+    veto. Null only when no window produced a 0/1.
     """
     if any(value == 1 for value in verdicts):
         return 1, None
-    if not anchors_present:
-        if on_topic:
-            return None, config.ERROR_SNIPPET_MISSING_ANCHORS
-        if page_complete:
-            return 0, None
-        return None, config.ERROR_SNIPPET_MISSING_ANCHORS
-    if verdicts and all(value == 0 for value in verdicts):
+    judged = [value for value in verdicts if value in (0, 1)]
+    if judged and all(value == 0 for value in judged):
         return 0, None
-    if page_complete:
-        return 0, None
-    return None, config.ERROR_SNIPPET_MISSING_ANCHORS
-
-
-def page_looks_complete(snippet: str, *, truncated: bool) -> bool:
-    """True when the extract looks like a finished page, not a cut sidebar."""
-    if truncated:
-        return False
-    text = (snippet or "").strip()
-    if len(text) < config.MIN_SNIPPET_CHARS:
-        return False
-    if _SOFT_404.search(text) and len(text) < 400:
-        return False
-    return True
-
-
-def claim_on_topic(url: str, title: str, anchors: Iterable[str]) -> bool:
-    """True when a claim entity also appears in the URL or fetched title."""
-    hay = f"{url} {title}".lower()
-    for anchor in anchors:
-        token = anchor.strip()
-        if len(token) < 4:
-            continue
-        if token.lower() in hay:
-            return True
-    host = _host(url)
-    if host:
-        host_token = host.split(".")[0]
-        if len(host_token) >= 4 and host_token in " ".join(anchors).lower():
-            return True
-    return False
+    return None, "judge produced no usable window"
 
 
 def looks_document_mismatch(url: str, title: str, snippet: str) -> bool:

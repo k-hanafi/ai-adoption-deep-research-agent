@@ -12,7 +12,7 @@ Parent: [prod-architecture-eval.plan.md](./prod-architecture-eval.plan.md)
 | Field | State |
 |---|---|
 | **Current state** | **Commits 1–5 + Bugbot fix landed.** PR #28 ready; cloud Bugbot on tip commit reported **no issues**. |
-| **Locked stack** | Perplexity **`fetch_url`** → OpenAI **`gpt-5.6-terra`** binary+logprobs (`reasoning.effort=none`). |
+| **Locked stack** | Perplexity **`fetch_url`** → OpenAI **`gpt-5.6-luna`** binary+logprobs (`reasoning.effort=none`). Terra superseded 2026-08-15. |
 | **Package home** | Top-level `citation_verification/` (not under `evals/`). |
 | **Next** | Human merge of PR #28 when ready. Evals `run-verification` is a separate follow-up plan. |
 | **Exit (this plan)** | Package can verify findings in dry + live modes via `python -m citation_verification`, with real logprob confidence, cost metering, and package tests; single PR merge-ready after cloud Bugbot babysit. |
@@ -25,7 +25,7 @@ Parent: [prod-architecture-eval.plan.md](./prod-architecture-eval.plan.md)
 | Topic | Choice |
 |---|---|
 | Stack | Perplexity `fetch_url` + OpenAI logprob judge |
-| Judge model | **`gpt-5.6-terra`** (different family from Stage 2 Luna research agents) |
+| Judge model | **`gpt-5.6-luna`** (same OpenAI logprob path; Terra retired for cost) |
 | Not | Tavily-only fetch; Perplexity `web_search` for verify; Perplexity-only judge |
 | Packaging | `citation_verification/` production package |
 | Confidence ownership | **`log_probs_conf` computed in-package** from token logprobs (never ask the model to invent that number) |
@@ -69,7 +69,7 @@ Then: `fetch_ok`, `evidence_snippet`, `censored`, `margin`, `model_judge`, `cost
 
 ### D4 — Judge model — **locked 2026-08-14**
 
-`gpt-5.6-terra` with `reasoning.effort=none` (required for logprobs). Different model than Stage 2 Luna agents on purpose (judge ≠ researcher).
+`gpt-5.6-luna` with `reasoning.effort=none` (required for logprobs). Same OpenAI Responses path as Terra. Judge ≠ Perplexity researcher wrapper.
 
 Still open only as implementation defaults (not blocking PR1): Perplexity fetch wrapper model/preset (**proposal: cheapest Agent path that runs `fetch_url`**); sync-only v1 (**proposal: sync**).
 

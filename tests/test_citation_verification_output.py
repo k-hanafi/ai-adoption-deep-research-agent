@@ -29,7 +29,7 @@ def _sample_rows() -> list[VerdictResult]:
         verification=0,
         unverifiable=False,
         fetch_ok=True,
-        model_judge="gpt-5.6-terra",
+        model_judge="gpt-5.6-luna",
     )
     failed = unverifiable_result(
         finding_id=2,

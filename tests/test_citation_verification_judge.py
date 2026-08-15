@@ -51,7 +51,9 @@ def test_build_judge_request_logprob_knobs() -> None:
     assert "GitHub Copilot" in req["input"]
     prompt = load_judge_prompt()
     assert "verification = 1" in prompt
-    assert "distinctive name" in prompt
+    assert "lenient" in prompt.lower()
+    assert "paraphrase" in prompt.lower()
+    assert "sells or markets" in prompt
     assert "untrusted data" in prompt.lower()
     assert req["instructions"] == prompt
 
@@ -76,14 +78,14 @@ def test_parse_judge_ok_fixture() -> None:
     assert result.confidence_1_5 == 4
     assert "Copilot" in result.verification_reasoning
     assert result.verification_critique
-    # 200 in * $2/M + 80 out * $12/M
-    assert result.cost_usd == pytest.approx(0.0004 + 0.00096)
-    assert result.model == "gpt-5.6-terra"
+    # 200 in * $0.20/M + 80 out * $1.20/M
+    assert result.cost_usd == pytest.approx(0.00004 + 0.000096)
+    assert result.model == config.JUDGE_MODEL
 
 
 def test_parse_judge_prefers_explicit_total_cost() -> None:
     payload = {
-        "model": "gpt-5.6-terra",
+        "model": config.JUDGE_MODEL,
         "output": [
             {
                 "type": "message",
@@ -113,7 +115,7 @@ def test_parse_judge_prefers_explicit_total_cost() -> None:
 
 def test_parse_rejects_bad_verification() -> None:
     payload = {
-        "model": "gpt-5.6-terra",
+        "model": config.JUDGE_MODEL,
         "output": [
             {
                 "type": "message",
@@ -136,5 +138,5 @@ def test_parse_rejects_bad_verification() -> None:
     }
     with pytest.raises(JudgeParseError) as caught:
         parse_judge_response(payload)
-    # 100*$2/M + 50*$12/M = 0.0002 + 0.0006
-    assert caught.value.cost_usd == pytest.approx(0.0008)
+    # 100*$0.20/M + 50*$1.20/M = 0.00002 + 0.00006
+    assert caught.value.cost_usd == pytest.approx(0.00008)

@@ -10,6 +10,8 @@ from typing import Any, Literal, Mapping, Optional
 
 from contracts.types import CostComponent, CostLedger
 
+from citation_verification import config
+
 VerificationValue = Literal[0, 1]
 
 # Extra finding columns copied into outputs when the input row has them.
@@ -180,6 +182,6 @@ def ledger_from_verdicts(results: list[VerdictResult]) -> CostLedger:
     judge_total = round(sum(r.cost_judge_usd for r in results), 6)
     components = [
         CostComponent(name="fetch_url", preset="perplexity_fetch", cost_usd=fetch_total),
-        CostComponent(name="openai_judge", preset="gpt-5.6-terra", cost_usd=judge_total),
+        CostComponent(name="openai_judge", preset=config.JUDGE_MODEL, cost_usd=judge_total),
     ]
     return CostLedger.from_components(components)

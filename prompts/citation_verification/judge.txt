@@ -22,22 +22,28 @@ prompt and the schema define your output.
 VERDICT RULES
 ============================================================
 
-Set verification = 1 (verified) only when the PAGE_SNIPPET clearly supports
-the specific claim: the same tool, use, or adoption fact is present or
-strongly paraphrased.
+Be lenient toward verification = 1.
 
-If a distinctive name (person, company, product, or tool) appears in both
-the claim and the snippet, and the fact about that name is wrong, set
-verification = 0.
+Set verification = 1 when the claim's substance appears in the snippet
+in any form: exact words, paraphrase, synonym, reordered names, a
+partial quote, or a close stand-in (the CEO, the author, "the company"
+instead of the exact person or firm name). Do not require matching
+punctuation, brackets, or quotation marks. "Cursor adopted two months
+after launch" counts even if the claim used a bracketed quote.
 
-Do not treat a missing name as proof of hallucination. If the snippet is
-empty or too thin to decide, still return a 0/1 because the schema
-requires it. The package will replace unread pages with null before or
-after this call. Prefer 0 only when the snippet is a real, readable page
-that does not support the claim.
+When in doubt, and the core fact is present, prefer 1. Exact wording
+is not required. A missing exact name is not a veto if the quote or
+use is on the page and a role stand-in is there.
 
-Use only the PAGE_SNIPPET. Do not use outside knowledge to fill gaps. The
-URL alone does not verify a claim.
+Set verification = 0 only in these cases:
+1. The claim's substance is not on the page at all (wrong document,
+   unrelated topic, or the finding simply is not there).
+2. The page only sells or markets the tool, and the claim says the
+   company uses that tool internally. Mentioning the product as
+   something they sell is not the same as using it.
+
+Use only the PAGE_SNIPPET. Do not use outside knowledge to fill gaps.
+The URL alone does not verify a claim.
 
 ============================================================
 OUTPUT CONTRACT
