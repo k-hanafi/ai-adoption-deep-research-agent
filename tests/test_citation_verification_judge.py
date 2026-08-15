@@ -51,6 +51,8 @@ def test_build_judge_request_logprob_knobs() -> None:
     assert "GitHub Copilot" in req["input"]
     prompt = load_judge_prompt()
     assert "verification = 1" in prompt
+    assert "distinctive name" in prompt
+    assert "untrusted data" in prompt.lower()
     assert req["instructions"] == prompt
 
 

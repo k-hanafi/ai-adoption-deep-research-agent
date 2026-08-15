@@ -42,8 +42,13 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 - SGS 5-co low-scout A/B smoke (measurement; later locked as default): `outputs/stage2/test_runs/sgs_smoke_5co_low_scouts/`
 - Agent rule: `.cursor/rules/decision-log.mdc`
 - Stage 3 verification plan: `.cursor/plans/phase-2-stage3-verification.plan.md`
+- Stage 3 bulletproof plan: `.cursor/plans/bulletproof-citation-verifier.plan.md`
 - Stage 3 package: `citation_verification/` (production; not under `evals/`)
 - Stage 3 judge prompt: `prompts/citation_verification/judge.txt`
+- Stage 3 CLI outputs: `python -m citation_verification --output-jsonl` / `--output-csv`
+- Stage 3 gold e2e: `outputs/stage3/smokes/20260815_2100_gold_e2e/`
+- Stage 3 Phase A smoke: `outputs/stage3/smokes/20260815_201259/`
+- Stage 3 e2e5 smoke: `outputs/stage3/smokes/20260815_203606_e2e5/`
 
 ---
 
@@ -988,6 +993,68 @@ Scout tax mean **$0.020**/co ($0.984). Dig spend mean $0.137 ($6.867). Owned lit
 
 ---
 
+## 2026-08-15: Tavily Extract is the only paid backup fetch
+
+**Decision:** Keep Perplexity `fetch_url` as the primary page load. The **only paid backup** is **Tavily Extract** (key already in this repo). After that: raw `httpx`, then browser last. **No Jina Reader** (no key, do not add a vendor that needs a new secret).
+
+**Why:** Gold showed Perplexity can return the wrong document with the requested URL still on the row (`example.com` → MOT page). A second pair of eyes that is not `fetch_url` is the fix. Tavily Extract is URL-in, text-out, and Stage 1 already uses Tavily. Jina would be a third account for no extra product need.
+
+**Evidence:** User lock 2026-08-15; plan WS4 in `.cursor/plans/bulletproof-citation-verifier.plan.md`; Tavily client `src/stage_1/tavily.py`; gold poison case `outputs/stage3/smokes/20260815_2100_gold_e2e/`.
+
+**Alternatives rejected:** Jina Reader in the chain. Browser-first. Tavily Search (wrong tool: we already have the URL).
+
+**Open follow-ups:** Implemented on `cursor/bulletproof-citation-verifier`. Remaining: live expanded gold re-score (WS9).
+
+---
+
+## 2026-08-15: Bulletproof citation verifier plan
+
+**Status:** superseded in delivery by [[2026-08-15: PR 28 merged, bulletproof verifier is its own PR]] (PR #28 merge lock). Quality locks (32k after chrome-strip, Tavily backup, name-missing → null, no Phase B before the gold gate) still stand.
+
+**Decision:** Write `.cursor/plans/bulletproof-citation-verifier.plan.md` and treat it as the pre-merge quality plan for Stage 3. User locks: take **all** proposed approaches (not a subset); verifier cost is **not** a constraint (meter everything, do not cheap out); raise `MAX_SNIPPET_CHARS` to **32,000 after chrome-strip** so it is ≥ Stage 2 high page budget; do **not** merge PR #28 until Khaled says; do **not** start Phase B 221+124 except as an optional post-gate step.
+
+Stage 2 has no `MAX_SNIPPET_CHARS`. The research-agent page cap is `web_search.max_tokens_per_page` in PCS/UAS/SGS `agent_call.py`: **1,000 / 2,000 / 4,000** tokens (low / medium bake-off / high). Stage 2 `fetch_url` has no token or char knob. Today's verifier cap is 12,000 chars, below the high equivalent (~16,000 chars).
+
+Second fetch order: **superseded by [[2026-08-15: Tavily Extract is the only paid backup fetch]]**. Name missing after one targeted refetch → `verification=null`, not `0`. Name present and fact wrong → `0`. Unread or incomplete page → `null`.
+
+**Why:** Gold/e2e showed the judge is fine on a real snippet and fetch is the production risk (MOT-on-example.com, empty-fetch flake, timeout, python.org hero miss, RightRev 12k chrome with "Jagan Reddy" absent). A domain-mismatch guard cannot catch a wrong document that still labels the requested URL.
+
+**Evidence:** Plan file; Stage 2 ladder in `unified_adaptive_search/agent_call.py`, `parallel_channel_search/agent_call.py`, `signal_gated_search/agent_call.py`; bake-off yaml `evals/configs/parallel_channel_search.yaml` (`web_search_depth: medium`); gold `outputs/stage3/smokes/20260815_2100_gold_e2e/`; Phase A `outputs/stage3/smokes/20260815_201259/`; e2e5 `outputs/stage3/smokes/20260815_203606_e2e5/`; Tavily already in `src/stage_1/tavily.py`.
+
+**Alternatives rejected:** Shipping a subset of the proposed approaches. Keeping 12k to save judge tokens. Auto-nulling LinkedIn/YouTube/Indeed. Treating name-missing as `0` without targeted refetch. Starting the 221+124 panel before the merge gate. Merging PR #28 from this turn.
+
+**Open follow-ups:** Implement WS0–WS9 in the plan. Khaled merge call after the expanded gold re-score.
+
+---
+
+## 2026-08-15: Gold e2e: retry empty fetch, surface title, stricter names
+
+**Decision:** After a 24-case live gold e2e ($0.148): (1) retry empty `fetch_url` output once, (2) persist `fetched_url` / `fetched_title` on every live row so a human can spot a wrong document, (3) judge `verification=1` only if every distinctive name in the claim (person, company, product, tool) appears in the snippet or a clear synonym. Dead/unreadable fetches stay `verification=null`. A fetched page that does not support the claim stays `0`.
+
+**Why:** The gold run showed three production risks. Perplexity `fetch_url` on `https://example.com/` returned a UK MOT page while still labeling the URL `example.com`, so a domain-mismatch guard cannot catch it. The same Wikipedia Copilot URL succeeded, then later returned no `fetch_url_results` (empty-fetch flake → false NA). The judge verified a RightRev claim that named “Jagan Reddy” even though that name was not in the snippet (loose true-positive). LinkedIn / Indeed / YouTube often *did* return real text, so those hosts are not an automatic null.
+
+**Evidence:** `outputs/stage3/smokes/20260815_2100_gold_e2e/` (19/24 on the first labels; 5 fails were 2 over-exact support claims, 1 empty-fetch flake, 1 LinkedIn-teaser inspect heuristic, 1 named-attribution looseness). Re-fetch dump: example.com title `Instant Vehicle MOT Status Lookup`.
+
+**Alternatives rejected:** Treating every LinkedIn/YouTube row as null (gold fetched real JD/transcript text). Host-label-must-appear-in-snippet (would false-null ATS hosts like `jobs.ashbyhq.com`). Switching fetch vendor in this pass.
+
+**Status:** second-fetch vendor and remaining gold gaps superseded by [[2026-08-15: Bulletproof citation verifier plan]]. PR #28 merge lock superseded by [[2026-08-15: PR 28 merged, bulletproof verifier is its own PR]].
+
+**Open follow-ups:** See bulletproof plan merge gate.
+
+---
+
+## 2026-08-15: Unjudged rows stay verification=null
+
+**Decision:** Pipeline failures and unjudged rows emit **`verification=null`**, **`unverifiable=true`**, and an **`error`** reason so the row is undeclared and must be re-run. **`verification=0` is only allowed** when Terra actually judged a real page snippet and decided the page does not support the claim. If the judge never ran, ran on non-page text (empty fetch, too-short snippet, Perplexity `fetch_url` tool-error string), or parse/logprob extract is unusable: **null, not 0**. JSONL/CSV outputs pass through finding identity plus a clickable **`source_url`** for human review: `finding_id`, `source_url`, `evidence_description`/`claim`, and extras when present (`company_name`, `rcid`, `channel`, `AI_tool_used`, `use_case`, `business_function`, `source_type`, `architecture`). CLI flags: `--output-jsonl PATH` and `--output-csv PATH`.
+
+**Why:** A failed fetch or broken judge is not a hallucination. Phase A smoke showed Perplexity can put a long `[fetch_url: no content could be retrieved … dns_failed_to_resolve]` string in `contents.snippet`. That cleared the 40-char floor, so Terra labeled it `verification=0`. Treating that as hallucination poisons metrics and hides rows that need a re-run or a human click.
+
+**Evidence:** User lock 2026-08-15; Phase A smoke `outputs/stage3/smokes/20260815_201259/`; `citation_verification/fetch.py` `_unusable_snippet_reason`; `citation_verification/runner.py` unverifiable paths; `tests/fixtures/citation_fetch_tool_error.json`; CLI writers in `citation_verification/__main__.py`.
+
+**Alternatives rejected:** Mapping fetch/judge/logprob failures to `verification=0`; dropping finding URL from outputs; starting the 20-company Phase B panel to rediscover the same contract bug.
+
+---
+
 ## 2026-08-14: Stage 3 delivery = one PR, five commits + Bugbot gates
 
 **Decision:** Ship `citation_verification/` as **one GitHub PR** with **five slice commits** (not five stacked PRs). After each commit: **local `/review-bugbot` until no findings**. After all five: open the PR and **cloud-Bugbot babysit** until merge-ready.
@@ -1008,6 +1075,8 @@ Scout tax mean **$0.020**/co ($0.984). Dig spend mean $0.137 ($6.867). Owned lit
 
 **Why:** Cost/ops at the end keeps the human-facing verification fields first while preserving interpretability. Minimal CLI covers batch prod + one-off debug without extra surface area.
 
+**Status:** CLI file outputs extended by [[2026-08-15: Unjudged rows stay verification=null]] (`--output-jsonl` / `--output-csv`).
+
 **Evidence:** User lock 2026-08-14; Phase 2 plan.
 
 **Open follow-ups:** PR1 skeleton (design freeze complete for package v1).
@@ -1023,6 +1092,8 @@ Scout tax mean **$0.020**/co ($0.984). Dig spend mean $0.137 ($6.867). Owned lit
 **Why:** Binary digits are best for logprob span extraction (same as taxonomy Pass A). Evidence-only keeps the judge prompt simple.
 
 **Evidence:** User lock 2026-08-14; Phase 2 plan D1/D3.
+
+**Status:** Model field is still 0/1. Package output may be `null` when the row was not judged; see [[2026-08-15: Unjudged rows stay verification=null]].
 
 **Open follow-ups:** D2 ops fields; D5 CLI proposal; fetch wrapper model; then PR1.
 
@@ -1051,6 +1122,8 @@ Scout tax mean **$0.020**/co ($0.984). Dig spend mean $0.137 ($6.867). Owned lit
 ## 2026-08-13: Stage 3 stack = Perplexity fetch_url + OpenAI logprob judge
 
 **Decision:** Stage 3 stack is **hybrid**: (1) Perplexity Agent API **`fetch_url`** to load text for each finding’s `source_url`, (2) OpenAI judge with **`reasoning.effort=none`**, strict JSON binary int (taxonomy Pass A shape) + **`include=message.output_text.logprobs`** / `top_logprobs`, confidence **computed in-package** (not model-emitted), plus optional verbalized **1–5** backup. Empty/failed fetch → **`UNVERIFIABLE`**, not unsupported. No HTML→markdown preprocessing by default. Package build plan: `.cursor/plans/phase-2-stage3-verification.plan.md`.
+
+**Status:** Fetch-failure UNVERIFIABLE still current; judge parse/transport and logprob-extract failures now use the same `verification=null` contract. See [[2026-08-15: Unjudged rows stay verification=null]].
 
 **Why:** Perplexity cannot return usable logprobs. OpenAI can, but only with reasoning off. Fetching with Perplexity’s own `fetch_url` keeps Stage 3’s page view in the same tool family as Stage 2 and avoids Tavily scrape mismatch false hallucinations. Stage 3 already has the citation URL, so `web_search` is the wrong tool.
 
@@ -1155,6 +1228,11 @@ Scout tax mean **$0.020**/co ($0.984). Dig spend mean $0.137 ($6.867). Owned lit
 - [x] Stage 3 delivery: one PR / five commits + local then cloud Bugbot (see [[2026-08-14: Stage 3 delivery = one PR, five commits + Bugbot gates]])
 - [x] `citation_verification/` commits 1–5 on branch `cursor/citation-verification-8475` (package only; evals out of scope)
 - [x] Cloud Bugbot babysit on Stage 3 package PR #28 (tip commit clean: no issues)
+- [x] Unjudged / failed rows stay `verification=null` (re-run), not hallucination 0; outputs keep finding URL (see [[2026-08-15: Unjudged rows stay verification=null]])
+- [x] Gold e2e: retry empty fetch, surface title, stricter names (see [[2026-08-15: Gold e2e: retry empty fetch, surface title, stricter names]])
+- [x] Bulletproof verifier plan written (see [[2026-08-15: Bulletproof citation verifier plan]])
+- [x] Implement bulletproof workstreams WS0–WS8 on `cursor/bulletproof-citation-verifier` (see [[2026-08-15: PR 28 merged, bulletproof verifier is its own PR]])
+- [ ] WS9 live expanded gold re-score (paid, Khaled spend approval). Do not start Phase B 221+124 first.
 - [ ] Later (separate plan): evals `run-verification` consumer + eval-set quality gates
 
 ---
@@ -1172,3 +1250,17 @@ Scout tax mean **$0.020**/co ($0.984). Dig spend mean $0.137 ($6.867). Owned lit
 **Alternatives rejected:** Rewriting the 2026-08-14 metrics in place. Re-running the paid confirm-medium panel just to rebuild backups.
 
 **Open follow-ups:** none for the runner. PCS effort and bake-off panel still open.
+
+---
+
+## 2026-08-15: PR 28 merged, bulletproof verifier is its own PR
+
+**Decision:** Merge PR #28 (`citation_verification/` package v1) to main. Put the bulletproof work (32k after chrome-strip, claim windows, name-missing → null, Tavily Extract backup, constrained Luna, expanded gold) on a **new branch and PR**, not as extra commits on #28. Do **not** run the paid expanded gold re-score (WS9) or the 221+124 Phase B panel until Khaled approves that spend.
+
+**Why:** #28 was blocked only by a `docs/decision-log.md` conflict with main's search-depth lock. The package on #28 is the fact-checker skeleton. Gold already showed fetch, not the judge, is the production risk. Landing v1 on main lets the quality work review on its own diff.
+
+**Evidence:** PR #28 merge commit `79b049a`. Conflict resolution commit `72e8fb3` on `cursor/citation-verification-8475`. Implementation branch `cursor/bulletproof-citation-verifier`. Plan `.cursor/plans/bulletproof-citation-verifier.plan.md`. Offline gate: `PYTHONPATH=. python3 -m pytest tests/test_citation_verification_*.py -q`.
+
+**Alternatives rejected:** Holding #28 until the whole bulletproof plan landed. Squashing #28's five slice commits. Starting Phase B to discover bugs the plan already names.
+
+**Open follow-ups:** Live expanded gold re-score (WS9). Khaled merge call on the bulletproof PR. Phase B 221+124 remains optional after that gate.

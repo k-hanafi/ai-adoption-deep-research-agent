@@ -1,0 +1,28 @@
+{
+  "id": "resp_fixture_fetch_url_mismatch",
+  "output": [
+    {
+      "type": "fetch_url_results",
+      "contents": [
+        {
+          "url": "https://poison.example/mot",
+          "title": "Instant Vehicle MOT Status Lookup",
+          "snippet": "An annual test that checks whether your vehicle meets road safety standards in the United Kingdom."
+        }
+      ]
+    },
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "Invented careers page about Copilot that must never be used as the snippet."
+        }
+      ]
+    }
+  ],
+  "usage": {
+    "cost": {"total_cost": 0.0004}
+  }
+}

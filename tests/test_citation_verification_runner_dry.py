@@ -47,6 +47,8 @@ def test_dry_stub_for_usable_inputs() -> None:
             "finding_id": 3,
             "source_url": "https://example.com/careers",
             "evidence_description": "Company uses ChatGPT in support workflows",
+            "company_name": "Acme",
+            "architecture": "pcs",
         },
         dry_run=True,
     )
@@ -55,6 +57,9 @@ def test_dry_stub_for_usable_inputs() -> None:
     assert result.verification is None
     assert result.error == "dry_run_no_api"
     assert result.cost_usd == 0.0
+    assert result.company_name == "Acme"
+    assert result.architecture == "pcs"
+    assert result.evidence_description == "Company uses ChatGPT in support workflows"
 
 
 def test_live_fetch_fail_is_unverifiable(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -71,6 +76,17 @@ def test_live_fetch_fail_is_unverifiable(monkeypatch: pytest.MonkeyPatch) -> Non
         )
 
     monkeypatch.setattr(runner_mod, "execute_fetch", _fake_fetch)
+    monkeypatch.setattr(
+        runner_mod,
+        "execute_backup_chain",
+        lambda url, **_: FetchResult(
+            url=url,
+            title="",
+            snippet="",
+            cost_usd=0.0,
+            error="snippet too short (0 chars; min 40)",
+        ),
+    )
     result = verify_finding(
         {
             "finding_id": 4,
@@ -174,10 +190,180 @@ def test_live_judge_parse_error_keeps_judge_cost(
     )
     assert result.fetch_ok is True
     assert result.verification is None
+    assert result.unverifiable is True
     assert "judge parse failed" in (result.error or "")
     assert result.cost_fetch_usd == pytest.approx(0.0003)
     assert result.cost_judge_usd == pytest.approx(0.0015)
     assert result.cost_usd == pytest.approx(0.0018)
+
+
+def test_live_tool_error_snippet_is_unverifiable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from citation_verification.fetch import load_fixture, parse_fetch_response
+    from citation_verification import runner as runner_mod
+
+    fixtures = Path(__file__).resolve().parent / "fixtures"
+    fetched = parse_fetch_response(
+        load_fixture(str(fixtures / "citation_fetch_tool_error.json")),
+        requested_url="https://this-domain-does-not-exist.invalid/page",
+    )
+    monkeypatch.setattr(runner_mod, "execute_fetch", lambda url, **_: fetched)
+    monkeypatch.setattr(
+        runner_mod,
+        "execute_backup_chain",
+        lambda url, **_: fetched,
+    )
+    result = verify_finding(
+        {
+            "finding_id": 7,
+            "source_url": "https://this-domain-does-not-exist.invalid/page",
+            "evidence_description": "Uses Copilot for PR review",
+            "company_name": "Acme",
+            "rcid": 99,
+        },
+        dry_run=False,
+    )
+    assert result.unverifiable is True
+    assert result.verification is None
+    assert result.model_judge is None
+    assert result.fetch_ok is False
+    assert result.company_name == "Acme"
+    assert result.rcid == 99
+    assert result.source_url == "https://this-domain-does-not-exist.invalid/page"
+    assert "no page content" in (result.error or "")
+
+
+def test_live_judge_transport_error_is_unverifiable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from citation_verification.fetch import FetchResult
+    from citation_verification import runner as runner_mod
+
+    monkeypatch.setattr(
+        runner_mod,
+        "execute_fetch",
+        lambda url, **_: FetchResult(
+            url=url,
+            title="Careers",
+            snippet="Engineers use GitHub Copilot for pull request review every day.",
+            cost_usd=0.0003,
+        ),
+    )
+    def _boom(**_kwargs: object) -> object:
+        raise RuntimeError("openai timeout")
+
+    monkeypatch.setattr(runner_mod, "execute_judge", _boom)
+    result = verify_finding(
+        {
+            "finding_id": 8,
+            "source_url": "https://example.com/careers",
+            "evidence_description": "Uses Copilot for PR review",
+        },
+        dry_run=False,
+    )
+    assert result.verification is None
+    assert result.unverifiable is True
+    assert "judge failed" in (result.error or "")
+    assert result.cost_fetch_usd == pytest.approx(0.0003)
+
+
+def test_live_logprob_extract_fail_is_unverifiable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from citation_verification.fetch import FetchResult
+    from citation_verification.judge import JudgeResult
+    from citation_verification import runner as runner_mod
+
+    monkeypatch.setattr(
+        runner_mod,
+        "execute_fetch",
+        lambda url, **_: FetchResult(
+            url=url,
+            title="Careers",
+            snippet="Engineers use GitHub Copilot for pull request review every day.",
+            cost_usd=0.0003,
+        ),
+    )
+    monkeypatch.setattr(
+        runner_mod,
+        "execute_judge",
+        lambda **_: JudgeResult(
+            verification=0,
+            confidence_1_5=2,
+            verification_reasoning="No support in snippet.",
+            verification_critique="Snippet is thin.",
+            cost_usd=0.002,
+            model="gpt-5.6-terra",
+            raw={"output": []},
+        ),
+    )
+    result = verify_finding(
+        {
+            "finding_id": 10,
+            "source_url": "https://example.com/careers",
+            "evidence_description": "Uses Copilot for PR review",
+        },
+        dry_run=False,
+    )
+    assert result.verification is None
+    assert result.unverifiable is True
+    assert result.model_judge == "gpt-5.6-terra"
+    assert "logprob confidence unavailable" in (result.error or "")
+
+
+def test_live_happy_path_judged_zero(monkeypatch: pytest.MonkeyPatch) -> None:
+    from citation_verification.fetch import FetchResult
+    from citation_verification.judge import JudgeResult
+    from citation_verification import runner as runner_mod
+
+    fixtures = Path(__file__).resolve().parent / "fixtures"
+    raw = json.loads(
+        (fixtures / "citation_verification_zero.json").read_text(encoding="utf-8")
+    )
+    raw = dict(raw)
+    raw["model"] = "gpt-5.6-terra"
+    raw["usage"] = {"cost": {"total_cost": 0.002}}
+
+    monkeypatch.setattr(
+        runner_mod,
+        "execute_fetch",
+        lambda url, **_: FetchResult(
+            url=url,
+            title="About",
+            snippet="This page never mentions GitHub Copilot or any coding assistant.",
+            cost_usd=0.0003,
+        ),
+    )
+    monkeypatch.setattr(
+        runner_mod,
+        "execute_judge",
+        lambda **_: JudgeResult(
+            verification=0,
+            confidence_1_5=2,
+            verification_reasoning="Snippet does not mention Copilot.",
+            verification_critique="Page could be incomplete.",
+            cost_usd=0.002,
+            model="gpt-5.6-terra",
+            raw=raw,
+        ),
+    )
+    result = verify_finding(
+        {
+            "finding_id": 11,
+            "source_url": "https://example.com/about",
+            "evidence_description": "Uses Copilot for PR review",
+            "company_name": "Beta Co",
+            "channel": "owned",
+        },
+        dry_run=False,
+    )
+    assert result.unverifiable is False
+    assert result.verification == 0
+    assert result.company_name == "Beta Co"
+    assert result.channel == "owned"
+    assert result.source_url == "https://example.com/about"
+    assert result.error is None
 
 
 def test_verify_findings_batch_dry(tmp_path: Path) -> None:
