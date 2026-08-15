@@ -122,7 +122,7 @@ def main(argv: list[str] | None = None) -> int:
     mode.add_argument(
         "--live",
         action="store_true",
-        help="Paid Perplexity fetch_url + OpenAI Terra judge",
+        help="Paid Perplexity fetch_url + OpenAI Luna judge",
     )
     parser.add_argument(
         "--findings",

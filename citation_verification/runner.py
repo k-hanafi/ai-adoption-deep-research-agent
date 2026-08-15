@@ -17,13 +17,11 @@ from citation_verification.fetch import FetchResult, execute_fetch
 from citation_verification.judge import JudgeParseError, JudgeResult, execute_judge
 from citation_verification.text import (
     cap_snippet,
-    claim_on_topic,
     combine_chunk_verdicts,
     documents_disagree,
     extract_anchors,
     looks_document_mismatch,
     missing_anchors,
-    page_looks_complete,
     select_windows,
 )
 from citation_verification.types import (
@@ -195,29 +193,17 @@ def _verify_live(
             return _unreadable(
                 identity,
                 page=page,
-                reason=page.error or config.ERROR_SNIPPET_MISSING_ANCHORS,
+                reason=page.error or "fetch failed",
                 fetch_cost=fetch_cost,
                 fetch_attempts=fetch_attempts,
             )
-        missing = missing_anchors(page.snippet, anchors)
-
-    on_topic = claim_on_topic(source_url, page.title, anchors)
-    complete = page_looks_complete(page.snippet, truncated=page.truncated)
-    if missing and on_topic:
-        return _unreadable(
-            identity,
-            page=page,
-            reason=config.ERROR_SNIPPET_MISSING_ANCHORS,
-            fetch_cost=fetch_cost,
-            fetch_attempts=fetch_attempts,
-        )
 
     windows = select_windows(page.snippet, claim)
     if not windows:
         return _unreadable(
             identity,
             page=page,
-            reason=config.ERROR_SNIPPET_MISSING_ANCHORS,
+            reason=config.ERROR_NO_PAGE_CONTENT,
             fetch_cost=fetch_cost,
             fetch_attempts=fetch_attempts,
         )
@@ -257,9 +243,6 @@ def _verify_live(
 
     combined, combine_error = combine_chunk_verdicts(
         [row.verification for row in judged_rows],
-        anchors_present=not missing,
-        page_complete=complete,
-        on_topic=on_topic,
     )
     winner = next(
         (row for row in judged_rows if row.verification == combined),
@@ -278,7 +261,7 @@ def _verify_live(
             cost_fetch_usd=float(fetch_cost),
             cost_judge_usd=round(judge_cost, 6),
             cost_usd=round(float(fetch_cost) + judge_cost, 6),
-            error=combine_error or config.ERROR_SNIPPET_MISSING_ANCHORS,
+            error=combine_error or "judge produced no usable window",
             dry_run=False,
             unverifiable=True,
         )

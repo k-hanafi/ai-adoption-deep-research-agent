@@ -49,6 +49,8 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 - Stage 3 gold e2e: `outputs/stage3/smokes/20260815_2100_gold_e2e/`
 - Stage 3 Phase A smoke: `outputs/stage3/smokes/20260815_201259/`
 - Stage 3 e2e5 smoke: `outputs/stage3/smokes/20260815_203606_e2e5/`
+- Stage 3 bulletproof e2e5: `outputs/stage3/smokes/20260815_2218_e2e5_bp/`
+- Stage 3 e2e5 after lenient judge: `outputs/stage3/smokes/20260815_2245_e2e5_bp_lenient/`
 
 ---
 
@@ -1009,7 +1011,7 @@ Scout tax mean **$0.020**/co ($0.984). Dig spend mean $0.137 ($6.867). Owned lit
 
 ## 2026-08-15: Bulletproof citation verifier plan
 
-**Status:** superseded in delivery by [[2026-08-15: PR 28 merged, bulletproof verifier is its own PR]] (PR #28 merge lock). Quality locks (32k after chrome-strip, Tavily backup, name-missing → null, no Phase B before the gold gate) still stand.
+**Status:** superseded in delivery by [[2026-08-15: PR 28 merged, bulletproof verifier is its own PR]] (PR #28 merge lock). Name-missing → null superseded by [[2026-08-15: Lenient judge, no literal-anchor null]]. Quality locks that still stand: 32k after chrome-strip, Tavily backup, no Phase B before the gold gate.
 
 **Decision:** Write `.cursor/plans/bulletproof-citation-verifier.plan.md` and treat it as the pre-merge quality plan for Stage 3. User locks: take **all** proposed approaches (not a subset); verifier cost is **not** a constraint (meter everything, do not cheap out); raise `MAX_SNIPPET_CHARS` to **32,000 after chrome-strip** so it is ≥ Stage 2 high page budget; do **not** merge PR #28 until Khaled says; do **not** start Phase B 221+124 except as an optional post-gate step.
 
@@ -1028,6 +1030,8 @@ Second fetch order: **superseded by [[2026-08-15: Tavily Extract is the only pai
 ---
 
 ## 2026-08-15: Gold e2e: retry empty fetch, surface title, stricter names
+
+**Status:** clause (3) (every distinctive name must appear) superseded by [[2026-08-15: Lenient judge, no literal-anchor null]]. Retry-empty-fetch and persist title still stand.
 
 **Decision:** After a 24-case live gold e2e ($0.148): (1) retry empty `fetch_url` output once, (2) persist `fetched_url` / `fetched_title` on every live row so a human can spot a wrong document, (3) judge `verification=1` only if every distinctive name in the claim (person, company, product, tool) appears in the snippet or a clear synonym. Dead/unreadable fetches stay `verification=null`. A fetched page that does not support the claim stays `0`.
 
@@ -1111,7 +1115,7 @@ Second fetch order: **superseded by [[2026-08-15: Tavily Extract is the only pai
 
 **Evidence:** User answers 2026-08-14; OpenAI model id `gpt-5.6-terra`; taxonomy `two_pass_classifier/confidence.py`.
 
-**Status:** `verification` type and D3 claim superseded in specificity by [[2026-08-14: Stage 3 verification=0/1 and claim=evidence_description]].
+**Status:** `verification` type and D3 claim superseded in specificity by [[2026-08-14: Stage 3 verification=0/1 and claim=evidence_description]]. D4 model superseded by [[2026-08-15: Stage 3 judge is OpenAI Luna]].
 
 **Still open:** D2 ops fields; D5 CLI (proposal: findings JSONL + optional `--url/--claim`); fetch wrapper model/preset.
 
@@ -1222,7 +1226,8 @@ Second fetch order: **superseded by [[2026-08-15: Tavily Extract is the only pai
 - [x] Stage 3 spike: Perplexity logprobs? (**No** usable logprobs; see [[2026-08-13: Perplexity APIs do not expose usable logprobs]])
 - [x] Stage 3 packaging: top-level production `citation_verification/` (see [[2026-08-13: Stage 3 is a production top-level package]])
 - [x] Stage 3 stack: Perplexity `fetch_url` + OpenAI logprob judge (see [[2026-08-13: Stage 3 stack = Perplexity fetch_url + OpenAI logprob judge]])
-- [x] Stage 3 D1 field names + D4 Terra judge (see [[2026-08-14: Stage 3 D1/D4 locks (Terra judge + output field names)]])
+- [x] Stage 3 D1 field names + D4 Terra judge (see [[2026-08-14: Stage 3 D1/D4 locks (Terra judge + output field names)]]; model now Luna, [[2026-08-15: Stage 3 judge is OpenAI Luna]])
+- [x] Stage 3 judge switched to OpenAI `gpt-5.6-luna` (see [[2026-08-15: Stage 3 judge is OpenAI Luna]])
 - [x] Stage 3 `verification` 0/1 + claim=`evidence_description` (see [[2026-08-14: Stage 3 verification=0/1 and claim=evidence_description]])
 - [x] Stage 3 D2 trailing cost/ops fields + D5 simple CLI (see [[2026-08-14: Stage 3 D2/D5 locked (trailing cost fields + simple CLI)]])
 - [x] Stage 3 delivery: one PR / five commits + local then cloud Bugbot (see [[2026-08-14: Stage 3 delivery = one PR, five commits + Bugbot gates]])
@@ -1232,6 +1237,8 @@ Second fetch order: **superseded by [[2026-08-15: Tavily Extract is the only pai
 - [x] Gold e2e: retry empty fetch, surface title, stricter names (see [[2026-08-15: Gold e2e: retry empty fetch, surface title, stricter names]])
 - [x] Bulletproof verifier plan written (see [[2026-08-15: Bulletproof citation verifier plan]])
 - [x] Implement bulletproof workstreams WS0–WS8 on `cursor/bulletproof-citation-verifier` (see [[2026-08-15: PR 28 merged, bulletproof verifier is its own PR]])
+- [x] Lenient Terra judge; no literal-anchor `null` (see [[2026-08-15: Lenient judge, no literal-anchor null]])
+- [x] Re-run 14-row e2e5_bp after the lenient-judge change (14×`1`, $0.491; see `outputs/stage3/smokes/20260815_2245_e2e5_bp_lenient/`)
 - [ ] WS9 live expanded gold re-score (paid, Khaled spend approval). Do not start Phase B 221+124 first.
 - [ ] Later (separate plan): evals `run-verification` consumer + eval-set quality gates
 
@@ -1264,3 +1271,31 @@ Second fetch order: **superseded by [[2026-08-15: Tavily Extract is the only pai
 **Alternatives rejected:** Holding #28 until the whole bulletproof plan landed. Squashing #28's five slice commits. Starting Phase B to discover bugs the plan already names.
 
 **Open follow-ups:** Live expanded gold re-score (WS9). Khaled merge call on the bulletproof PR. Phase B 221+124 remains optional after that gate.
+
+---
+
+## 2026-08-15: Lenient judge, no literal-anchor null
+
+**Decision:** The package must not declare `verification=null` because a distinctive string from the claim is missing (exact quote, punctuation, `Cursor.`, writer-side words like `Cognition's`). After a real page is fetched, **Terra decides**. Prefer `verification=1` when the finding exists in any form: paraphrase, synonym, reordered names, partial quote, or a role stand-in (CEO / author / the company). `verification=0` only when (1) the substance is not on the page at all, or (2) the page only sells/markets the tool and the claim says they use it internally. Unread or broken fetches stay `null`. Wrong exact name is not a veto if the quote/fact and a stand-in are there.
+
+**Why:** The 14-row bulletproof e2e (`20260815_2218_e2e5_bp`) returned 11 `null`s, all `snippet_missing_claim_anchors`. Browser review showed most pages did support the finding. The literal matcher was rejecting real citations. Stage 2 Perplexity researchers are expected to rarely invent a page-level fact, so prod should be lenient on `1` and keep the hallucination rate low.
+
+**Evidence:** User lock 2026-08-15 (Q1 unread=`null`, Q2 off-topic=`0`, Q3 role stand-in=`1`, Q4 sell-vs-use=`0`, Q5 judge-only). Baseline smoke `outputs/stage3/smokes/20260815_2218_e2e5_bp/` (3×`1`, 11×`null`). Re-run `outputs/stage3/smokes/20260815_2245_e2e5_bp_lenient/` (14×`1`, 0×`0`, 0×`null`, $0.491). Prompt `prompts/citation_verification/judge.txt`. Combine/runner no longer emit `snippet_missing_claim_anchors` as a verdict.
+
+**Alternatives rejected:** Keeping the all-anchors-must-appear package veto. Fuzzy package string matching. Treating unread links as `0`. Treating sell-pages as `1` just because the tool name appears.
+
+**Open follow-ups:** WS9 gold re-score still gated.
+
+---
+
+## 2026-08-15: Stage 3 judge is OpenAI Luna
+
+**Decision:** Stage 3 judge model is OpenAI **`gpt-5.6-luna`** on the same Responses + `reasoning.effort=none` + logprobs path. Fallback token rates: **$0.20 / $0.02 cached / $1.20** per 1M. Still not Perplexity Luna (no usable logprobs). Fetch stays Perplexity `fetch_url`.
+
+**Why:** The 14-row lenient e2e cost $0.491, of which **$0.408 was Terra**. Luna is 10× cheaper on input and output. Same binary+logprob contract, same prompt. "Judge ≠ researcher family" is not worth 10× unit cost on a high-volume 0/1 check.
+
+**Evidence:** User lock 2026-08-15. Cost split `outputs/stage3/smokes/20260815_2245_e2e5_bp_lenient/` (fetch $0.084, Terra $0.408). OpenAI pricing: Terra $2/$12, Luna $0.20/$1.20. Config `citation_verification/config.py`.
+
+**Alternatives rejected:** Keeping Terra. Moving the judge to Perplexity (logprobs still unusable). Dropping logprobs to save more.
+
+**Open follow-ups:** Optional cheap Luna re-smoke of the same 14 rows to confirm logprobs still extract. WS9 still gated.

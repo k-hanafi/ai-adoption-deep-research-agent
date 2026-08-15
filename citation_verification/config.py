@@ -12,18 +12,19 @@ High ≈ 16,000 characters. This package keeps 32,000 after strip (2× that).
 
 from __future__ import annotations
 
-# OpenAI judge (different model from Stage 2 Luna researchers).
-JUDGE_MODEL: str = "gpt-5.6-terra"
+# OpenAI judge. Same family as Stage 2 researchers; 10x cheaper than Terra.
+# Keep Responses + logprobs here (Perplexity Luna has no usable logprobs).
+JUDGE_MODEL: str = "gpt-5.6-luna"
 JUDGE_REASONING_EFFORT: str = "none"
 JUDGE_TOP_LOGPROBS: int = 5
 JUDGE_MAX_OUTPUT_TOKENS: int = 400
 LOGPROB_INCLUDE: tuple[str, ...] = ("message.output_text.logprobs",)
 
-# OpenAI short-context sync rates ($ / 1M tokens) for gpt-5.6-terra.
+# OpenAI short-context sync rates ($ / 1M tokens) for gpt-5.6-luna.
 # Used when Responses usage has tokens but no dollar total_cost field.
-JUDGE_INPUT_USD_PER_MTOK: float = 2.0
-JUDGE_CACHED_INPUT_USD_PER_MTOK: float = 0.20
-JUDGE_OUTPUT_USD_PER_MTOK: float = 12.0
+JUDGE_INPUT_USD_PER_MTOK: float = 0.20
+JUDGE_CACHED_INPUT_USD_PER_MTOK: float = 0.02
+JUDGE_OUTPUT_USD_PER_MTOK: float = 1.20
 
 # Decision field in the judge JSON schema (0 = hallucination, 1 = verified).
 DECISION_KEY: str = "verification"

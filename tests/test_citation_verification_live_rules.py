@@ -18,7 +18,7 @@ FIXTURES = Path(__file__).resolve().parent / "fixtures"
 def _judge_one(raw_name: str, verification: int) -> JudgeResult:
     raw = json.loads((FIXTURES / raw_name).read_text(encoding="utf-8"))
     raw = dict(raw)
-    raw["model"] = "gpt-5.6-terra"
+    raw["model"] = config.JUDGE_MODEL
     raw["usage"] = {"cost": {"total_cost": 0.002}}
     return JudgeResult(
         verification=verification,
@@ -26,7 +26,7 @@ def _judge_one(raw_name: str, verification: int) -> JudgeResult:
         verification_reasoning="Snippet compared to claim.",
         verification_critique="Could be incomplete.",
         cost_usd=0.002,
-        model="gpt-5.6-terra",
+        model=config.JUDGE_MODEL,
         raw=raw,
     )
 
@@ -78,7 +78,7 @@ def test_contents_zero_mismatch_is_not_judged(monkeypatch: pytest.MonkeyPatch) -
     }
 
 
-def test_missing_name_on_topic_is_null_not_zero(
+def test_missing_name_on_topic_is_judged_not_nulled(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from citation_verification import runner as runner_mod
@@ -93,17 +93,19 @@ def test_missing_name_on_topic_is_null_not_zero(
         cost_usd=0.001,
         source=config.FETCH_SOURCE_PERPLEXITY,
     )
+    called = {"judge": 0}
+
+    def _judge(**_kwargs: object) -> JudgeResult:
+        called["judge"] += 1
+        return _judge_one("citation_verification_one.json", 1)
+
     monkeypatch.setattr(runner_mod, "execute_fetch", lambda url, **kwargs: page)
     monkeypatch.setattr(
         runner_mod,
         "execute_backup_chain",
         lambda url, **_: page,
     )
-    monkeypatch.setattr(
-        runner_mod,
-        "execute_judge",
-        lambda **_: _judge_one("citation_verification_zero.json", 0),
-    )
+    monkeypatch.setattr(runner_mod, "execute_judge", _judge)
     result = verify_finding(
         {
             "finding_id": 23,
@@ -115,9 +117,10 @@ def test_missing_name_on_topic_is_null_not_zero(
         },
         dry_run=False,
     )
-    assert result.verification is None
-    assert result.unverifiable is True
-    assert result.error == config.ERROR_SNIPPET_MISSING_ANCHORS
+    assert called["judge"] >= 1
+    assert result.verification == 1
+    assert result.unverifiable is False
+    assert result.error != config.ERROR_SNIPPET_MISSING_ANCHORS
 
 
 def test_injection_sentence_does_not_force_one(

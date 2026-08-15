@@ -46,36 +46,21 @@ def test_chunk_late_quote_is_selected() -> None:
 
 
 def test_combine_any_one_wins() -> None:
-    value, error = combine_chunk_verdicts(
-        [0, 1, 0],
-        anchors_present=True,
-        page_complete=True,
-        on_topic=True,
-    )
+    value, error = combine_chunk_verdicts([0, 1, 0])
     assert value == 1
     assert error is None
 
 
-def test_combine_complete_offtopic_is_zero() -> None:
-    value, error = combine_chunk_verdicts(
-        [0],
-        anchors_present=False,
-        page_complete=True,
-        on_topic=False,
-    )
+def test_combine_all_zero_is_zero() -> None:
+    value, error = combine_chunk_verdicts([0, 0])
     assert value == 0
     assert error is None
 
 
-def test_combine_missing_anchors_on_topic_is_null() -> None:
-    value, error = combine_chunk_verdicts(
-        [0],
-        anchors_present=False,
-        page_complete=True,
-        on_topic=True,
-    )
+def test_combine_empty_windows_is_null() -> None:
+    value, error = combine_chunk_verdicts([])
     assert value is None
-    assert error == config.ERROR_SNIPPET_MISSING_ANCHORS
+    assert error == "judge produced no usable window"
 
 
 def test_extract_anchors_keeps_names_not_stopwords() -> None:
