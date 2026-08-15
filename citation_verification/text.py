@@ -217,24 +217,12 @@ def missing_anchors(text: str, anchors: Sequence[str]) -> list[str]:
     return [anchor for anchor in anchors if anchor.lower() not in hay]
 
 
-def rank_windows(windows: Sequence[str], anchors: Sequence[str]) -> list[str]:
-    """Put windows that mention claim anchors first. Keep every hit."""
-    if not windows:
-        return []
-    if not anchors:
-        return list(windows)
-
-    def _score(window: str) -> int:
-        lowered = window.lower()
-        return sum(1 for anchor in anchors if anchor.lower() in lowered)
-
-    indexed = list(enumerate(windows))
-    indexed.sort(key=lambda item: (-_score(item[1]), item[0]))
-    return [window for _idx, window in indexed]
-
-
 def select_windows(text: str, claim: str) -> list[str]:
-    """Windows to judge: every chunk that hits an anchor, else the top chunk."""
+    """Windows to judge: every anchor hit, else every chunk on the page.
+
+    When claim names never appear, a later paraphrase or role stand-in
+    still has to reach the judge. Do not keep only the first chunk.
+    """
     anchors = extract_anchors(claim)
     windows = chunk_text(text)
     if not windows:
@@ -248,8 +236,7 @@ def select_windows(text: str, claim: str) -> list[str]:
     ]
     if hits:
         return hits
-    ranked = rank_windows(windows, anchors)
-    return ranked[:1]
+    return windows
 
 
 def combine_chunk_verdicts(

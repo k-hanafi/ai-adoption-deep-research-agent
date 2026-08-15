@@ -45,6 +45,17 @@ def test_chunk_late_quote_is_selected() -> None:
     assert any("uses AI constantly" in window for window in windows)
 
 
+def test_select_windows_keeps_late_paraphrase_when_names_absent() -> None:
+    claim = "Jagan Reddy uses GitHub Copilot for pull-request review."
+    late = "The founder uses an AI coding assistant on every pull request."
+    page = ("Welcome to the company blog. " * 400) + late
+    assert "Jagan" not in page
+    assert "Copilot" not in page
+    windows = select_windows(page, claim)
+    assert any("AI coding assistant" in window for window in windows)
+    assert len(windows) > 1
+
+
 def test_combine_any_one_wins() -> None:
     value, error = combine_chunk_verdicts([0, 1, 0])
     assert value == 1
