@@ -1,20 +1,19 @@
 name: Signal Gated Search
 cli_key: signal-gated-search
 package: signal_gated_search
-# FROZEN 2026-08-08: signal-count → dig effort ladder.
+# FROZEN 2026-08-13: dig every signaled channel at high. Not 1=max.
 # Card: .cursor/plans/sgs-design.md
-# Dig paths may exceed ~$0.10/company (1×max≈$0.12, 2×high≈$0.11); user OK + professor ask.
-scout_preset: fast
-scout_model: null  # stock fast (gpt-5.4-mini); optional Luna override later
+# Bake-off effort: UAS xhigh, PCS 3× medium, SGS digs high.
+scout_preset: low
+scout_model: null  # stock low; optional model override later
 dig_model: openai/gpt-5.6-luna
-dig_max_steps: 10
-dig_web_search_depth: low
-# Effort by dig count (signaled channels that clear threshold):
-#   1 → max, 2 → high, 3 → medium
+dig_max_steps: 50
+dig_web_search_depth: medium
+# Count still decides how many rooms to dig. Every dig is high.
 dig_effort_by_count:
-  1: max
+  1: high
   2: high
-  3: medium
+  3: high
 escalate_all_signaled: true
 rescue_enabled: false
 max_digs_per_company: 3
@@ -24,15 +23,16 @@ dig_preset: null
 rescue_dig_preset: null
 rescue_threshold: 0.7
 budget:
-  max_usd_per_company: 0.15  # path headroom for 1×max + scouts
+  max_usd_per_company: 0.25  # path headroom for up to 3× high-depth + scouts
   max_usd_per_experiment: 5.0
 eval:
   k: 1
   panel: fixture_panel_v0
   dry_run: true
 notes: >-
-  FROZEN: 3× fast presence scouts (channel source exists, NOT adoption smoke)
-  → dig every signaled channel with effort ladder (1=max, 2=high, 3=medium).
-  Luna digs steps=10 search=low. Rescue off. τ=0.5 provisional (moderate+).
-  Contracts: prompts/signal_gated_search/scout_contracts.md.
-  Gate is dig-all signaled + effort ladder. CLI defaults to dry-run. Pass --live for paid calls.
+  FROZEN: 3× low presence scouts (channel source exists, NOT adoption smoke)
+  → dig every signaled channel at high (not max). Luna digs steps=50 search=medium
+  (PCS-matched leash). Rescue off. τ=0.5 provisional (moderate+). Bake-off: UAS
+  xhigh, PCS 3× medium, SGS digs high. Contracts:
+  prompts/signal_gated_search/scout_contracts.md. CLI defaults to dry-run.
+  Pass --live for paid calls.

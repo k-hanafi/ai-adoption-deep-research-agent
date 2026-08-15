@@ -1,6 +1,6 @@
 """SGS Agent API request builders and live scout/dig calls.
 
-Scout calls use stock `preset=fast`. Dig calls use explicit Luna knobs like PCS.
+Scout calls use stock `preset=low`. Dig calls use explicit Luna knobs like PCS.
 Digs reuse the PCS live executor (same findings schema). Scouts parse presence JSON.
 Snapshots reuse the PCS helper so dry traces share one shape.
 """
@@ -31,7 +31,7 @@ from signal_gated_search.prompting import (
 
 DEFAULT_TIMEOUT = 300.0
 
-# Same ladder as PCS/UAS. Digs freeze search=low; kept for explicit kwargs.
+# Same ladder as PCS. Digs freeze search=medium; kept for explicit kwargs.
 _WEB_SEARCH_DEPTH: dict[str, dict[str, Any]] = {
     "low": {
         "search_context_size": "medium",

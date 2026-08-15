@@ -1,0 +1,473 @@
+{
+  "panel_id": "pcs_confirm_v1_march_20",
+  "reference_kind": "soft",
+  "note": "PCS high confirmation panel. Twenty unused March Stage 2 companies: 5 high + 5 medium + 5 low + 5 none. Seeded sample (seed=20260814) with a March-channel mix inside each positive stratum. Soft march_reference only. Disjoint from tuning_panel_v2 and hillclimb_pcs_v1_march_20. Not a bake-off panel. Bake-off still needs a later disjoint set.",
+  "source": {
+    "march_run": "outputs/stage2/production_results.jsonl",
+    "selection_axis": "march_findings_count_plus_channel_mix",
+    "selection_seed": 20260814,
+    "population": "Stage 2 companies excluding tuning_panel_v2 and hillclimb_pcs_v1_march_20",
+    "strata_cutpoints": {
+      "none": {
+        "min_findings_count": 0,
+        "max_findings_count": 0
+      },
+      "low": {
+        "min_findings_count": 1,
+        "max_findings_count": 1
+      },
+      "medium": {
+        "min_findings_count": 2,
+        "max_findings_count": 2
+      },
+      "high": {
+        "min_findings_count": 3,
+        "max_findings_count": null
+      }
+    },
+    "strata_targets": {
+      "high": 5,
+      "medium": 5,
+      "low": 5,
+      "none": 5
+    },
+    "channel_mapping": "Soft-mapped from March finding source_type strings into owned | jobs | third_party for sampling mix only. Same helper as evals/panel/build_tuning_panel_v2.py."
+  },
+  "companies": [
+    {
+      "rcid": 94779424,
+      "name": "Zivy Inc",
+      "homepage_url": "https://www.zivy.app",
+      "short_description": "Zivy is a priority inbox for all your messages at work. It surfaces all important messages first and keeps irrelevant chatter at the back.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "high",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 6,
+        "tools": [
+          "You.com",
+          "Claude (Anthropic)",
+          "Poe (Quora)",
+          "Perplexity AI",
+          "Midjourney",
+          "Eleven Labs"
+        ],
+        "channels": [
+          "owned"
+        ],
+        "cost_usd": 0.38154
+      },
+      "confirm_role": "march_owned_only"
+    },
+    {
+      "rcid": 1332600,
+      "name": "Spaxel",
+      "homepage_url": "https://spaxel.com/",
+      "short_description": "Spaxel is a vertically integrated development and investment firm with in-house acquisitions, development, and management.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "high",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 3,
+        "tools": [
+          "EliseAI",
+          "unspecified LLM chatbot/models (general-purpose AI tools)",
+          "open-source AI models (self-hosted proprietary instance)"
+        ],
+        "channels": [
+          "third_party"
+        ],
+        "cost_usd": 0.37515
+      },
+      "confirm_role": "march_third_party_only"
+    },
+    {
+      "rcid": 7660988,
+      "name": "Alpine Physician Partners",
+      "homepage_url": "https://alpine-physicians.com",
+      "short_description": "Alpine Physician Partners is a medical care center that offers machine learning, house calls, and urgent care at-home programs.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "high",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 3,
+        "tools": [
+          "Ambience Healthcare"
+        ],
+        "channels": [
+          "owned",
+          "third_party"
+        ],
+        "cost_usd": 0.22977
+      },
+      "confirm_role": "march_mixed_channels"
+    },
+    {
+      "rcid": 19481643,
+      "name": "Total Life",
+      "homepage_url": "https://totallife.com/",
+      "short_description": "Total Life is rethinking aging making it easy for seniors on Medicare to access clinical wellness and mental fitness services online.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "high",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 3,
+        "tools": [
+          "OpenAI,Claude,Gemini,Mistral,LangChain,LlamaIndex"
+        ],
+        "channels": [
+          "jobs"
+        ],
+        "cost_usd": 0.40453
+      },
+      "confirm_role": "march_jobs_only"
+    },
+    {
+      "rcid": 95891765,
+      "name": "Beanstalk Consulting",
+      "homepage_url": "https://beanstalkconsulting.co",
+      "short_description": "Beanstalk Consulting is a business consulting firm that specializes in B2B sales acceleration and lead generation services.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "high",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 3,
+        "tools": [
+          "ChatGPT",
+          "Claude,Clay.com",
+          "Claude"
+        ],
+        "channels": [
+          "owned"
+        ],
+        "cost_usd": 0.32466
+      },
+      "confirm_role": "march_stratum_fill"
+    },
+    {
+      "rcid": 703481,
+      "name": "Charlie Health",
+      "homepage_url": "https://www.charliehealth.com",
+      "short_description": "Virtual behavioral health clinic for high acuity youth",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "medium",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 2,
+        "tools": [
+          "unspecified AI-powered virtual scribe (AI-powered documentation tool)"
+        ],
+        "channels": [
+          "jobs"
+        ],
+        "cost_usd": 0.325
+      },
+      "confirm_role": "march_jobs_only"
+    },
+    {
+      "rcid": 23548175,
+      "name": "Alysio",
+      "homepage_url": "https://alysio.ai",
+      "short_description": "The Revenue Security Platform",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "medium",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 2,
+        "tools": [
+          "ChatGPT,Claude",
+          "Alysio.ai (internal use of company\u2019s own GenAI product)"
+        ],
+        "channels": [
+          "third_party"
+        ],
+        "cost_usd": 0.3226
+      },
+      "confirm_role": "march_third_party_only"
+    },
+    {
+      "rcid": 94960373,
+      "name": "Scorability",
+      "homepage_url": "https://scorability.com",
+      "short_description": "Scorability is a developer of a sports platform that matches athletes with college athletics programs.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "medium",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 2,
+        "tools": [
+          "CustomGPTs (GPT-based assistants; platform not specified)",
+          "Generative AI for content, chatbots (tools not specified)"
+        ],
+        "channels": [
+          "jobs"
+        ],
+        "cost_usd": 0.46023
+      },
+      "confirm_role": "march_stratum_fill"
+    },
+    {
+      "rcid": 95651351,
+      "name": "CloudCruise",
+      "homepage_url": "https://cloudcruise.com/",
+      "short_description": "Cloud Cruise provides AI enabled software to automate repetitive tasks like data prospecting and data extraction",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "medium",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 2,
+        "tools": [
+          "ChatGPT (Projects feature)",
+          "Langfuse"
+        ],
+        "channels": [
+          "owned"
+        ],
+        "cost_usd": 0.3399
+      },
+      "confirm_role": "march_owned_only"
+    },
+    {
+      "rcid": 96975324,
+      "name": "Hamming AI",
+      "homepage_url": "https://hamming.ai/",
+      "short_description": "Hamming AI is an experimentation platform that helps teams build reliable AI products.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "medium",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 2,
+        "tools": [
+          "Claude Code, Devin, Cursor, GitHub Copilot",
+          "Devin"
+        ],
+        "channels": [
+          "jobs",
+          "third_party"
+        ],
+        "cost_usd": 0.1414
+      },
+      "confirm_role": "march_mixed_channels"
+    },
+    {
+      "rcid": 649461,
+      "name": "ROR Partners",
+      "homepage_url": "https://www.rorpartners.com/",
+      "short_description": "ROR Partners is a marketing and advertising company.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "unspecified AI ad generation tool(s)"
+        ],
+        "channels": [
+          "third_party"
+        ],
+        "cost_usd": 0.30414
+      },
+      "confirm_role": "march_third_party_only"
+    },
+    {
+      "rcid": 822585,
+      "name": "Conduktor",
+      "homepage_url": "https://www.conduktor.io",
+      "short_description": "Conduktor is a unifying layer that moves, protects and accelerates the utilization of all operational data",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "unspecified AI recruitment screening tools"
+        ],
+        "channels": [
+          "jobs"
+        ],
+        "cost_usd": 0.36104
+      },
+      "confirm_role": "march_jobs_only"
+    },
+    {
+      "rcid": 916841,
+      "name": "HealthLeap",
+      "homepage_url": "https://healthleap.io",
+      "short_description": "Solving disease-related malnutrition with a mobile clinical assistant for healthcare professionals.",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "Cursor"
+        ],
+        "channels": [
+          "jobs"
+        ],
+        "cost_usd": 0.16068
+      },
+      "confirm_role": "march_jobs_only"
+    },
+    {
+      "rcid": 5229877,
+      "name": "NinetyEight",
+      "homepage_url": "https://www.ninetyeightla.com",
+      "short_description": "NinetyEight specializes in Gen Z marketing, offering digital marketing, social media management, and insights.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "ChatGPT"
+        ],
+        "channels": [
+          "owned"
+        ],
+        "cost_usd": 0.17209
+      },
+      "confirm_role": "march_owned_only"
+    },
+    {
+      "rcid": 9112326,
+      "name": "Nourish",
+      "homepage_url": "https://www.usenourish.com",
+      "short_description": "\u00e2\u0080\u008bNourish is a telehealth platform that connects individuals with registered dietitian nutritionists for personalized nutrition counseling.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "low",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 1,
+        "tools": [
+          "unspecified AI copilot (Nourish platform)"
+        ],
+        "channels": [
+          "owned"
+        ],
+        "cost_usd": 0.30148
+      },
+      "confirm_role": "march_owned_only"
+    },
+    {
+      "rcid": 171391,
+      "name": "Truentity Health",
+      "homepage_url": "https://www.truentity.health",
+      "short_description": "Transforming Pharmacies Into Community Health Hubs",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.36976
+      },
+      "confirm_role": "march_none"
+    },
+    {
+      "rcid": 1849499,
+      "name": "AESIRX.IO LTD",
+      "homepage_url": "https://aesirx.io/",
+      "short_description": "Enterprise ready open source marketing suite. Fully privacy compliant.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.25602
+      },
+      "confirm_role": "march_none"
+    },
+    {
+      "rcid": 5257283,
+      "name": "North Shore Therapeutics",
+      "homepage_url": "https://northshore.health/",
+      "short_description": "North Shore Therapeutics provides mental healthcare, psychiatric illness treatment, digital therapeutics, counseling, and wellness services.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.32916
+      },
+      "confirm_role": "march_none"
+    },
+    {
+      "rcid": 40868303,
+      "name": "Entrust Investment Services",
+      "homepage_url": "https://www.entrustinv.com",
+      "short_description": "Entrust Investment Services offers tailored investment portfolios and asset management for RIAs and individual investors.",
+      "research_priority_score": 4,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.29683
+      },
+      "confirm_role": "march_none"
+    },
+    {
+      "rcid": 96886210,
+      "name": "Claimbrite",
+      "homepage_url": "https://www.claimbrite.com",
+      "short_description": "Mediation for personal injury claims",
+      "research_priority_score": 5,
+      "online_presence_score": 0,
+      "category_list": null,
+      "stratum": "none",
+      "march_reference": {
+        "reference_kind": "soft",
+        "findings_count": 0,
+        "tools": [],
+        "channels": [],
+        "cost_usd": 0.27675
+      },
+      "confirm_role": "march_none"
+    }
+  ]
+}

@@ -1,10 +1,10 @@
 name: Unified Adaptive Search
 cli_key: unified-adaptive-search
 package: unified_adaptive_search
-# Explicit knobs (matches medium-family Luna defaults; max_steps=10 like March).
+# Explicit knobs. Bake-off lock 2026-08-13: effort xhigh.
 model: openai/gpt-5.6-luna
 max_steps: 10
-reasoning_effort: medium
+reasoning_effort: xhigh
 web_search_depth: medium
 budget:
   max_usd_per_company: 0.40
@@ -13,4 +13,4 @@ eval:
   k: 1
   panel: fixture_panel_v0
   dry_run: true
-notes: "Single Luna call per company; adaptive = hyperparameters (not channel fan-out)."
+notes: "Single Luna call per company at xhigh. Adaptive = hyperparameters (not channel fan-out). Bake-off: UAS xhigh, PCS 3× medium, SGS digs high."

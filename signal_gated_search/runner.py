@@ -63,9 +63,13 @@ def _empty_scout_rows() -> list[dict[str, Any]]:
     ]
 
 
-def _scout_requests(company: CompanyInput) -> dict[str, dict[str, Any]]:
+def _scout_requests(
+    company: CompanyInput,
+    *,
+    scout_preset: str = DEFAULT_SCOUT_PRESET,
+) -> dict[str, dict[str, Any]]:
     return {
-        channel: build_scout_request_kwargs(company, channel)
+        channel: build_scout_request_kwargs(company, channel, preset=scout_preset)
         for channel in CHANNEL_IDS
     }
 
@@ -90,11 +94,15 @@ def _dig_requests(company: CompanyInput, gate: GateDecision) -> dict[str, dict[s
     }
 
 
-def _dry_components(gate: GateDecision) -> list[CostComponent]:
+def _dry_components(
+    gate: GateDecision,
+    *,
+    scout_preset: str = DEFAULT_SCOUT_PRESET,
+) -> list[CostComponent]:
     components = [
         CostComponent(
             name=f"scout_{channel}",
-            preset=DEFAULT_SCOUT_PRESET,
+            preset=scout_preset,
             cost_usd=0.0,
             channel=channel,
             ran=False,
@@ -125,12 +133,13 @@ def _base_traces(
     gate: GateDecision,
     scout_snapshots: dict[str, dict[str, Any]],
     dig_snapshots: dict[str, dict[str, Any]],
+    scout_preset: str = DEFAULT_SCOUT_PRESET,
 ) -> dict[str, Any]:
     return {
         "strategy": "signal_gated_search",
         "phase": phase,
         "gate": gate.to_dict(),
-        "scout_preset": DEFAULT_SCOUT_PRESET,
+        "scout_preset": scout_preset,
         "dig_effort_by_count": {str(k): v for k, v in DIG_EFFORT_BY_COUNT.items()},
         "rescue_enabled": False,
         "cold_start": True,
@@ -286,6 +295,8 @@ def _run_dry(
     company_input: CompanyInput,
     scout_snapshots: dict[str, dict[str, Any]],
     scout_outputs: Optional[list[dict[str, Any]]],
+    *,
+    scout_preset: str = DEFAULT_SCOUT_PRESET,
 ) -> ArchitectureResult:
     gate = decide_gate(
         scout_outputs if scout_outputs is not None else _empty_scout_rows()
@@ -307,7 +318,9 @@ def _run_dry(
         company_name=company_input.name,
         architecture=ARCHITECTURE_CLI_KEY,
         findings=[],
-        cost_ledger=CostLedger.from_components(_dry_components(gate)),
+        cost_ledger=CostLedger.from_components(
+            _dry_components(gate, scout_preset=scout_preset)
+        ),
         genai_adoption_found=False,
         no_finding_reason="dry_run",
         no_finding_analysis=analysis,
@@ -316,6 +329,7 @@ def _run_dry(
             gate=gate,
             scout_snapshots=scout_snapshots,
             dig_snapshots=dig_snapshots,
+            scout_preset=scout_preset,
         ),
         stub=True,
         dry_run=True,
@@ -331,6 +345,7 @@ def _run_live(
     *,
     timeout: float,
     api_key: Optional[str],
+    scout_preset: str = DEFAULT_SCOUT_PRESET,
 ) -> ArchitectureResult:
     require_api_key(api_key)
     start = time.monotonic()
@@ -362,7 +377,7 @@ def _run_live(
         components.append(
             _component_from_payload(
                 name=f"scout_{channel}",
-                preset=DEFAULT_SCOUT_PRESET,
+                preset=scout_preset,
                 channel=channel,
                 payload=scout_payloads.get(channel) or {},
             )
@@ -432,6 +447,7 @@ def _run_live(
         gate=gate,
         scout_snapshots=scout_snapshots,
         dig_snapshots=dig_snapshots,
+        scout_preset=scout_preset,
     )
     traces["scout_results"] = {
         channel: _payload_trace(
@@ -482,22 +498,32 @@ def run(
     scout_outputs: Optional[list[dict[str, Any]]] = None,
     timeout: float = DEFAULT_TIMEOUT,
     api_key: Optional[str] = None,
+    scout_preset: str = DEFAULT_SCOUT_PRESET,
 ) -> ArchitectureResult:
     """Run SGS for one company.
 
     Dry-run builds scout (and gated dig) request snapshots. Pass scout_outputs
     to simulate a gate decision without calling the Agent API. Live mode fans
     out three scouts, then 0–3 cold digs at the gated effort.
+
+    scout_preset overrides the stock scout Agent API preset in-memory only.
+    Package default stays DEFAULT_SCOUT_PRESET (low).
     """
     company_input = _as_company(company)
-    scout_requests = _scout_requests(company_input)
+    scout_requests = _scout_requests(company_input, scout_preset=scout_preset)
     scout_snapshots = _snapshots(scout_requests)
     if dry_run:
-        return _run_dry(company_input, scout_snapshots, scout_outputs)
+        return _run_dry(
+            company_input,
+            scout_snapshots,
+            scout_outputs,
+            scout_preset=scout_preset,
+        )
     return _run_live(
         company_input,
         scout_requests,
         scout_snapshots,
         timeout=timeout,
         api_key=api_key,
+        scout_preset=scout_preset,
     )

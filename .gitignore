@@ -52,6 +52,10 @@ outputs/**/*.html
 outputs/**/latest
 !outputs/.gitkeep
 !outputs/evals/runs/.gitkeep
+# Paid Stage 2 runners and scoreboards stay in git. Per-company traces stay
+# on disk only so clones do not carry hundreds of Agent JSON dumps.
+!outputs/stage2/test_runs/**/*.py
+!outputs/stage2/test_runs/**/summary.jsonl
 logs/*.log
 checkpoints/*.json
 # Legacy presentation archive (superseded by evals/instances/)

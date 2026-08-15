@@ -21,7 +21,7 @@ Shared rules for all three contracts:
 GOAL: For one assigned channel, decide whether a diggable source surface exists for this company, with enough fidelity that a later dig can search that room productively. Success = correct presence/absence calls on a labeled presence panel at the frozen operating point (escalate moderate+).
 
 CONSTRAINTS:
-- Agent `preset=fast` only; smoke-test depth, not multi-hop research
+- Agent `preset=low` only; smoke-test depth, not multi-hop research
 - Tools: `web_search` only (no `fetch_url` on scouts)
 - Do not extract or judge internal GenAI adoption
 - Do not dig sibling channels; soft awareness only to avoid mis-filing rooms

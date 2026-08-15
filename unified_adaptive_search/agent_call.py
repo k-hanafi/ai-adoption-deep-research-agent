@@ -18,11 +18,11 @@ from unified_adaptive_search.prompting import RESPONSE_SCHEMA, build_company_pro
 
 logger = logging.getLogger("unified_adaptive_search.agent_call")
 
-# Pin to Luna unless an override is provided. Matches current medium engine.
+# Pin to Luna unless an override is provided. Bake-off lock: effort xhigh.
 DEFAULT_MODEL = "openai/gpt-5.6-luna"
 # March production used 10; stock medium docs default is 15 (see from_preset_defaults).
 DEFAULT_MAX_STEPS = 10
-DEFAULT_REASONING_EFFORT = "medium"
+DEFAULT_REASONING_EFFORT = "xhigh"
 # Our ladder (not a Perplexity enum): low/medium/high → rising max_tokens.
 DEFAULT_WEB_SEARCH_DEPTH = "low"
 DEFAULT_TIMEOUT = 300.0

@@ -63,6 +63,9 @@ def test_owned_dig_searches_official_accounts() -> None:
     assert "YouTube or Vimeo channel" in text
     assert "The company's own YouTube/LinkedIn/GitHub is owned-shaped" in text
     assert "/linkedin-posts" in text
+    assert "does not finish the owned search" in text
+    assert "first-party indexes" in text
+    assert "not a substitute for finishing that owned pass" in text
     assert "Do not drop a cited internal-use claim because no vendor brand appears" in text
     assert "Prefer leaving wire hosts, independent news, platform podcasts, YouTube, and vendor case studies to third_party" not in text
 
@@ -95,9 +98,9 @@ def test_scout_schema_has_bins_not_signal() -> None:
     assert "confidence" not in props
 
 
-def test_scout_request_uses_fast_preset_no_fetch() -> None:
+def test_scout_request_uses_low_preset_no_fetch() -> None:
     kwargs = build_scout_request_kwargs(COMPANY, "third_party")
-    assert kwargs["preset"] == "fast"
+    assert kwargs["preset"] == "low"
     assert "model" not in kwargs
     assert kwargs["response_format"] is SCOUT_RESPONSE_SCHEMA
     tools = kwargs["tools"]
@@ -114,8 +117,10 @@ def test_dig_request_is_cold_start_explicit_knobs() -> None:
     )
     assert "preset" not in kwargs
     assert kwargs["model"] == "openai/gpt-5.6-luna"
-    assert kwargs["max_steps"] == 10
+    assert kwargs["max_steps"] == 50
     assert kwargs["reasoning"] == {"effort": "high"}
+    web = next(t for t in kwargs["tools"] if t["type"] == "web_search")
+    assert web["max_results"] == 20
     assert kwargs["response_format"] is DIG_RESPONSE_SCHEMA
     tool_types = [t["type"] for t in kwargs["tools"]]
     assert tool_types == ["web_search", "fetch_url"]

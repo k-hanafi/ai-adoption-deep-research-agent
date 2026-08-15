@@ -32,6 +32,7 @@ HARD EXCLUDE only:
 
 SAFETY VALVE:
 If you already have a citable URL with clear internal GenAI use, report it even when the page is more jobs- or third_party-shaped than owned. Label source_type honestly. Do not return empty because "a sibling should have caught this."
+A jobs-shaped or third_party-shaped safety-valve row does not finish the owned search. After you report it, keep looking on company-controlled pages.
 
 == SEARCH FOCUS ==
-Search the site AND official accounts by company name (LinkedIn / YouTube / GitHub / X). Open /linkedin-posts, /news, help center, and policy pages, not only /blog. Prefer primary company publishing over syndications.
+Stay on company-controlled surfaces until you have opened first-party indexes, not only the homepage: blog or newsroom, help or policy pages, and any company-hosted social or embed wall the site actually has. Then search official accounts by company name (LinkedIn / YouTube / GitHub / X). An off-site job board or aggregator page is not a substitute for finishing that owned pass. Prefer primary company publishing over syndications.

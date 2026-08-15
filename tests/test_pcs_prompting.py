@@ -29,6 +29,9 @@ def test_pcs_owned_searches_social_walls() -> None:
     assert "/linkedin-posts" in text
     assert "Official company accounts" in text
     assert "A customer-facing bot that replaces staff work is adopt, not sell" in text
+    assert "does not finish the owned search" in text
+    assert "first-party indexes" in text
+    assert "not a substitute for finishing that owned pass" in text
 
 
 def test_uas_prompt_matches_jobs_owned_and_unnamed_rules() -> None:

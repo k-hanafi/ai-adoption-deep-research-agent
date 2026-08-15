@@ -26,7 +26,20 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 - SGS config: `evals/configs/signal_gated_search.yaml`
 - SGS paid 5-co smoke: `outputs/stage2/test_runs/sgs_smoke_5co/`
 - Hill-climb panel (20-co, not bake-off): `evals/panel/hillclimb_panel.json`
-- PCS hill-climb v1 live: `outputs/stage2/test_runs/pcs_hillclimb_20/`
+- PCS confirm panel (20-co, not bake-off): `evals/panel/pcs_confirm_panel.json`
+- PCS confirm 3× high live: `outputs/stage2/test_runs/pcs_confirm_20_high/`
+- PCS confirm 3× medium live: `outputs/stage2/test_runs/pcs_confirm_20_medium/`
+- PCS hill-climb v1 live (old prompts, 3× medium): `outputs/stage2/test_runs/pcs_hillclimb_20/`
+- PCS hill-climb 3× medium v2 (current prompts): `outputs/stage2/test_runs/pcs_hillclimb_20_medium_v2/`
+- PCS hill-climb 3× high probe (current prompts): `outputs/stage2/test_runs/pcs_hillclimb_20_high/`
+- UAS hill-climb 20-co xhigh (package defaults): `outputs/stage2/test_runs/uas_hillclimb_20_xhigh/`
+- SGS hill-climb 20-co high digs (package default): `outputs/stage2/test_runs/sgs_hillclimb_20_high/`
+- SGS hill-climb 20-co matched leash (low scouts + 50/medium/high digs; vs PCS high): `outputs/stage2/test_runs/sgs_hillclimb_20_matched/`
+- SGS skip panel (50-co March none/low, not bake-off): `evals/panel/sgs_skip_panel.json`
+- SGS skip-rate 50-co live (package defaults): `outputs/stage2/test_runs/sgs_skip_50/`
+- Paid per-company traces under `outputs/stage2/test_runs/` are local-only (gitignored). Runners and `summary.jsonl` stay in git.
+- SGS hill-climb 20-co medium digs (measurement probe): `outputs/stage2/test_runs/sgs_hillclimb_20_medium/`
+- SGS 5-co low-scout A/B smoke (measurement; later locked as default): `outputs/stage2/test_runs/sgs_smoke_5co_low_scouts/`
 - Agent rule: `.cursor/rules/decision-log.mdc`
 
 ---
@@ -233,7 +246,7 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 
 ## 2026-08-08: SGS design frozen (signal-count effort ladder)
 
-**Status:** Effort table superseded by [[2026-08-13: Bake-off effort lock (UAS xhigh, PCS 3× medium, SGS digs high)]]. Dig-all signaled, scout knobs, and rescue-off still current. Scout *role* wording superseded by [[2026-08-11: SGS scouts are channel presence screens]].
+**Status:** Effort table superseded by [[2026-08-13: Bake-off effort lock (UAS xhigh, PCS 3× medium, SGS digs high)]]. Scout preset superseded by [[2026-08-14: SGS scouts locked to low]]. Dig leash (`max_steps` / `web_search_depth`) superseded by [[2026-08-14: SGS dig leash matches PCS]]. Dig-all signaled and rescue-off still current. Scout *role* wording superseded by [[2026-08-11: SGS scouts are channel presence screens]].
 
 **Decision:** Freeze Signal Gated Search bake-off design as **3 scouts → dig every signaled channel**, with dig `reasoning_effort` chosen by dig count:
 
@@ -550,7 +563,425 @@ V2 goal is **more** verified findings, not March-like counts.
 
 **Alternatives rejected:** Dropping privacy-policy or help-center-bot rows as sell. Biasing prompts or merge toward March finding counts. Jobs search limited to company-owned boards.
 
-**Open follow-ups:** paid re-smoke of SQOR and Sudozi (then a wider hill-climb pass). Do not treat Ahoy/Secureframe extras as bugs to delete.
+**Open follow-ups:** paid re-smoke of SQOR and Sudozi (then a wider hill-climb pass). Do not treat Ahoy/Secureframe extras as bugs to delete. 3× high cost probe landed (see [[2026-08-14: PCS 20-co 3× high cost probe]]).
+
+---
+
+## 2026-08-14: PCS 20-co 3× high cost probe
+
+**Decision:** Record a same-panel PCS pass at **3× high** (not a bake-off lock). Package default stays 3× medium. 20 companies concurrent. New prompts from [[2026-08-14: Hill-climb prompt lock (jobs boards, unnamed tools, adopt vs product-AI)]].
+
+**Why:** User asked what 3× high costs before any effort change.
+
+**Evidence:** `outputs/stage2/test_runs/pcs_hillclimb_20_high/` (~147s wall clock). Total **$3.30167**, mean **$0.165**/co (2.53× the medium panel total $1.307, mean $0.065). Max $0.332 (Easy Fill, still 0 findings). 201 finding rows vs 70 on medium (confounded: high + new prompts). SQOR 0→8. One 429 on Sudozi owned. Mean is above the ~$0.10 / $0.105 Stage 2 target.
+
+**Alternatives rejected:** Changing the PCS bake-off default to high. Re-running medium on the new prompts in this same job.
+
+**Open follow-ups:** decide whether $0.165 mean is acceptable. Optional Sudozi owned retry after the 429. Same-prompt medium counterpart landed (see [[2026-08-14: PCS 20-co 3× medium v2 (current prompts)]]).
+
+---
+
+## 2026-08-14: PCS 20-co 3× medium v2 (current prompts)
+
+**Decision:** Record a same-panel PCS pass at **3× medium** with the current prompt lock, so effort can be compared to [[2026-08-14: PCS 20-co 3× high cost probe]] with prompts held constant. Package default stays 3× medium. First wave was 20 concurrent (7 companies lost one channel to 429); those 7 were retried sequentially and all came back `error=None`.
+
+**Why:** The earlier medium folder (`pcs_hillclimb_20/`) used pre-lock prompts, so 70 vs 201 findings mixed prompt change with effort. User asked for the clean A/B.
+
+**Evidence:** `outputs/stage2/test_runs/pcs_hillclimb_20_medium_v2/` (`run_twenty_medium.py`, `summary.jsonl`, `*.429.json` backups). After retries: **$1.45879** panel total, mean **$0.07294**/co, **125** findings, 0 API errors. First-wave spend was $1.29757 plus $0.49168 retry = **$1.78925** paid. Same-prompt high is $3.30167 / 201 findings (2.26× cost, +76 findings / +61%). Prompt-only lift vs old medium: 70→125 (+55). Channel rows jobs/owned/tp: old 23/26/21, new-medium 44/37/44, high 79/63/59. Easy Fill and Oso still 0 at both efforts. Statsig 5 on new-medium vs 28 on high (largest effort gap). SQOR 0→6 from the prompt lock alone.
+
+**Alternatives rejected:** Overwriting `pcs_hillclimb_20/`. Changing the PCS default to high.
+
+**Open follow-ups:** decide medium vs high given +61% findings at 2.26× cost. Do not treat Easy Fill / Oso zeros as prompt bugs until a later pass. Optional high-run Sudozi owned retry still open.
+
+---
+
+## 2026-08-14: UAS 20-co xhigh hill-climb
+
+**Decision:** Record a same-panel UAS pass at **package defaults** (one Luna call, `reasoning_effort=xhigh`, `max_steps=10`, `web_search_depth=low`). Measurement only. Not a bake-off lock. Not an architecture winner freeze. Package defaults unchanged.
+
+**Why:** Need the one-call baseline on the same 20 IDs as the current-prompt PCS medium and high passes, so architecture (one adaptive call vs three always-on rooms) can be compared separately from effort.
+
+**Evidence:** `outputs/stage2/test_runs/uas_hillclimb_20_xhigh/` (`run_twenty.py`, `summary.jsonl`, 20 per-rcid JSON). Terminal `PANEL_DONE` `ran=20 skipped=0 failed=0`. Wall clock ~179s. 20/20 `error=None`. No 429s, no timeouts. **117** findings, panel **$1.78222**, mean **$0.08911**/co (under the ~$0.10 / $0.105 Stage 2 target). Two zeros: Oso Electric and RightRev (`has_presence_no_evidence`).
+
+Same-panel current-prompt PCS (from [[2026-08-14: PCS 20-co 3× medium v2 (current prompts)]] and [[2026-08-14: PCS 20-co 3× high cost probe]]):
+
+| Run | Findings | Mean $ | Panel $ | Errors |
+|---|---:|---:|---:|---|
+| UAS xhigh (1 call) | 117 | $0.089 | $1.782 | 0 |
+| PCS 3× medium | 125 | $0.073 | $1.459 | 0 after 429 retries |
+| PCS 3× high | 201 | $0.165 | $3.302 | 1 (Sudozi owned 429) |
+
+Per-company findings vs PCS: UAS beats medium on 6, ties 5, loses 9. UAS beats high on 2, ties 3, loses 15.
+
+Load-bearing rows:
+
+| Company | UAS | PCS med | PCS high | Note |
+|---|---:|---:|---:|---|
+| Tern Travel | 10 | 18 | 24 | One call under-visits vs three rooms (PCS medium already 3 jobs / 7 owned / 8 third_party) |
+| Statsig | 12 | 5 | 28 | UAS beats medium cheaply ($0.044); high still far ahead |
+| SQOR | 6 | 6 | 8 | Prompt lock recovered aggregator jobs for UAS too |
+| Easy Fill AI | 2 | 0 | 0 | Only UAS found rows (founder LinkedIn Runway/Kling; contact-page chat assistant). Not a quality lock |
+| Oso Electric | 0 | 0 | 0 | Consistent none across all three runs |
+| RightRev | 0 | 3 | 4 | UAS spent the most ($0.146) and still returned empty |
+
+**Alternatives rejected:** Treating this as a bake-off winner or a reason to change UAS defaults. Starting SGS on the same 20 in this pass. Re-running UAS at a different effort.
+
+**Open follow-ups:** SGS on the same 20 landed (see [[2026-08-14: SGS 20-co medium vs high digs]]). PCS effort (3× medium vs 3× high) still open. Do not treat Easy Fill UAS extras or the RightRev UAS miss as prompt locks.
+
+---
+
+## 2026-08-14: SGS 20-co medium vs high digs
+
+**Status:** Scout default superseded by [[2026-08-14: SGS scouts locked to low]]. Dig default (high) unchanged. The 20-co numbers in this entry were run with `fast` scouts.
+
+**Decision:** Record two same-panel SGS passes on `hillclimb_pcs_v1_march_20`: digs at package-default **high**, and a measurement-only **medium** probe. Scouts stay stock `fast` presence screens. Package default stays high on every signaled room. Not a bake-off lock. Not an architecture winner freeze.
+
+**Why:** Need SGS on the same 20 IDs as current-prompt UAS xhigh / PCS medium / PCS high before any bake-off. Medium is a cost and coverage probe only, so we can see whether cheaper digs keep most of the gated-fan-out lift.
+
+**Evidence:** `outputs/stage2/test_runs/sgs_hillclimb_20_high/` and `outputs/stage2/test_runs/sgs_hillclimb_20_medium/` (`run_twenty_*.py`, `summary.jsonl`, 20 per-rcid JSON each). Concurrency 4. Timeout 600s. No 429s, no sequential retries, 20/20 `error=None` on both passes. Medium effort was an in-memory `DIG_EFFORT_BY_COUNT` patch in the probe script only; `signal_gated_search/channels.py` still reads `high`.
+
+| Run | Findings | Mean $ | Min $ | Max $ | Panel $ | Paid |
+|---|---:|---:|---:|---:|---:|---:|
+| UAS xhigh | 117 | $0.089 | $0.044 | $0.146 | $1.782 | prior |
+| SGS medium digs | 137 | $0.093 | $0.037 | $0.123 | $1.853 | **$1.853** |
+| SGS high digs | 187 | $0.173 | $0.114 | $0.250 | $3.456 | **$3.456** |
+| PCS 3× medium | 125 | $0.073 | $0.057 | $0.088 | $1.459 | prior |
+| PCS 3× high | 201 | $0.165 | $0.068 | $0.332 | $3.302 | prior |
+| March (same 20) | 39 | $0.414 | $0.075 | $1.198 | $8.283 | production dump |
+
+March min/max from `evals/panel/hillclimb_panel.json` `march_reference.cost_usd` (matches `outputs/stage2/production_results.jsonl` for these 20 rcids). Min Blue Sky Robotics $0.075; max Alguna $1.198.
+
+SGS high: 19/20 companies dug 3 rooms (Easy Fill 2). SGS medium: 19/20 dug 3 rooms (Easy Fill 1, $0.037 min). Oso 0 findings at both SGS efforts. Two-pass paid total **$5.309**.
+
+**Alternatives rejected:** Changing the SGS bake-off default to medium. Treating this as a winner freeze. Starting bake-off on this panel. Overwriting PCS/UAS/old smoke folders. Using tuning-50 IDs.
+
+**Open follow-ups:** bake-off still later, on a **new** disjoint panel (never tuning-50 or this hill-climb set). PCS effort (3× medium vs 3× high) still open. Do not treat Ahoy/Secureframe extras as bugs. Scout preset A/B on the original 5-co set landed (see [[2026-08-14: SGS 5-co low-scout smoke]]); default stays `fast`.
+
+---
+
+## 2026-08-14: SGS 5-co low-scout smoke
+
+**Status:** "Default stays `fast`" superseded by [[2026-08-14: SGS scouts locked to low]]. This entry remains the measurement A/B, not the lock.
+
+**Decision:** Measurement only. Same 5 rcids as [[2026-08-13: SGS paid 5-company smoke]], `scout_preset=low` in-memory, digs stay package-default **high**. Package default and YAML stay `scout_preset: fast`. Not a bake-off lock. Not mixed into the 20-co medium/high dig A/B.
+
+**Why:** Need a scout-cost A/B against the original fast-scout 5-co smoke before considering a stronger always-on filter.
+
+**Evidence:** `outputs/stage2/test_runs/sgs_smoke_5co_low_scouts/` (`run_smoke.py`, `summary.jsonl`, 5 per-rcid JSON). Sequential. `error=None` on all 5. Tern hung across several aborted resumes, then completed in 118s on a clean retry. Override is `run(..., scout_preset="low")` only; `signal_gated_search/channels.py` and `evals/configs/signal_gated_search.yaml` still read `fast`.
+
+| Company | Low scout $ | Low dig $ | Low total | Findings | Rooms lit | Fast 5-co rooms (old prompts) |
+|---|---:|---:|---:|---:|---|---|
+| Easy Fill AI | $0.017 | $0.114 | $0.131 | 0 | owned+tp | none |
+| CoverTree | $0.014 | $0.106 | $0.120 | 7 | all 3 | none |
+| Statsig | $0.019 | $0.159 | $0.177 | 24 | all 3 | owned |
+| Tern Travel | $0.021 | $0.098 | $0.119 | 32 | all 3 | none |
+| Jam | $0.013 | $0.120 | $0.133 | 33 | all 3 | owned+tp |
+| **5-co** | **$0.082** | **$0.597** | **$0.679** | **96** | | |
+
+3× low scouts: **$0.082** panel, mean **$0.016**/co. 3× fast on the same 5 (old smoke): **$0.110**, mean **$0.022**/co. Low is cheaper as a filter. Total spend is 2.4× the old 5-co ($0.679 vs $0.283) because more rooms lit and then paid high digs, not because scouts got expensive.
+
+Room caveat: the Aug 13 fast 5-co used older prompts (CoverTree/Tern all-`none`). Same-day current-prompt **fast** on the 20-co high pass already lights the same rooms on the 4 overlapping companies (Easy Fill owned+tp; CoverTree/Statsig/Tern all 3). Jam is not on that 20; low newly lit jobs vs the old fast `none` (name-collision case). Findings vs that current-prompt fast overlap are mixed (Statsig 24 vs 14; CoverTree 7 vs 9; Tern 32 vs 37; Easy Fill 0 vs 1).
+
+**Alternatives rejected:** Changing the default to `low`. Mixing this into the 20-co dig A/B. Starting bake-off.
+
+**Open follow-ups:** keep `fast` unless a later same-prompt Jam (or empty-room) miss needs a stronger scout. Rescue/tooling still open if `fast` misses rooms that exist.
+
+**Completion (2026-08-14 later):** 5/5 live JSON, all `error=None`. Resumed mid-run: Easy Fill / CoverTree / Statsig were already complete; Tern and Jam were the only new paid companies (2 company runs). Leftover hung `run_smoke.py` copies (all stuck on Tern, 0% CPU, 30 min to 2 h) were stopped so they would not race-write or start Jam in parallel. A later resume with a 1320s per-company hard cap finished Tern in 118s and Jam in 83s. Exact ledger: 3× low scout **$0.08231** (mean **$0.01646**/co) vs 3× fast **$0.10966** (mean **$0.02193**/co). Digs **$0.59716** vs fast **$0.17286**. Panel total **$0.67947** vs **$0.28252**. Package default still `fast`.
+
+---
+
+## 2026-08-14: SGS vs PCS high gap diagnosis
+
+**Status:** still current on scout-miss / leash / merge. Jobs 64 vs 79 scoreboard refined by [[2026-08-14: SGS vs PCS high jobs-hole refinement]].
+
+**Decision:** Record, do not freeze. On the same 20 current-prompt hill-climb companies, SGS high lost to PCS high on findings (187 vs 201) and cost more (mean $0.173 vs $0.165) because the gate almost never skipped a room, and each SGS dig is a shallower room than a PCS channel. Not an architecture winner. Package defaults stay as they are.
+
+**Why:** Need a cited cause before anyone "fixes" SGS by changing scout prompts or declaring the gate dead. The cheap scout cannot close a depth gap if 19/20 companies still pay for 2–3 high digs.
+
+**Evidence:** Existing artifacts only (`outputs/stage2/test_runs/sgs_hillclimb_20_high/`, `sgs_hillclimb_20_medium/`, `pcs_hillclimb_20_high/`, `pcs_hillclimb_20_medium_v2/`). No new paid calls.
+
+| Claim | Result |
+|---|---|
+| Scout false negatives (PCS found a room SGS never dug) | **Killed.** 0 companies, 0 PCS rows in undug rooms. Only Easy Fill skipped a room (high: jobs=`none`; medium: jobs+third_party=`none`). PCS also found 0 there. |
+| Scout tax + almost-full digs | **Confirmed for cost.** High: 19× dig_count=3, 1× dig_count=2. Medium: 19×3, 1×1 (Easy Fill). |
+| Weaker per-room knobs | **Load-bearing for the findings gap.** SGS dig = Luna steps=10 / search=`low` / effort=high (`evals/configs/signal_gated_search.yaml`, ledger `gpt-5_6-luna_steps10_high_search_low`). PCS channel = Luna steps=50 / search=`medium` / effort=high (`evals/configs/parallel_channel_search.yaml` + high override, ledger `gpt-5_6-luna_steps50_high_search_medium`). Jobs/owned/third_party prompts are the same contract. |
+| Merge / row-splitting | **Killed as primary.** Same merge (`parallel_channel_search/merge.py`, (tool, use_case, url)). Mean rows/URL 1.79 vs 1.87. On 42 shared URLs: 94 SGS rows vs 96 PCS rows. Gap is pages opened (PCS-only URLs 68 vs SGS-only 59), not fewer splits of the same page. |
+| Cost split (mean / company) | SGS high: scout $0.022 + dig $0.151 = $0.173 (3.00 scouts, 2.95 digs; $0.007/scout, $0.051/dig). PCS high: $0.165 across 2.95 channels ($0.056/channel). SGS medium extra vs PCS medium is almost entirely the $0.021 scout tax (digs $0.071 ≈ PCS 3× $0.073). |
+
+Per-channel findings on rooms SGS actually dug (high): jobs 64 vs 79, owned 58 vs 63, third_party 65 vs 60. Company wins 9–9–2; net −14 is Statsig (−14) and Alguna (−11) minus Tern (+13) and Sully (+8). Sudozi PCS owned 429, so SGS +2 there is partly a PCS miss.
+
+**Alternatives rejected:** Treating scout FNs as the cause. Treating merge/splitting as the cause. Changing SGS or PCS package defaults. Declaring SGS dead (medium SGS beat medium PCS 137 vs 125). Starting a paid match-knob run in this pass.
+
+**Open follow-ups:** Optional later probe, not started: SGS digs with PCS-matched knobs (steps=50, search=medium) on a cheap subset (Statsig / Alguna / Vendelux / ClickHouse / Tern) to isolate the leash. Do not change `DEFAULT_DIG_MAX_STEPS` or `DEFAULT_DIG_WEB_SEARCH_DEPTH` until that lands. PCS effort (3× medium vs 3× high) still open. Jobs-tag scoreboard refined in [[2026-08-14: SGS vs PCS high jobs-hole refinement]].
+
+---
+
+## 2026-08-14: SGS scouts locked to low
+
+**Decision:** Lock SGS `scout_preset` to **low** as the package and YAML default. Digs stay **high** on every signaled room. Scout role stays presence / existence screen. Not a bake-off winner freeze. UAS xhigh and PCS 3× medium stay as they are.
+
+**Why:** User freeze 2026-08-14: low is cheap enough; intuition is it says "yes" more truthfully because it accesses more web; do not over-index on the 5-co debate. Parent measurement note (mixed; does not fight the lock): 5-co low smoke mean scout $0.016 vs fast $0.022. The "low lights more rooms" comparison was vs Aug 13 old-prompt fast. Same-day current-prompt fast on the 20 already lit most rooms. Easy Fill low opened owned+tp, paid $0.114 digs, 0 findings (over-trigger risk). Measurement evidence is mixed; this is an explicit user freeze.
+
+**Evidence:** User lock 2026-08-14. `signal_gated_search/channels.py` `DEFAULT_SCOUT_PRESET`. `evals/configs/signal_gated_search.yaml`. 5-co low smoke `outputs/stage2/test_runs/sgs_smoke_5co_low_scouts/`. 20-co SGS high/medium (`outputs/stage2/test_runs/sgs_hillclimb_20_high/`, `sgs_hillclimb_20_medium/`) were still run with fast scouts.
+
+**Alternatives rejected:** Keep `fast` as default. Treat the 5-co A/B as a bake-off winner. Change dig effort. Over-index on the 5-co room-lighting debate vs old-prompt fast.
+
+**Open follow-ups:** 20-co SGS numbers remain valid as `fast` scout measurements. Rescue/tooling still open if `low` misses rooms that exist. PCS effort still open. Bake-off still later on a new disjoint panel.
+
+---
+
+## 2026-08-14: SGS vs PCS high jobs-hole refinement
+
+**Decision:** Record, do not freeze. Do **not** iterate SGS jobs prompts, merge, or scout role on the 187 vs 201 gap. The next lever is a **4-company SGS dig-knob match** (steps=50, search=medium, effort still high), in-memory, new folder. Package defaults stay 10 / low until that lands. Not started this turn. No paid calls this turn.
+
+**Why:** Channel-tagged jobs 64 vs 79 looks like a jobs hole. After dropping rows whose URL is not a job page, the counts are **61 vs 62**. Eighteen PCS "jobs" rows are room leaks (company blogs, LinkedIn profiles, vendor CS). Eight of those 18 are the Statsig Statbot blog. SGS jobs already opens Greenhouse / Ashby / YC / LinkedIn / Wellfound on this panel. The real misses are specific high-yield pages a 10-step / search-low dig did not fetch.
+
+**Evidence:** Existing artifacts only (`outputs/stage2/test_runs/pcs_hillclimb_20_high/`, `sgs_hillclimb_20_high/`, plus medium/UAS for "who else found it"). URL-normalized: PCS-only 69 URLs (106 rows), SGS-only 59 (93), shared 42 (95 vs 94 rows).
+
+| Class | Verdict | Load-bearing examples |
+|---|---|---|
+| Missed URL / shallow leash | **Primary.** | Statsig `statbot-ai-manual-tasks-hackathon` (PCS high 20 rows; SGS medium 7; SGS high 0). Alguna YC `nhVNFAe-product-engineer` (PCS 7; neither SGS). Vendelux Ashby `6faa20f1` (PCS 3; UAS 2; both SGS 0). ClickHouse: 5 PCS-only jobs-shaped URLs. |
+| Empty dig after yes | **Mostly not a findings bug.** | Alguna owned dig $0.054 / 0 findings. PCS owned 4 rows were YC + Dover **job** URLs leaking into owned. Sully owned=0; PCS owned was a LinkedIn post + job-board mirror. |
+| Room leak (PCS) | Inflates jobs tags. | Statsig Statbot blog tagged `jobs`. ClickHouse `/blog/agentic-coding` tagged `jobs`. |
+| Split / collapse | Secondary. | Alguna YC FDE 5 vs 1. Tern YouTube 13 vs 6. Shared-URL row totals nearly tie. |
+| Scout miss | Still killed. | 19/20 dug all 3. Easy Fill skipped jobs; PCS also 0. |
+| Merge / prompt miss | Still killed as primary. | Same `(tool, use_case, url)` merge. No fetched-page refusal evidenced. |
+
+SGS medium finding Statbot while SGS high missed it is the same prompts under a short leash (variance), not a missing jobs-overlay sentence.
+
+**Alternatives rejected:** Jobs-prompt rewrite as the first lever (would "fix" a leak-inflated 79 vs 64). Treating Alguna owned empty-dig as a page to recover (PCS owned was jobs leak). Merge key change. Scout-role change. Starting the paid 4-co probe without user go-ahead. Starting bake-off.
+
+**Open follow-ups:** Proposed 4-co SGS match-knob smoke, waiting for user go-ahead (Statsig `103497`, Alguna `95038033`, ClickHouse `545293`, Vendelux `977674`). Success: Statbot hackathon URL; YC `nhVNFAe-product-engineer`; ≥2 of 5 ClickHouse PCS-only jobs URLs; Ashby `6faa20f1` or ≥3 distinct Vendelux Ashby IDs. New folder. Do not overwrite the 20-co runs. Do not change `DEFAULT_DIG_MAX_STEPS` / `DEFAULT_DIG_WEB_SEARCH_DEPTH` until that lands. PCS effort still open. Bake-off still later on a new disjoint panel. **Parked 2026-08-14:** user asked to finish PCS failure-mode iteration before any SGS work (see [[2026-08-14: PCS owned early-exit iteration]]).
+
+---
+
+## 2026-08-14: PCS owned early-exit iteration
+
+**Status:** SEARCH FOCUS path-construction wording superseded by [[2026-08-14: PCS owned advice must generalize]]. Safety-valve "do not finish owned" rule still current.
+
+**Decision:** Iterate PCS **owned** only. A jobs-shaped or third_party-shaped safety-valve row does not finish the owned search. Owned must construct and fetch `/linkedin-posts`, `/blog`, `/news`, help center, and policy paths from the homepage before leaving the domain. SGS owned overlay and UAS prompt unchanged this pass. Package knobs stay 3× medium. Not a bake-off lock. Not smoked yet.
+
+**Why:** User asked to hill-climb from PCS result data only, then SGS later. Inside the current-prompt pair (medium 125 vs high 201), the remaining thin companies are owned misses, not jobs-board misses.
+
+**Evidence:** `outputs/stage2/test_runs/pcs_hillclimb_20_medium_v2/` and `pcs_hillclimb_20_high/`. March URLs from `outputs/stage2/production_results.jsonl` (soft).
+
+| Class | Verdict |
+|---|---|
+| Owned early-exit after safety valve | **Primary.** Sudozi medium owned returned `talents.vaia.com/...` (job mirror) and never opened `sudozi.com/linkedin-posts` (March Claude). Prompt already named `/linkedin-posts`. |
+| Owned blog miss at both efforts | **Primary.** Unwrap owned=0 at medium and high. High owned spent $0.086. March `unwrap.ai/blog-post/three-ways-chatgpt-can-help-you-write-better-code` absent. |
+| Effort under-open | Open lock. High-only 71 URLs / 103 rows. Statsig 5 vs 28. Not this prompt pass. |
+| Sudozi high owned 429 | Measurement incomplete. Retry after this change or later. |
+| Easy Fill / Oso zeros | Still not a prompt bug. High Easy Fill $0.332, `has_presence_no_evidence`. |
+| Room leaks / Ahoy / Secureframe | Intentional. Do not delete. |
+
+**Alternatives rejected:** Jobs-prompt rewrite (SQOR already recovered 0→6 on the prompt lock). Changing PCS default to high in this pass. Starting the SGS match-knob probe. Another synonym-only `/linkedin-posts` mention without the "do not finish after safety valve" rule. Editing SGS `dig_owned.txt` in the same slice.
+
+**Open follow-ups:** Paid 2-co PCS medium re-smoke, waiting for user go-ahead: Sudozi `743085` (pass: `sudozi.com/linkedin-posts`) and Unwrap `169806` (pass: the March ChatGPT blog URL, or any `unwrap.ai/blog` owned row). New folder. Do not overwrite the 20-co PCS runs. Then decide medium vs high. Then SGS. Prompt wording refined in [[2026-08-14: PCS owned advice must generalize]].
+
+---
+
+## 2026-08-14: PCS owned advice must generalize
+
+**Decision:** Hill-climb misses are **eval measurements**, not prompt recipes. PCS owned SEARCH FOCUS must state source-shape and budget rules that could apply to any of the ~9.45k production companies. Do not tell the model to construct `/linkedin-posts` or a fixed path list from the homepage. Keep the general safety-valve rule: an off-room hit does not finish the owned room. Keep first-party indexes (blog/newsroom, help/policy, company-hosted social or embed walls the site actually has) as shapes, not as a Sudozi URL template. SGS overlay still unchanged. Knobs unchanged.
+
+**Why:** The 20-co panel exists to expose failure *classes*. Writing the recovery URL into the prompt overfits the hill-climb set and will not help companies whose wall is `/news`, a CMS embed, or a LinkedIn company feed with no `/linkedin-posts` path. That repeats the locked writing rule: March (and this panel) inform source shapes, not few-shots.
+
+**Evidence:** User correction 2026-08-14. Prior SEARCH FOCUS in [[2026-08-14: PCS owned early-exit iteration]] said "Construct and fetch these paths when they exist: /linkedin-posts, /blog, /news…". Sudozi March URL is `sudozi.com/linkedin-posts?...`. That path is a panel instance, not a production contract. Files: `prompts/parallel_channel_search/channel_owned.txt`; tests `tests/test_pcs_prompting.py`.
+
+**Alternatives rejected:** Keeping the construct-and-fetch path list. Adding Unwrap's blog slug or Sudozi's query string to the prompt. Copying the same path list into SGS/UAS.
+
+**Open follow-ups:** Same 2-co medium smoke, still waiting. Those two URLs remain the *pass check* for whether the general rule worked, not text to add to the prompt. PCS high confirm on a new 20 started (see [[2026-08-14: PCS confirm panel v1]]).
+
+---
+
+## 2026-08-14: PCS confirm panel v1
+
+**Decision:** Draw a new 20-company **PCS confirmation** panel (`pcs_confirm_v1_march_20`) and run PCS at **3× high** on it. Seeded stratified sample, not hand-picked failure modes. Disjoint from `tuning_panel_v2` (including Jam) and `hillclimb_pcs_v1_march_20`. **Not a bake-off panel.** Bake-off still needs a later disjoint set (never tuning-50, never hill-climb 20, never this confirm 20).
+
+**Why:** User asked for one more PCS test on a fresh stratified 20 at high, after the hill-climb set. A seeded sample with a March-channel mix (jobs-only / owned-only / third_party-only / mixed / fill) tests whether current prompts generalize. It does not re-select Sudozi/Unwrap-shaped companies.
+
+**Evidence:** Builder `evals/panel/build_pcs_confirm_panel_v1.py` seed `20260814`. Panel `evals/panel/pcs_confirm_panel.json`. Path `evals/paths.py` `PCS_CONFIRM_PANEL_PATH`. Tests `tests/test_pcs_confirm_panel.py`. Run folder `outputs/stage2/test_runs/pcs_confirm_20_high/` (5 workers, 600s timeout, resume-safe). Current owned prompt includes the general early-exit rule. Package default stays 3× medium.
+
+Membership (March count / March channels):
+
+| Stratum | Companies |
+|---|---|
+| high | Zivy Inc 6 owned; Spaxel 3 tp; Alpine Physician Partners 3 owned+tp; Total Life 3 jobs; Beanstalk Consulting 3 owned |
+| medium | Charlie Health 2 jobs; Alysio 2 tp; Scorability 2 jobs; CloudCruise 2 owned; Hamming AI 2 jobs+tp |
+| low | ROR Partners 1 tp; Conduktor 1 jobs; HealthLeap 1 jobs; NinetyEight 1 owned; Nourish 1 owned |
+| none | Truentity Health; AESIRX.IO LTD; North Shore Therapeutics; Entrust Investment Services; Claimbrite |
+
+**Alternatives rejected:** Reusing the hill-climb 20. Sampling from the tuning holdout. Treating this 20 as the bake-off panel. Hand-picking another Sudozi/Unwrap analog set.
+
+**Open follow-ups:** Live 3× high landed (see [[2026-08-14: PCS confirm 20-co 3× high]]). Then SGS. Bake-off panel still later and disjoint.
+
+---
+
+## 2026-08-14: PCS confirm 20-co 3× high
+
+**Decision:** Record the paid PCS 3× high pass on `pcs_confirm_v1_march_20`. Measurement only. Package default stays 3× medium. Not a bake-off. Not a reason to rewrite prompts around NinetyEight.
+
+**Why:** Need a generalization check of current PCS prompts + high effort on IDs that were not used to hill-climb.
+
+**Evidence:** `outputs/stage2/test_runs/pcs_confirm_20_high/` (`run_twenty_high.py`, `summary.jsonl`, 20 per-rcid JSON). 5 workers. Timeout 600s. Wall ~376s. 20/20 `error=None`. No 429s. **195** findings, panel **$3.418**, mean **$0.171**/co (min $0.103 Beanstalk, max $0.327 Charlie Health). Channel rows jobs/owned/tp: 58/66/71.
+
+Same-knob hill-climb high (`pcs_hillclimb_20_high/`): 201 findings, mean $0.165.
+
+Soft March: 14/15 positives at or above March count. One miss: NinetyEight `5229877` (March 1 owned blog `ninetyeightla.com/food-for-thought/marketing-gen-z-chatgpt`; PCS all three channels ran, 0 findings, $0.147, `has_presence_no_evidence`). March-none extras: Truentity 8, Claimbrite 2, AESIRX.IO 1. Two none stayed 0 (Entrust, North Shore).
+
+**Alternatives rejected:** Adding the NinetyEight blog URL to the owned prompt. Treating Truentity extras as a lock. Promoting this panel to bake-off.
+
+**Open follow-ups:** Same-prompt medium counterpart landed (see [[2026-08-14: PCS confirm 20-co 3× medium]]). SGS next when the user says so. PCS effort still open. Bake-off still later on a new disjoint panel.
+
+---
+
+## 2026-08-14: PCS confirm 20-co 3× medium
+
+**Decision:** Record the same-panel PCS pass at **3× medium** on `pcs_confirm_v1_march_20`, so effort can be compared to [[2026-08-14: PCS confirm 20-co 3× high]] with prompts held constant. Package default stays 3× medium. Not bake-off.
+
+**Why:** User asked for the medium counterpart on the new 20, and for the highest concurrency that does not hit HTTP 429 rate limits.
+
+**Evidence:** `outputs/stage2/test_runs/pcs_confirm_20_medium/`. First wave used 8 company workers (24 in-flight channel calls). **15/20 hit 429.** Those were backed up as `*.429.json` and retried sequentially. CloudCruise sequential retry then timed out all three channels at $0 (`95651351.timeout.json`); a second sequential retry came back `error=None`, 5 findings, $0.059. Final 20/20 `error=None`.
+
+Clean panel (latest 20 JSON): **122** findings, **$1.418**, mean **$0.071**/co (min $0.052 Beanstalk, max $0.089 Conduktor). Channel rows jobs/owned/tp: 27/48/47. High counterpart: 195 / $3.418 / mean $0.171. High lift: **+73 findings (+60%) at 2.41× cost**. High wins 16, ties 4, medium wins 0. 429-attempt spend $1.145. All-in paid **$2.563**.
+
+Same shape as the hill-climb same-prompt pair (125 vs 201, $0.073 vs $0.165).
+
+**Concurrency lesson:** 8 company workers is too high on medium (calls finish faster, so the API sees more new requests). 5 company workers (15 in-flight) was clean on this panel at high. Treat **5** as the evidenced safe max until a later probe.
+
+**Alternatives rejected:** Leaving CloudCruise as a $0 timeout empty. Changing the PCS default to high. Treating 8 workers as safe.
+
+**Open follow-ups:** Decide medium vs high given the same +60% / ~2.4× pattern on two disjoint 20s. Last PCS failure-mode pass landed (see [[2026-08-14: PCS hill-climb closed, no further prompt iteration]]). SGS next. Bake-off still later on a new disjoint panel.
+
+---
+
+## 2026-08-14: PCS hill-climb closed, no further prompt iteration
+
+**Decision:** Stop PCS prompt/merge iteration. No new owned or jobs wording. The general owned early-exit rule stays. Package default stays **3× medium** unless the user later accepts high’s ~$0.17 mean. Next work is SGS hill-climb. This confirm 20 is not the bake-off panel.
+
+**Why:** User asked for a last PCS deep dive on the confirm 20 (plus the hill-climb 20 for classes that repeat). Remaining holes are effort, architecture identity, or one-off URLs. Another wording pass would overfit the panel.
+
+**Evidence:** Confirm medium/high `outputs/stage2/test_runs/pcs_confirm_20_{medium,high}/`. Hill-climb current-prompt pair `pcs_hillclimb_20_medium_v2/` and `pcs_hillclimb_20_high/`.
+
+| Class | Generalizable? | Action |
+|---|---|---|
+| Effort under-open | **Yes.** +60% findings at ~2.4× cost on both 20s (125→201, 122→195). High-only confirm URLs: 35 jobs pages, 18 LinkedIn posts, 14 owned pages. | Open lock, not a prompt. |
+| Always-on empty-room tax | **Yes.** Zivy/Spaxel jobs=0 with 17–25 other rows. Hill Blue Sky/Momentic jobs=0. | Leave. That is PCS. SGS skips empty rooms. |
+| Residual use-vs-sell on AI sellers | **Yes, residual.** Truentity owned rows are product summaries/reports. Claimbrite engineer portfolios describe building the product. Hamming Cursor/Devin is real adopt. | Do not tighten. Prior tighten almost dropped Ahoy/Secureframe. |
+| Safety-valve room leaks | **Yes.** Confirm 16 jobs-tagged non-jobs URLs. Hill 18. | Leave. Intentional. |
+| True none after full spend | **Yes.** Entrust, North Shore; hill Easy Fill, Oso. High spends more to confirm empty. | Leave. |
+| March exact-URL miss | **No.** Charlie Health / Beanstalk / Conduktor / Nourish missed March URLs and still beat March counts. | Do not chase tokens/slugs. |
+| NinetyEight 0 at both efforts | **No.** One March blog. | Do not write that URL into the prompt. |
+
+**Alternatives rejected:** Another owned construct-and-fetch pass. Tightening use-vs-sell. Treating Alysio/Scorability owned=0 as a bug (March was jobs/tp). Promoting the confirm 20 to bake-off.
+
+**Open follow-ups:** SGS hill-climb next. Decide PCS bake-off effort (3× medium vs 3× high) when ready. Bake-off panel still later and disjoint from tuning-50, hill-climb 20, and this confirm 20. CloudCruise medium JSON restored (see [[2026-08-14: CloudCruise medium timeout overwrite restored]]).
+
+---
+
+## 2026-08-14: CloudCruise medium timeout overwrite restored
+
+**Decision:** Keep the latest clean CloudCruise medium JSON as the confirm-20 row. Do not treat the $0 timeout overwrite as the panel result.
+
+**Why:** A second timeout retry finished after a successful 5-finding run and overwrote `95651351.json`. A third sequential retry landed clean.
+
+**Evidence:** `outputs/stage2/test_runs/pcs_confirm_20_medium/95651351.json` is now `error=None`, 7 findings, $0.079, 38.5s. Prior failures kept as `95651351.429.json`, `95651351.timeout.json`, `95651351.timeout2.json`. Clean 20-JSON panel is now **124** findings, **$1.437**, mean **$0.072**. High counterpart still 195 / $3.418. Lift is +71 findings (+57%) at 2.38× cost, same class as the earlier +60% / ~2.4× read.
+
+**Alternatives rejected:** Leaving the timeout JSON as the official row. Recomputing the whole medium pass.
+
+**Open follow-ups:** none for CloudCruise. SGS next.
+
+---
+
+## 2026-08-14: SGS digs inherit PCS owned early-exit
+
+**Decision:** Copy the PCS owned extract refinements into SGS `dig_owned.txt` only. A jobs- or third_party-shaped safety-valve row does not finish the owned dig. SEARCH FOCUS is first-party indexes (blog/newsroom, help/policy, company-hosted social or embed walls the site actually has), then official accounts. Keep SGS identity: official accounts are owned-shaped; homepage does not have to load. Do not construct a fixed path list. Jobs and third_party dig overlays already matched the hill-climb prompt lock. Scouts stay presence/existence until a separate lock.
+
+**Why:** User asked that PCS prompt refinements land in SGS before scout work. The last PCS owned pass was the early-exit + generalize rule. SGS owned still had the older "open `/linkedin-posts`" construct line.
+
+**Evidence:** `prompts/signal_gated_search/dig_owned.txt`. Tests: `tests/test_sgs_prompting.py`. PCS source: `prompts/parallel_channel_search/channel_owned.txt` and [[2026-08-14: PCS owned advice must generalize]].
+
+**Alternatives rejected:** Rewriting SGS scouts in the same slice. Changing dig `max_steps` / `web_search_depth` in this slice. Editing SGS third_party toward the PCS host-based YouTube split.
+
+**Open follow-ups:** Dig leash match landed (see [[2026-08-14: SGS dig leash matches PCS]]). Existence scouts stay. ~$0.10/co is unlikely on companies that light all 3 rooms.
+
+---
+
+## 2026-08-14: SGS dig leash matches PCS
+
+**Decision:** SGS digs use the same leash as a PCS channel: `max_steps=50`, `web_search_depth=medium`. Reasoning effort stays **high** on every signaled dig. Scouts stay **existence/presence** (`low`, no `fetch_url`). Package + YAML + design card updated. Path budget headroom raised to $0.25/co.
+
+**Why:** User locked this after the PCS close-out. The hill-climb 20 gap (SGS high 187 vs PCS high 201) was mostly a shorter leash, not a jobs-prompt hole. User also kept existence scouts, so SGS will still dig almost every room that has a site / careers page / any press.
+
+**Cost implication (stated):** This will not hit ~$0.10 on companies that light 3 rooms. Planning math: ~$0.02 scouts + up to 3× PCS-high-depth digs ≈ PCS high (~$0.17) plus scout tax. Savings only appear when a room truly does not exist (N=0/1/2). Empty-of-evidence rooms (Zivy/Spaxel jobs=0) still get a full dig.
+
+**Evidence:** `signal_gated_search/channels.py`, `evals/configs/signal_gated_search.yaml`, `.cursor/plans/sgs-design.md`. Prior diagnosis: [[2026-08-14: SGS vs PCS high gap diagnosis]].
+
+**Alternatives rejected:** Yield-hint scouts (user declined). Keeping steps=10 / search=low. Waiting for the 4-co match-knob smoke before changing defaults.
+
+**Open follow-ups:** Paid confirm landed (see [[2026-08-15: SGS matched-leash 20 vs PCS high]]). Existence scouts skipped 0 rooms on this panel.
+
+---
+
+## 2026-08-15: SGS matched-leash 20 vs PCS high
+
+**Decision:** Record the paid SGS pass on `hillclimb_pcs_v1_march_20` with current package defaults: `scout_preset=low`, digs Luna `max_steps=50` / `web_search_depth=medium` / `reasoning_effort=high`, PCS extract locks on digs. Measurement only. Not a bake-off. Package defaults unchanged. Do not treat this panel as proof that existence scouts cut unit cost.
+
+**Why:** User asked for a same-20 compare that holds dig knobs and extract teaching constant, so the only intended difference is SGS presence scouts skipping rooms that do not exist.
+
+**Evidence:** `outputs/stage2/test_runs/sgs_hillclimb_20_matched/` vs `pcs_hillclimb_20_high/`. 20/20 `error=None`. Wall ~490s. Old shallow SGS high (`sgs_hillclimb_20_high/`, fast scouts) stays as the prior measurement.
+
+| System | Findings | Mean $ | Panel $ | Rooms skipped |
+|---|---:|---:|---:|---|
+| SGS matched (this run) | **221** | $0.171 | $3.416 | **0** (20× dig_count=3) |
+| PCS 3× high | 201 | $0.165 | $3.302 | n/a (always 3) |
+| SGS high old (fast + 10/low) | 187 | $0.173 | $3.456 | 1 (Easy Fill jobs) |
+
+SGS wins 14, PCS 3, ties 3. Scout tax mean **$0.018**/co. Dig spend mean $0.153. Leash check: Statsig Statbot URL recovered (was 0 on old SGS high). Alguna YC `nhVNFAe` and Vendelux Ashby `6faa20f1` still absent. Easy Fill jobs flipped `none`→`moderate`, still 0 findings, $0.237.
+
+**What this means:** Matching the PCS leash closed the findings gap and then some. Existence scouts did **not** save money here because every company had a site, some hiring footprint, and some independent pages. SGS paid PCS-high digs plus the scout tax. Cost savings from this gate need rooms that truly do not exist, which this March-positive-heavy 20 almost never has.
+
+**Alternatives rejected:** Calling this a bake-off win. Changing scout semantics after one panel. Overwriting `sgs_hillclimb_20_high/`. Treating Alguna/Vendelux URL misses as a new prompt class (same variance class as before).
+
+**Open follow-ups:** Bake-off still later on a new disjoint panel. PCS effort (3× medium vs 3× high) still open. Yield-hint remains the only way to skip empty-of-evidence rooms. Optional later panel with more true-absent rooms if we want to measure scout savings. Skip-rate panel landed (see [[2026-08-15: SGS skip-rate 50 on March none/low]]).
+
+---
+
+## 2026-08-15: SGS skip-rate 50 on March none/low
+
+**Decision:** Record a paid SGS-only pass on a new 50-company March none/low panel (`sgs_skip_v1_march_50`, seed `20260815`). Package defaults only: `scout_preset=low`, digs Luna `max_steps=50` / `web_search_depth=medium` / `reasoning_effort=high`. Measurement only. Not a bake-off. Do not start PCS on this panel unless the user later asks. Package defaults unchanged.
+
+**Why:** The hill-climb 20 skipped 0 rooms. That panel was March-positive-heavy, so it could not test the cost-save claim: existence scouts save money only when a room does not exist. This panel is 40 March-none + 10 March-low, disjoint from tuning-50, hill-climb 20, and the PCS confirm 20.
+
+**Evidence:** `evals/panel/sgs_skip_panel.json`, builder `evals/panel/build_sgs_skip_panel_v1.py`, live `outputs/stage2/test_runs/sgs_skip_50/`. 50/50 `error=None`. No 429s or timeouts. Wall ~1096s.
+
+| Slice | n | Findings | Mean $ | Panel $ | dig_count | Rooms skipped |
+|---|---:|---:|---:|---:|---|---:|
+| All | 50 | **184** | $0.157 | $7.851 | 38×3, 12×2, 0×1, 0×0 | **12 / 150 (8%)** |
+| March low | 10 | 91 | $0.160 | $1.598 | 10×3 | 0 |
+| March none | 40 | 93 | $0.156 | $6.253 | 28×3, 12×2 | 12 |
+
+Scout tax mean **$0.020**/co ($0.984). Dig spend mean $0.137 ($6.867). Owned lit **50/50** `strong`. Jobs skipped 11 (10 `none` + 1 `weak`). Third-party skipped 1 (`none`). All 12 skips were March-none. March-none still produced 93 findings (18/40 companies ≥1). Vs the 3-dig $0.171 rate this is ~$0.70 under the $8.60 planning number, still far above the $0.10 target.
+
+**What this means:** March none ≠ no website, and often ≠ no adoption either. Existence scouts can skip a missing jobs room, but almost every company still has a site and some independent pages, so the gate still pays 2–3 high digs plus the scout tax. The cost-save hypothesis did **not** hold as a unit-cost story.
+
+**Alternatives rejected:** Calling this a bake-off. Starting PCS on this panel. Overwriting `sgs_hillclimb_20_matched/` or `sgs_hillclimb_20_high/`. Changing scout semantics after one none/low panel.
+
+**Open follow-ups:** Bake-off still later on a **new** disjoint panel (never tuning-50, hill-climb 20, PCS confirm 20, or this skip 50). PCS effort (3× medium vs 3× high) still open. Yield-hint remains the only way to skip empty-of-evidence rooms that still exist.
+
+---
+
+## 2026-08-15: Paid per-company traces stay local, not in git
+
+**Decision:** Drop per-company Agent JSON (and `test_results.csv`) from git. Keep runners (`*.py`) and `summary.jsonl` scoreboards. `.gitignore` no longer un-ignores `outputs/stage2/test_runs/**/*.json`.
+
+**Why:** One commit of traces was ~150k lines. That makes review, clone, and checkout painful, and the numbers already live in `summary.jsonl` plus this log. Traces stay on disk for local debugging.
+
+**Evidence:** `.gitignore` (`!outputs/stage2/test_runs/**/*.py`, `!outputs/stage2/test_runs/**/summary.jsonl`). Folders still on disk: `outputs/stage2/test_runs/sgs_skip_50/`, `sgs_hillclimb_20_matched/`, `pcs_confirm_20_*`, `pcs_hillclimb_20_*`.
+
+**Alternatives rejected:** Keeping full traces in git as "evidence." A follow-up delete commit that still leaves 150k lines in history (this commit was unpushed, so rewrite it instead).
+
+**Open follow-ups:** Optional later: a pull script if a cloud agent needs a specific `{rcid}.json` from local or object storage.
 
 ---
 
@@ -563,7 +994,7 @@ V2 goal is **more** verified findings, not March-like counts.
 - [x] Merge/dedupe: normalize URL + (tool, url) across channels; keep provenance
 - [x] CLI `--live` entrypoint for one-company smoke
 - [x] Tiny paid smoke to confirm 3× metered cost ≈ projection (Jam `$0.070`)
-- [ ] Optional Stage B: steps=50 × search=high if we want to re-test deeper search with the steps budget
+- [x] Optional Stage B-style probe: PCS 3× high on the 20-co hill-climb panel (mean $0.165, not a default lock; see [[2026-08-14: PCS 20-co 3× high cost probe]])
 - [x] Lock UAS **bake-off** knobs: `reasoning_effort=xhigh` in package default + `evals/configs/unified_adaptive_search.yaml` (see [[2026-08-13: Bake-off effort lock (UAS xhigh, PCS 3× medium, SGS digs high)]])
 - [x] SGS **design** freeze (dig-all signaled. Effort table superseded: SGS digs high, not 1=max)
 - [x] SGS digs = **high** on every signaled channel (see [[2026-08-13: Bake-off effort lock (UAS xhigh, PCS 3× medium, SGS digs high)]])
@@ -578,12 +1009,45 @@ V2 goal is **more** verified findings, not March-like counts.
 - [x] Re-smoke Tern Travel on the new owned/social prompts (still N=0. See [[2026-08-13: Tern and CoverTree re-smoke still N=0]])
 - [x] SGS scouts = existence checks, not source-quality or adoption (see [[2026-08-13: SGS scouts are existence checks, not source-quality filters]])
 - [x] Re-smoke CoverTree jobs room on the existence-bar prompts (owned lit, jobs still `none`. See [[2026-08-13: CoverTree existence-bar smoke]])
-- [ ] Scout-tool or all-none rescue if `fast` presence screens still return empty rooms that exist
-- [ ] Optional extra SGS smoke if we want the N=3/`medium` row before bake-off
+- [x] SGS 5-co low vs fast scout A/B smoke (measurement; later locked as default; see [[2026-08-14: SGS 5-co low-scout smoke]])
+- [x] SGS scouts locked to **low** as package/YAML default (see [[2026-08-14: SGS scouts locked to low]])
+- [ ] Scout-tool or all-none rescue if `low` presence screens still return empty rooms that exist
+- [x] Optional extra SGS smoke if we want the N=3/`medium` row before bake-off (20-co medium-dig probe landed; see [[2026-08-14: SGS 20-co medium vs high digs]]. Old 1=max / 3=medium ladder is not the default.)
 - [x] Hill-climb PCS first paid pass on `evals/panel/hillclimb_panel.json` (20-co, $1.19 total; see [[2026-08-14: PCS hill-climb v1 live 20-co]])
 - [x] Retry PCS timeouts on Sudozi + RightRev (see [[2026-08-14: PCS hill-climb timeout retries (Sudozi, RightRev)]])
 - [x] Hill-climb prompt lock: external job boards, unnamed-tool findings, owned social walls, adopt vs product-AI (see [[2026-08-14: Hill-climb prompt lock (jobs boards, unnamed tools, adopt vs product-AI)]])
-- [ ] Re-smoke affected hill-climb companies after the prompt lock (SQOR, Sudozi, then a wider pass)
-- [ ] Hill-climb PCS until user is happy (maximize findings, not March-like counts)
-- [ ] Then SGS / UAS on the same 20 before bake-off
-- [ ] 3-arch bake-off in eval suite (only after the 20-co hill-climb is green; new disjoint panel, never tuning-50 or this hill-climb set)
+- [x] Re-smoke the 20-co panel after the prompt lock at 3× medium (see [[2026-08-14: PCS 20-co 3× medium v2 (current prompts)]])
+- [x] UAS on the same 20 at package-default xhigh (117 findings, mean $0.089; see [[2026-08-14: UAS 20-co xhigh hill-climb]])
+- [ ] Decide PCS effort (3× medium vs 3× high) from the same-prompt pair
+- [x] PCS-only failure-mode pass: owned early-exit as a general rule, not a path recipe (see [[2026-08-14: PCS owned advice must generalize]])
+- [ ] Paid PCS medium re-smoke Sudozi `743085` + Unwrap `169806` on the owned early-exit prompt
+- [x] Hill-climb PCS until user is happy (closed: no further prompt iteration; see [[2026-08-14: PCS hill-climb closed, no further prompt iteration]])
+- [x] SGS digs inherit PCS owned early-exit + general first-party indexes (see [[2026-08-14: SGS digs inherit PCS owned early-exit]])
+- [x] Keep SGS scouts as existence/presence (user declined yield-hint; see [[2026-08-14: SGS dig leash matches PCS]])
+- [x] Then SGS on the same 20 before bake-off (medium + high digs; see [[2026-08-14: SGS 20-co medium vs high digs]])
+- [x] Diagnose SGS high vs PCS high on the same 20 (shallower digs + scout tax on almost-full fan-out; see [[2026-08-14: SGS vs PCS high gap diagnosis]])
+- [x] SGS dig leash matches PCS (steps=50, search=medium) as package/YAML default (see [[2026-08-14: SGS dig leash matches PCS]])
+- [x] Paid confirm of the new SGS leash on the hill-climb 20 (221 findings, mean $0.171, 0 rooms skipped; see [[2026-08-15: SGS matched-leash 20 vs PCS high]])
+- [x] SGS skip-rate 50 on March none/low (184 findings, mean $0.157, 12/150 rooms skipped; see [[2026-08-15: SGS skip-rate 50 on March none/low]])
+- [x] Paid per-company traces stay local / gitignored (see [[2026-08-15: Paid per-company traces stay local, not in git]])
+- [x] PCS confirm panel v1 (20 unused March IDs, seeded; see [[2026-08-14: PCS confirm panel v1]])
+- [x] Record PCS 3× high on `pcs_confirm_v1_march_20` (195 findings, mean $0.171; see [[2026-08-14: PCS confirm 20-co 3× high]])
+- [x] Record PCS 3× medium on the same confirm 20 (124 findings after CloudCruise restore, mean $0.072; 8-wide 429s, safe concurrency 5; see [[2026-08-14: PCS confirm 20-co 3× medium]] and [[2026-08-14: CloudCruise medium timeout overwrite restored]])
+- [x] Confirm-medium runner skips only success JSON and detects 429 from the error field (see [[2026-08-15: Confirm-medium runner no longer locks failed JSON or false 429s]])
+- [ ] 3-arch bake-off in eval suite (only after the user is happy; new disjoint panel, never tuning-50, never hill-climb 20, never the PCS confirm 20, never the SGS skip 50)
+
+---
+
+## 2026-08-15: Confirm-medium runner no longer locks failed JSON or false 429s
+
+**Decision:** Treat the confirm-medium `*.429.json` files as **false positives**, not as 15 real rate limits. Keep the restored CloudCruise success row as the panel result. Fix the runner so a later timeout or 429 cannot freeze or overwrite a good company JSON.
+
+**Why:** The old detector JSON-serialized the whole payload and matched the substring `429`. That fires on costs such as `0.1429` and on LinkedIn job IDs. Every `pcs_confirm_20_medium/*.429.json` has `error: null`. Resume also skipped any existing `{rcid}.json`, so a timeout written to the canonical path (CloudCruise) stayed locked until a human restored it.
+
+**Evidence:** `outputs/stage2/test_runs/pcs_confirm_20_medium/run_twenty_medium.py` now checks the `error` field only, skips resume only when that field is empty, backs up failed files and retries them, and refuses to overwrite a successful JSON with a later failure. Default concurrency is **5** company workers (15 in-flight), matching confirm-high. Same resume and keep-success guards landed on `pcs_confirm_20_high/run_twenty_high.py`, `sgs_skip_50/run_fifty.py`, and `sgs_hillclimb_20_matched/run_twenty.py`. Real `RateLimitError` strings still live in `pcs_hillclimb_20_medium_v2/*.429.json`.
+
+**Conflict with earlier log:** [[2026-08-14: PCS confirm 20-co 3× medium]] said 15/20 hit 429 and counted $1.145 retry spend. That 429 count is not trustworthy. The clean 20-JSON panel (124 findings, mean $0.072 after CloudCruise restore) still stands. The “5 workers is the evidenced safe max” lesson now rests on confirm-high (clean at 5) and hill-climb medium v2 (real 429s at 20-wide), not on this folder’s backups.
+
+**Alternatives rejected:** Rewriting the 2026-08-14 metrics in place. Re-running the paid confirm-medium panel just to rebuild backups.
+
+**Open follow-ups:** none for the runner. PCS effort and bake-off panel still open.
