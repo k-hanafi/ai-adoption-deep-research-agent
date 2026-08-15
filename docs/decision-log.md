@@ -26,6 +26,9 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 - SGS config: `evals/configs/signal_gated_search.yaml`
 - SGS paid 5-co smoke: `outputs/stage2/test_runs/sgs_smoke_5co/`
 - Agent rule: `.cursor/rules/decision-log.mdc`
+- Stage 3 verification plan: `.cursor/plans/phase-2-stage3-verification.plan.md`
+- Stage 3 package: `citation_verification/` (production; not under `evals/`)
+- Stage 3 judge prompt: `prompts/citation_verification/judge.txt`
 
 ---
 
@@ -383,6 +386,114 @@ SGS owned **digs** may search official socials. Company YouTube/LinkedIn are own
 
 ---
 
+## 2026-08-14: Stage 3 delivery = one PR, five commits + Bugbot gates
+
+**Decision:** Ship `citation_verification/` as **one GitHub PR** with **five slice commits** (not five stacked PRs). After each commit: **local `/review-bugbot` until no findings**. After all five: open the PR and **cloud-Bugbot babysit** until merge-ready.
+
+**Why:** Same decomposition as the old PR1–PR5 plan without stacked-rebase mess. Local Bugbot catches issues early; cloud Bugbot is the merge gate.
+
+**Evidence:** User lock 2026-08-14; Phase 2 plan delivery section. Local Bugbot is IDE `/review-bugbot` (CLI not available yet).
+
+**Open follow-ups:** Implement commits 1–5; human runs local Bugbot between slices; cloud agent babysits final PR.
+
+---
+
+## 2026-08-14: Stage 3 D2/D5 locked (trailing cost fields + simple CLI)
+
+**Decision:**
+- **D2:** Persist observability fields **after** core outputs: `fetch_ok`, `evidence_snippet`, `censored`, `margin`, `model_judge`, `cost_usd` (+ breakdown if useful), `error`.
+- **D5:** Simple CLI: `--findings` JSONL with `--dry-run`/`--live`, plus optional `--url`/`--claim` debug. Library `verify_finding` / `verify_findings` only (no `ArchitectureResult` helper in v1).
+
+**Why:** Cost/ops at the end keeps the human-facing verification fields first while preserving interpretability. Minimal CLI covers batch prod + one-off debug without extra surface area.
+
+**Evidence:** User lock 2026-08-14; Phase 2 plan.
+
+**Open follow-ups:** PR1 skeleton (design freeze complete for package v1).
+
+---
+
+## 2026-08-14: Stage 3 verification=0/1 and claim=evidence_description
+
+**Decision:**
+- Model field `verification` is **`Literal[0, 1]`**: **1 = verified**, **0 = hallucination**.
+- Claim text for the judge is Stage 2 **`evidence_description` only**.
+
+**Why:** Binary digits are best for logprob span extraction (same as taxonomy Pass A). Evidence-only keeps the judge prompt simple.
+
+**Evidence:** User lock 2026-08-14; Phase 2 plan D1/D3.
+
+**Open follow-ups:** D2 ops fields; D5 CLI proposal; fetch wrapper model; then PR1.
+
+---
+
+## 2026-08-14: Stage 3 D1/D4 locks (Terra judge + output field names)
+
+**Decision:**
+- **D1 product fields:** `verification`, `log_probs_conf`, `confidence_1_5`, `verification_reasoning`, `verification_critique`.
+- **`log_probs_conf` is package-computed** from the decision token’s logprobs (taxonomy Pass A pattern). Model must **not** be asked to emit `log_probs_conf`.
+- Model JSON emits: `verification`, `confidence_1_5`, `verification_reasoning`, `verification_critique`.
+- **D4 judge model:** `gpt-5.6-terra` with `reasoning.effort=none` (logprobs requirement). Different model from Stage 2 Luna researchers on purpose.
+
+**Why:** User field names for the verification agent; terra as a distinct judge tier vs research agents; keep logprob confidence honest by deriving it from logits.
+
+**Evidence:** User answers 2026-08-14; OpenAI model id `gpt-5.6-terra`; taxonomy `two_pass_classifier/confidence.py`.
+
+**Status:** `verification` type and D3 claim superseded in specificity by [[2026-08-14: Stage 3 verification=0/1 and claim=evidence_description]].
+
+**Still open:** D2 ops fields; D5 CLI (proposal: findings JSONL + optional `--url/--claim`); fetch wrapper model/preset.
+
+**Open follow-ups:** Lock remaining Ds; then PR1.
+
+---
+
+## 2026-08-13: Stage 3 stack = Perplexity fetch_url + OpenAI logprob judge
+
+**Decision:** Stage 3 stack is **hybrid**: (1) Perplexity Agent API **`fetch_url`** to load text for each finding’s `source_url`, (2) OpenAI judge with **`reasoning.effort=none`**, strict JSON binary int (taxonomy Pass A shape) + **`include=message.output_text.logprobs`** / `top_logprobs`, confidence **computed in-package** (not model-emitted), plus optional verbalized **1–5** backup. Empty/failed fetch → **`UNVERIFIABLE`**, not unsupported. No HTML→markdown preprocessing by default. Package build plan: `.cursor/plans/phase-2-stage3-verification.plan.md`.
+
+**Why:** Perplexity cannot return usable logprobs. OpenAI can, but only with reasoning off. Fetching with Perplexity’s own `fetch_url` keeps Stage 3’s page view in the same tool family as Stage 2 and avoids Tavily scrape mismatch false hallucinations. Stage 3 already has the citation URL, so `web_search` is the wrong tool.
+
+**Evidence:** User direction 2026-08-13; prior logprobs spike [[2026-08-13: Perplexity APIs do not expose usable logprobs]]; fetch_url docs/pricing (`$0.00025`/invocation); OpenAI GPT-5.x logprobs require `reasoning.effort=none`. **Reference:** taxonomy production Pass A in `k-hanafi/ai-startups-taxonomy-research` (`two_pass_classifier/{confidence,request_builder,schema}.py`, `evals/logprob_extract.py` thin adapter).
+
+**Alternatives rejected:** Perplexity-only judge; Tavily-only fetch; Perplexity `web_search` for verification; forbidding `json_schema` on the logprob call (taxonomy Pass A proves schema+logprobs work at `reasoning.effort=none`); putting the extractor only inside `evals/`.
+
+**Open follow-ups:** User lock D1–D5 in Phase 2 plan (model schema, package output schema, claim bundle, models, CLI); then PR1–PR5 for `citation_verification/` only. Evals verification wiring is a **separate** follow-up plan after the package ships.
+
+---
+
+## 2026-08-13: Stage 3 is a production top-level package
+
+**Decision:** Stage 3 lives as its own top-level package, **`citation_verification/`**, peer to the Stage 2 architectures and to `evals/`. It is **production software**: after bake-off picks a Stage 2 winner, prod runs that arch, then runs Stage 3 on the prod findings. Evals only **import and exercise** the same package (logprobs validity, hallucination rate on the eval company set) before prod spend. Stage 3 must **not** live inside `evals/`.
+
+**Why:** Packaging follows ownership. Stage 3 is a post-research production guardrail, not an eval-only report. Burying it under `evals/hooks/` would make prod depend on harness internals and signal the wrong product boundary. Keeping one package means eval validation and prod verification cannot drift.
+
+**Evidence:** User lock 2026-08-13. Prior scaffolding stub `evals/hooks/stage3_judge.py` and tree sketch in `.cursor/plans/eval-harness.plan.md` are **superseded for packaging home** (thin eval adapter may still call the package). Phase 2 plan: `.cursor/plans/phase-2-stage3-verification.plan.md`.
+
+**Alternatives rejected:**
+- Implementing Stage 3 only inside `evals/hooks/` (eval-specific)
+- A fourth competing Stage 2 architecture identity (Stage 3 is arch-agnostic verification, not a research strategy)
+- Separate eval-only and prod-only judges (drift risk)
+
+**Open follow-ups:** Implement `citation_verification/` (fetch + OpenAI logprob judge); wire `python -m evals run-verification` as a consumer; retire or thin-wrap `evals/hooks/stage3_judge.py`.
+
+---
+
+## 2026-08-13: Perplexity APIs do not expose usable logprobs
+
+**Decision:** Reject Perplexity-alone as the Stage 3 logprob confidence path. Binary hallucination/supported scoring that needs token logprobs must use a provider that returns them (planned: OpenAI with `reasoning.effort=none`). Perplexity may still be used for page fetch / evidence text if a hybrid wins the rest of the spike.
+
+**Why:** Stage 3’s primary confidence proxy is logprob on a binary classification token. Without real logprobs, a Perplexity-only judge cannot meet the plan contract (binary + logprob + 1–5 backup).
+
+**Evidence (official docs, 2026-08-13):**
+- Gateway Chat Completions (`docs.perplexity.ai` Create Chat Completion / `/router/v1/chat/completions`): **Honored** list does not include logprobs. **`logprobs` accepted only at default `false`**. **`top_logprobs` rejected with HTTP 400**.
+- Agent API quickstart / response examples: output text shows `"logprobs": []` and response-level `"top_logprobs": 0` (empty stubs for OpenAI-shaped schema; not populated token probabilities).
+- Third-party integrations (e.g. LangChain `ChatPerplexity` capability table) mark Logprobs as unsupported, consistent with the above.
+
+**Alternatives rejected:** Assuming Perplexity’s OpenAI-compatible schema means logprobs work; using empty `logprobs: []` as a confidence signal.
+
+**Open follow-ups:** Lock Stage 3 stack after remaining spike (Tavily vs Perplexity/`fetch_url` for page text + OpenAI binary judge); watch OpenAI gotcha that structured `json_schema` can empty logprobs even with `reasoning.effort=none` (prefer plain binary token output for the logprob field).
+
+---
+
 ## Open follow-ups (PCS)
 
 - [x] Freeze prompts + Agent API knobs (design)
@@ -406,3 +517,13 @@ SGS owned **digs** may search official socials. Company YouTube/LinkedIn are own
 - [ ] Re-smoke Tern Travel on the new owned/social prompts
 - [ ] Optional extra SGS smoke if we want the N=3/`medium` row before bake-off
 - [ ] 3-arch bake-off in eval suite (needs frozen UAS knobs; PCS + SGS live ready)
+- [x] Stage 3 spike: Perplexity logprobs? (**No** usable logprobs; see [[2026-08-13: Perplexity APIs do not expose usable logprobs]])
+- [x] Stage 3 packaging: top-level production `citation_verification/` (see [[2026-08-13: Stage 3 is a production top-level package]])
+- [x] Stage 3 stack: Perplexity `fetch_url` + OpenAI logprob judge (see [[2026-08-13: Stage 3 stack = Perplexity fetch_url + OpenAI logprob judge]])
+- [x] Stage 3 D1 field names + D4 Terra judge (see [[2026-08-14: Stage 3 D1/D4 locks (Terra judge + output field names)]])
+- [x] Stage 3 `verification` 0/1 + claim=`evidence_description` (see [[2026-08-14: Stage 3 verification=0/1 and claim=evidence_description]])
+- [x] Stage 3 D2 trailing cost/ops fields + D5 simple CLI (see [[2026-08-14: Stage 3 D2/D5 locked (trailing cost fields + simple CLI)]])
+- [x] Stage 3 delivery: one PR / five commits + local then cloud Bugbot (see [[2026-08-14: Stage 3 delivery = one PR, five commits + Bugbot gates]])
+- [x] `citation_verification/` commits 1–5 on branch `cursor/citation-verification-8475` (package only; evals out of scope)
+- [x] Cloud Bugbot babysit on Stage 3 package PR #28 (tip commit clean: no issues)
+- [ ] Later (separate plan): evals `run-verification` consumer + eval-set quality gates
