@@ -53,8 +53,6 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 - Stage 3 e2e5 after lenient judge: `outputs/stage3/smokes/20260815_2245_e2e5_bp_lenient/`
 - March 2026 snapshot (runnable, not imported by live code): `legacy_agent_march_2026/`
 - Frozen March dump for panel rebuilds (local, not in git): `evals/references/march_2026_production.jsonl`
-- Production batch runner: `production/` (`python -m production {run,dry-run,status,dedupe,verify}`)
-- Production writes (local, gitignored): `outputs/prod/{sgs,pcs,uas}/`
 
 ---
 
@@ -1228,7 +1226,7 @@ Second fetch order: **superseded by [[2026-08-15: Tavily Extract is the only pai
 - [x] Confirm-medium runner skips only success JSON and detects 429 from the error field (see [[2026-08-15: Confirm-medium runner no longer locks failed JSON or false 429s]])
 - [x] 3-arch bake-off skipped: SGS is the production Stage 2 architecture (see [[2026-08-16: Skip bake-off, ship SGS on the full prod set]])
 - [x] Park March agent in `legacy_agent_march_2026/` (see [[2026-08-16: March agent retired to legacy_agent_march_2026]])
-- [x] SGS production batch runner on branch `prod_runner` after this PR merges (see [[2026-08-16: Skip bake-off, ship SGS on the full prod set]] and [[2026-08-16: PR2 production runner landed]])
+- [ ] SGS production batch runner on branch `prod_runner` after this PR merges (see [[2026-08-16: Skip bake-off, ship SGS on the full prod set]])
 - [ ] Persist raw findings, then write a derived syndication squash (keep duty splits). See [[2026-08-16: Save raw findings, dedupe as a derived view]]
 - [x] Stage 3 spike: Perplexity logprobs? (**No** usable logprobs; see [[2026-08-13: Perplexity APIs do not expose usable logprobs]])
 - [x] Stage 3 packaging: top-level production `citation_verification/` (see [[2026-08-13: Stage 3 is a production top-level package]])
@@ -1364,31 +1362,3 @@ Second fetch order: **superseded by [[2026-08-15: Tavily Extract is the only pai
 **Alternatives rejected:** Parking only `production_results.*` under `outputs/legacy/`. Letting live panel builders read `legacy_agent_march_2026/outputs/`. Moving the UAS prompt into the snapshot (would break live UAS). Committing the 69MB JSONL.
 
 **Open follow-ups:** PR2 `prod_runner` after this merges.
-
----
-
-## 2026-08-16: PR2 production runner landed
-
-**Decision:** Ship a top-level `production/` package that batches SGS (default), PCS, or UAS over `crunchbase_data/stage2_input_dataset_p4_p5.jsonl` (9,420 companies). Live `run` requires `--limit N` or explicit `--all`. Writes raw findings under `outputs/prod/{sgs,pcs,uas}/`. `dedupe` exists but raises a clear not-implemented error until syndication squash. `verify` thin-wraps `citation_verification/` (dry-run default, `--live` opt-in) and renames Stage 3 `error` to `verification_error`. Resume is per architecture. Default concurrency is 4. Ctrl+C finishes in-flight companies and starts no new ones. No `--budget-cap` and no March pause/Enter loop.
-
-**Why:** Bake-off was skipped and SGS is the ship architecture. The March runner is retired. Panel smokes are not a 9,420-company runner. A dedicated package keeps the three-step workflow (raw write, later squash, then verify) and makes accidental full-set spend hard.
-
-**Evidence:** User lock for PR2 on branch `prod_runner` (from main `ca1015b`). Per-company APIs: `signal_gated_search.run`, `parallel_channel_search.run`, `unified_adaptive_search.run`. Keep-success and 429/timeout requeue from `outputs/stage2/test_runs/sgs_skip_50/run_fifty.py`. CLI: `python -m production {run,dry-run,status,dedupe,verify}`. Offline tests: `tests/test_production_runner.py`.
-
-**Alternatives rejected:** Reusing `legacy_agent_march_2026` or restoring the live March runner. Squashing syndicated copies inside `run`. Starting the paid 9,420-company job in this PR. A `--budget-cap` in v1.
-
-**Open follow-ups:** Syndication squash (`dedupe` writes `findings_deduplicated.csv`). Paid `--limit` batches after Khaled approval. Do not start `--all` until a small paid batch looks right.
-
----
-
-## 2026-08-16: Prod resume retries only 429/timeout
-
-**Decision:** Production `run --limit N` parks companies whose `{rcid}.json` already has a **permanent** (non-429/timeout) error. Those files stay on disk and do not consume the slice. 429 and timeout files are still backed up and requeued. `status` next-rcids and `dry-run` use the same queue rule. `remaining` still counts every non-success company, including parked errors. `status` spend sums `cost_usd` from canonical JSON and sidecar backups, so a 429 that was unlinked still counts.
-
-**Why:** Bugbot on PR #32. The first draft requeued every failed JSON, copied from the 50-co panel scripts. On a 9,420-company `--limit` loop, one permanent error at the front would be paid again on every slice and would block later companies from entering the queue. Unlinking a 429 sidecar also hid that spend if status only read the canonical file.
-
-**Evidence:** `production/persist.py` `is_parked_error` / `is_runnable` / `sum_recorded_spend`. `production/run.py` `_prepare_todo` / `remaining_companies`. `production/status.py` `next_rows`. Tests: `tests/test_production_runner.py` `test_permanent_error_does_not_consume_next_limit`, `test_status_spend_includes_429_backup`.
-
-**Alternatives rejected:** Retrying every failure on each slice (panel-script behavior). Treating parked errors as `done` (hides them from `remaining` / `errors`). Adding a `--retry-failed` flag in v1 (delete the JSON to retry).
-
-**Open follow-ups:** Syndication squash (`dedupe` writes `findings_deduplicated.csv`). Paid `--limit` batches after Khaled approval. Do not start `--all` until a small paid batch looks right.
