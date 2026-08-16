@@ -6,10 +6,13 @@ import json
 from collections import Counter
 from pathlib import Path
 
+import pytest
+
 from evals.panel import load_panel, load_panel_companies
 from evals.panel.build_sgs_skip_panel_v1 import SEED, build
 from evals.paths import (
     HILLCLIMB_PANEL_PATH,
+    MARCH_STAGE2_JSONL,
     PCS_CONFIRM_PANEL_PATH,
     SGS_SKIP_PANEL_PATH,
     TUNING_PANEL_PATH,
@@ -56,6 +59,10 @@ def test_sgs_skip_panel_membership() -> None:
     assert [c.rcid for c in loaded] == rcids
 
 
+@pytest.mark.skipif(
+    not MARCH_STAGE2_JSONL.is_file(),
+    reason="local March dump is gitignored and not on this machine",
+)
 def test_sgs_skip_builder_is_deterministic() -> None:
     first = [int(c["rcid"]) for c in build()["companies"]]
     second = [int(c["rcid"]) for c in build()["companies"]]
