@@ -19,8 +19,12 @@ from production.__main__ import main
 from production.persist import (
     RESEARCH_COLUMNS,
     VERIFIED_COLUMNS,
+    backup_retryable,
     is_complete_success,
+    load_dataset,
     load_payload,
+    prod_paths,
+    rebuild_jsonl_from_companies,
     write_company_json,
 )
 
@@ -151,6 +155,23 @@ def _install_fake(monkeypatch, *, sgs=None, pcs=None, uas=None) -> None:
 
 def _cli(args: list[str]) -> int:
     return main(args)
+
+
+def _capture_cli(args: list[str]) -> tuple[int, str]:
+    from io import StringIO
+    import sys
+
+    buf = StringIO()
+    old = sys.stdout
+    sys.stdout = buf
+    code = 0
+    try:
+        code = main(args)
+    except SystemExit as exc:
+        code = int(exc.code) if exc.code is not None else 1
+    finally:
+        sys.stdout = old
+    return code, buf.getvalue()
 
 
 def test_live_run_requires_limit_or_all(tmp_path: Path) -> None:
@@ -542,6 +563,80 @@ def test_keep_success_does_not_overwrite(tmp_path: Path) -> None:
     assert json.loads(outcome.backup.read_text())["error"] == "TimeoutError: late fail"
 
 
+def test_permanent_error_does_not_consume_next_limit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    dataset = _dataset(tmp_path / "companies.jsonl", n=3)
+    output_root = tmp_path / "prod"
+    calls: list[int] = []
+
+    def fake_sgs(company, **_kwargs):
+        rcid = int(company["rcid"])
+        calls.append(rcid)
+        if rcid == 1:
+            return _sgs_result(company, error="ValueError: bad company record")
+        return _sgs_result(company)
+
+    _install_fake(monkeypatch, sgs=fake_sgs)
+    common = [
+        "run",
+        "--architecture",
+        "sgs",
+        "--dataset",
+        str(dataset),
+        "--output-root",
+        str(output_root),
+        "--concurrency",
+        "1",
+    ]
+    assert _cli([*common, "--limit", "1"]) == 1
+    assert calls == [1]
+    assert _cli([*common, "--limit", "1"]) == 0
+    assert calls == [1, 2]
+    report = collect_printed_status(dataset, output_root, limit=2)
+    assert "errors: 1" in report
+    assert "next (--limit 2): 3" in report
+    assert "1" not in report.split("next (--limit 2):")[1]
+
+
+def test_status_spend_includes_429_backup(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    dataset = _dataset(tmp_path / "companies.jsonl", n=1)
+    output_root = tmp_path / "prod"
+    _install_fake(
+        monkeypatch,
+        sgs=lambda company, **_k: _sgs_result(company, error="RateLimitError: 429"),
+    )
+    assert (
+        _cli(
+            [
+                "run",
+                "--architecture",
+                "sgs",
+                "--dataset",
+                str(dataset),
+                "--output-root",
+                str(output_root),
+                "--limit",
+                "1",
+                "--concurrency",
+                "1",
+            ]
+        )
+        == 1
+    )
+    from production.persist import prod_paths, sum_recorded_spend
+
+    paths = prod_paths(output_root, "sgs")
+    backups = list(paths.companies.glob("1.*.429.json"))
+    assert backups
+    # First attempt is the sidecar. Last attempt stays canonical. Both billed.
+    assert sum_recorded_spend(paths) == pytest.approx(0.26)
+    report = collect_printed_status(dataset, output_root, limit=1)
+    assert "spend: $0.2600" in report
+
+
 def test_retryable_429_is_requeued(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     dataset = _dataset(tmp_path / "companies.jsonl", n=1)
     output_root = tmp_path / "prod"
@@ -577,6 +672,74 @@ def test_retryable_429_is_requeued(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     assert payload.get("error") in (None, "")
     backups = list((output_root / "sgs" / "companies").glob("1.*.429.json"))
     assert backups
+
+
+def test_rebuild_keeps_unlinked_429_in_findings(tmp_path: Path) -> None:
+    dataset = _dataset(tmp_path / "companies.jsonl", n=1)
+    output_root = tmp_path / "prod"
+    paths = prod_paths(output_root, "sgs")
+    paths.companies.mkdir(parents=True)
+    payload = {
+        "rcid": 1,
+        "company_name": "Co1",
+        "architecture": "sgs",
+        "findings": [],
+        "findings_count": 0,
+        "cost_usd": 0.13,
+        "error": "RateLimitError: 429",
+        "homepage_url": "https://co1.example",
+        "short_description": "desc 1",
+        "research_priority_score": 5,
+    }
+    canonical = paths.company_json(1)
+    canonical.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    backup_retryable(canonical, "429")
+    assert not canonical.exists()
+    rebuild_jsonl_from_companies(paths, load_dataset(dataset))
+    lines = [
+        json.loads(line)
+        for line in paths.findings_jsonl.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert len(lines) == 1
+    assert lines[0]["rcid"] == 1
+    assert "429" in str(lines[0].get("error"))
+    with paths.findings_csv.open(encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    assert rows[0]["rcid"] == "1"
+    assert "429" in rows[0]["error"]
+
+
+def test_nothing_to_run_reports_parked_remaining(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    dataset = _dataset(tmp_path / "companies.jsonl", n=1)
+    output_root = tmp_path / "prod"
+    _install_fake(
+        monkeypatch,
+        sgs=lambda company, **_k: _sgs_result(
+            company, error="ValueError: bad company record"
+        ),
+    )
+    common = [
+        "run",
+        "--architecture",
+        "sgs",
+        "--dataset",
+        str(dataset),
+        "--output-root",
+        str(output_root),
+        "--limit",
+        "1",
+        "--concurrency",
+        "1",
+    ]
+    assert _cli(common) == 1
+    code, out = _capture_cli(common)
+    assert code == 1
+    assert "NOTHING_TO_RUN" in out
+    assert "remaining=1" in out
+    assert "parked=1" in out
 
 
 def _git_ignores(rel_path: str) -> bool:

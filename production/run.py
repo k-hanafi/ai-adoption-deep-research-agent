@@ -21,11 +21,13 @@ from production.persist import (
     WriteOutcome,
     append_findings_jsonl,
     backup_retryable,
-    copy_retryable_backup,
     company_record,
+    count_outstanding,
     disk_payload,
     is_complete_success,
+    is_parked_error,
     is_retryable,
+    is_runnable,
     load_payload,
     prod_paths,
     rebuild_findings_csv,
@@ -72,12 +74,12 @@ def remaining_companies(
     architecture: str,
     output_root,
 ) -> list[dict[str, Any]]:
-    """Dataset-order companies that do not yet have a successful JSON."""
+    """Dataset-order companies that live --limit N would take next."""
     paths = prod_paths(output_root, architecture)
     todo: list[dict[str, Any]] = []
     for row in companies:
         payload = load_payload(paths.company_json(int(row["rcid"])))
-        if is_complete_success(payload):
+        if not is_runnable(payload):
             continue
         todo.append(row)
     return todo
@@ -165,6 +167,13 @@ def _prepare_todo(
                     flush=True,
                 )
                 continue
+            if is_parked_error(existing):
+                print(
+                    f"PARK {rcid} {row.get('name')}: non-retryable error left in "
+                    f"{result_path.name}",
+                    flush=True,
+                )
+                continue
             kind = retry_kind((existing or {}).get("error"))
             backup = backup_retryable(result_path, kind)
             print(
@@ -236,16 +245,20 @@ def _execute_batch(
             return
         if is_retryable(err) and outcome.path == result_path:
             kind = retry_kind(err)
-            if unlink_on_retry:
-                backup = backup_retryable(result_path, kind)
-            else:
-                backup = copy_retryable_backup(result_path, kind)
             need_retry.append(company)
             label = "RATE_LIMIT" if kind == "429" else "TIMEOUT"
-            print(
-                f"{label} {rcid} {company.get('name')} backed up to {backup.name}",
-                flush=True,
-            )
+            if unlink_on_retry:
+                backup = backup_retryable(result_path, kind)
+                print(
+                    f"{label} {rcid} {company.get('name')} backed up to {backup.name}",
+                    flush=True,
+                )
+            else:
+                print(
+                    f"{label} {rcid} {company.get('name')} left {result_path.name} "
+                    f"for a later retry",
+                    flush=True,
+                )
         elif err:
             failed += 1
         print(
@@ -314,11 +327,13 @@ def run_live(
             limit=limit,
         )
         if not todo:
+            remaining, parked = count_outstanding(companies, paths)
             print(
-                f"NOTHING_TO_RUN arch={architecture} skipped={skipped} remaining=0",
+                f"NOTHING_TO_RUN arch={architecture} skipped={skipped} "
+                f"remaining={remaining} parked={parked}",
                 flush=True,
             )
-            return 0
+            return 1 if remaining else 0
 
         print(
             f"QUEUE n={len(todo)} arch={architecture} concurrency={concurrency} "

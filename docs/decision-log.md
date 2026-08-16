@@ -1378,3 +1378,17 @@ Second fetch order: **superseded by [[2026-08-15: Tavily Extract is the only pai
 **Alternatives rejected:** Reusing `legacy_agent_march_2026` or restoring the live March runner. Squashing syndicated copies inside `run`. Starting the paid 9,420-company job in this PR. A `--budget-cap` in v1.
 
 **Open follow-ups:** Syndication squash (`dedupe` writes `findings_deduplicated.csv`). Paid `--limit` batches after Khaled approval. Do not start `--all` until a small paid batch looks right.
+
+---
+
+## 2026-08-16: Prod resume retries only 429/timeout
+
+**Decision:** Production `run --limit N` parks companies whose `{rcid}.json` already has a **permanent** (non-429/timeout) error. Those files stay on disk and do not consume the slice. 429 and timeout files are still backed up and requeued. `status` next-rcids and `dry-run` use the same queue rule. `remaining` still counts every non-success company, including parked errors. `status` spend sums `cost_usd` from canonical JSON and sidecar backups, so a 429 that was unlinked still counts.
+
+**Why:** Bugbot on PR #32. The first draft requeued every failed JSON, copied from the 50-co panel scripts. On a 9,420-company `--limit` loop, one permanent error at the front would be paid again on every slice and would block later companies from entering the queue. Unlinking a 429 sidecar also hid that spend if status only read the canonical file.
+
+**Evidence:** `production/persist.py` `is_parked_error` / `is_runnable` / `sum_recorded_spend`. `production/run.py` `_prepare_todo` / `remaining_companies`. `production/status.py` `next_rows`. Tests: `tests/test_production_runner.py` `test_permanent_error_does_not_consume_next_limit`, `test_status_spend_includes_429_backup`.
+
+**Alternatives rejected:** Retrying every failure on each slice (panel-script behavior). Treating parked errors as `done` (hides them from `remaining` / `errors`). Adding a `--retry-failed` flag in v1 (delete the JSON to retry).
+
+**Open follow-ups:** Syndication squash (`dedupe` writes `findings_deduplicated.csv`). Paid `--limit` batches after Khaled approval. Do not start `--all` until a small paid batch looks right.

@@ -172,6 +172,78 @@ def is_retryable(error: Optional[str]) -> bool:
     return is_429(error) or is_timeout(error)
 
 
+def is_parked_error(payload: Optional[dict[str, Any]]) -> bool:
+    """True for a canonical failure that should not consume the next --limit batch."""
+    if not payload or is_complete_success(payload):
+        return False
+    error = payload.get("error")
+    if not error:
+        return False
+    return not is_retryable(error)
+
+
+def is_runnable(payload: Optional[dict[str, Any]]) -> bool:
+    """Companies live --limit N will take: no success file, or a 429/timeout."""
+    if is_complete_success(payload):
+        return False
+    return not is_parked_error(payload)
+
+
+def sum_recorded_spend(paths: ProdPaths) -> float:
+    """Sum cost_usd from canonical JSON and sidecar backups (429/timeout/failed)."""
+    if not paths.companies.exists():
+        return 0.0
+    total = 0.0
+    for path in paths.companies.glob("*.json"):
+        payload = load_payload(path)
+        if payload is None:
+            continue
+        total += float(payload.get("cost_usd") or 0.0)
+    return total
+
+
+def sidecar_paths(paths: ProdPaths, rcid: int) -> list[Path]:
+    """Backups named ``{rcid}.{stamp}.{kind}.json``, not the canonical file."""
+    if not paths.companies.exists():
+        return []
+    return sorted(
+        paths.companies.glob(f"{int(rcid)}.*.json"),
+        key=lambda path: path.stat().st_mtime,
+    )
+
+
+def latest_sidecar_payload(paths: ProdPaths, rcid: int) -> Optional[dict[str, Any]]:
+    sidecars = sidecar_paths(paths, rcid)
+    if not sidecars:
+        return None
+    return load_payload(sidecars[-1])
+
+
+def load_result_payload(paths: ProdPaths, rcid: int) -> Optional[dict[str, Any]]:
+    """Canonical JSON if present, else the newest sidecar (429/timeout after unlink)."""
+    payload = load_payload(paths.company_json(rcid))
+    if payload is not None:
+        return payload
+    return latest_sidecar_payload(paths, rcid)
+
+
+def count_outstanding(
+    companies: list[dict[str, Any]],
+    paths: ProdPaths,
+) -> tuple[int, int]:
+    """Return (remaining, parked). Remaining is every company without a success JSON."""
+    remaining = 0
+    parked = 0
+    for row in companies:
+        payload = load_payload(paths.company_json(int(row["rcid"])))
+        if is_complete_success(payload):
+            continue
+        remaining += 1
+        if is_parked_error(payload):
+            parked += 1
+    return remaining, parked
+
+
 def retry_kind(error: Optional[str]) -> str:
     if is_429(error):
         return "429"
@@ -358,13 +430,13 @@ def rebuild_jsonl_from_companies(
     paths: ProdPaths,
     companies: list[dict[str, Any]],
 ) -> None:
-    """Rewrite findings.jsonl in dataset order from canonical company JSON."""
+    """Rewrite findings.jsonl in dataset order from company JSON or newest sidecar."""
     by_rcid = {int(row["rcid"]): row for row in companies}
     records: list[dict[str, Any]] = []
     if paths.companies.exists():
         for company in companies:
             rcid = int(company["rcid"])
-            payload = load_payload(paths.company_json(rcid))
+            payload = load_result_payload(paths, rcid)
             if payload is None:
                 continue
             records.append(company_record(by_rcid[rcid], payload, paths.architecture))
