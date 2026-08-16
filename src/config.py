@@ -28,16 +28,13 @@ STAGE1_TAVILY_DIR = STAGE1_OUTPUT_DIR / "tavily"
 STAGE1_GPT_DIR = STAGE1_OUTPUT_DIR / "gpt"
 STAGE2_OUTPUT_DIR = OUTPUT_DIR / "stage2"
 STAGE2_TEST_RUNS_DIR = STAGE2_OUTPUT_DIR / "test_runs"
-STAGE2_RUNS_DIR = STAGE2_OUTPUT_DIR / "runs"
-STAGE2_MASTER_JSONL = STAGE2_OUTPUT_DIR / "production_results.jsonl"
-STAGE2_MASTER_CSV = STAGE2_OUTPUT_DIR / "production_results.csv"
 # Stage 2 input dataset (priority=4+5) lives with the Crunchbase source data
 STAGE2_INPUT_DATASET_PATH = DATA_DIR / "stage2_input_dataset_p4_p5.jsonl"
 
 # Ensure directories exist
 for dir_path in [OUTPUT_DIR, LOG_DIR, CHECKPOINT_DIR,
                  STAGE1_OUTPUT_DIR, STAGE1_TAVILY_DIR, STAGE1_GPT_DIR,
-                 STAGE2_OUTPUT_DIR, STAGE2_TEST_RUNS_DIR, STAGE2_RUNS_DIR]:
+                 STAGE2_OUTPUT_DIR, STAGE2_TEST_RUNS_DIR]:
     dir_path.mkdir(exist_ok=True)
 
 

@@ -51,6 +51,8 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 - Stage 3 e2e5 smoke: `outputs/stage3/smokes/20260815_203606_e2e5/`
 - Stage 3 bulletproof e2e5: `outputs/stage3/smokes/20260815_2218_e2e5_bp/`
 - Stage 3 e2e5 after lenient judge: `outputs/stage3/smokes/20260815_2245_e2e5_bp_lenient/`
+- March 2026 snapshot (runnable, not imported by live code): `legacy_agent_march_2026/`
+- Frozen March dump for panel rebuilds (local, not in git): `evals/references/march_2026_production.jsonl`
 
 ---
 
@@ -977,7 +979,7 @@ Scout tax mean **$0.020**/co ($0.984). Dig spend mean $0.137 ($6.867). Owned lit
 
 **Alternatives rejected:** Calling this a bake-off. Starting PCS on this panel. Overwriting `sgs_hillclimb_20_matched/` or `sgs_hillclimb_20_high/`. Changing scout semantics after one none/low panel.
 
-**Open follow-ups:** Bake-off still later on a **new** disjoint panel (never tuning-50, hill-climb 20, PCS confirm 20, or this skip 50). PCS effort (3× medium vs 3× high) still open. Yield-hint remains the only way to skip empty-of-evidence rooms that still exist.
+**Open follow-ups:** Bake-off still later on a **new** disjoint panel (never tuning-50, hill-climb 20, PCS confirm 20, or this skip 50). PCS effort (3× medium vs 3× high) still open. Yield-hint remains the only way to skip empty-of-evidence rooms that still exist. Syndication squash (same sentence, different boards) is locked in [[2026-08-16: Squash syndicated copies, keep duty splits]].
 
 ---
 
@@ -1222,7 +1224,10 @@ Second fetch order: **superseded by [[2026-08-15: Tavily Extract is the only pai
 - [x] Record PCS 3× high on `pcs_confirm_v1_march_20` (195 findings, mean $0.171; see [[2026-08-14: PCS confirm 20-co 3× high]])
 - [x] Record PCS 3× medium on the same confirm 20 (124 findings after CloudCruise restore, mean $0.072; 8-wide 429s, safe concurrency 5; see [[2026-08-14: PCS confirm 20-co 3× medium]] and [[2026-08-14: CloudCruise medium timeout overwrite restored]])
 - [x] Confirm-medium runner skips only success JSON and detects 429 from the error field (see [[2026-08-15: Confirm-medium runner no longer locks failed JSON or false 429s]])
-- [ ] 3-arch bake-off in eval suite (only after the user is happy; new disjoint panel, never tuning-50, never hill-climb 20, never the PCS confirm 20, never the SGS skip 50)
+- [x] 3-arch bake-off skipped: SGS is the production Stage 2 architecture (see [[2026-08-16: Skip bake-off, ship SGS on the full prod set]])
+- [x] Park March agent in `legacy_agent_march_2026/` (see [[2026-08-16: March agent retired to legacy_agent_march_2026]])
+- [ ] SGS production batch runner on branch `prod_runner` after this PR merges (see [[2026-08-16: Skip bake-off, ship SGS on the full prod set]])
+- [ ] Persist raw findings, then write a derived syndication squash (keep duty splits). See [[2026-08-16: Save raw findings, dedupe as a derived view]]
 - [x] Stage 3 spike: Perplexity logprobs? (**No** usable logprobs; see [[2026-08-13: Perplexity APIs do not expose usable logprobs]])
 - [x] Stage 3 packaging: top-level production `citation_verification/` (see [[2026-08-13: Stage 3 is a production top-level package]])
 - [x] Stage 3 stack: Perplexity `fetch_url` + OpenAI logprob judge (see [[2026-08-13: Stage 3 stack = Perplexity fetch_url + OpenAI logprob judge]])
@@ -1299,3 +1304,61 @@ Second fetch order: **superseded by [[2026-08-15: Tavily Extract is the only pai
 **Alternatives rejected:** Keeping Terra. Moving the judge to Perplexity (logprobs still unusable). Dropping logprobs to save more.
 
 **Open follow-ups:** Optional cheap Luna re-smoke of the same 14 rows to confirm logprobs still extract. WS9 still gated.
+
+---
+
+## 2026-08-16: Squash syndicated copies, keep duty splits
+
+**Status:** persistence/timing superseded by [[2026-08-16: Save raw findings, dedupe as a derived view]]. Duty-split vs syndication rule still stands.
+
+**Decision:** Finding merge keeps **duty splits** (one sentence, three distinct use cases = three findings). It squashes **syndicated copies** only: the same tool + same use case + the same claim, posted on multiple job boards or re-extracted by a second channel with slightly different wording. Do this in `merge_findings` at the **end of each company**, before the result is written. The same function can replay on old traces. Do not dedupe mid-search. Do not make a post-hoc notebook the source of truth.
+
+**Why:** `(tool, use_case, url)` already keeps duty splits and already drops exact same-URL copies. It misses Terralytiq-style mirrors (careers + LinkedIn + Techstars) and Loman-style channel rewrites of one Gusto post. Dropping URL from the key would also collapse two real pages that happen to name the same tool and use. Evidence-text similarity, gated on similar tool + similar use case, is the extra pass. Search should still visit every board. A unique sentence can live on only one of them.
+
+**Evidence:** User lock 2026-08-16 after the SGS skip-50 184-row review. Current merge: `parallel_channel_search/merge.py`, called from `parallel_channel_search/runner.py` and `signal_gated_search/runner.py`. Old production JSONL helper `_deduplicate_jsonl` in `src/stage_2/production_agent_runner.py` is resume-safe company-level (best row per `rcid`+`preset`), not finding-level.
+
+**Alternatives rejected:** Squashing the ~30 duty-split rows. Deduping while a channel is still searching. Post-hoc-only squash after a full run (evals and CSV would keep two counts). An LLM judge for merge (nondeterministic, paid).
+
+**Open follow-ups:** Implement the second pass in `merge_findings` (normalize tool/use, compare evidence text, first channel wins). Add tests from Terralytiq / Dreamwave (squash) vs Verifiable / Synqly duty lists (keep). Replay on `outputs/stage2/test_runs/sgs_skip_50/` to replace the 184 headline. Old Perplexity production runner should call the same merge before write if it stays in the path.
+
+---
+
+## 2026-08-16: Save raw findings, dedupe as a derived view
+
+**Decision:** Write the **raw** finding list first (everything the channels emitted, including syndicated copies). Run syndication squash **only after that write**. The squashed list is a derived view, not a replacement. Raw stays on disk so a hungry merge can be undone without a new paid run. Scoreboards and evals read the derived view by default. You can rebuild derived anytime the merge rules change.
+
+**Why:** Merge thresholds will get tuned. If squash overwrites the only copy, a bad rule silently deletes evidence. Saving raw first is the undo button. Search still does not dedupe mid-flight.
+
+**Evidence:** User lock 2026-08-16. Policy for *what* to squash remains [[2026-08-16: Squash syndicated copies, keep duty splits]]. Current write path: `parallel_channel_search/runner.py` and `signal_gated_search/runner.py` call `merge_findings` before persist.
+
+**Alternatives rejected:** Squashing in memory and writing only the reduced list (previous timing). Deduping while a channel is still searching. Waiting for an entire multi-thousand-company run to finish before computing derived for company 1 (raw still saves incrementally; derived can attach per company after that company's raw is on disk, and can be rebuilt for the whole run later).
+
+**Open follow-ups:** Shape the on-disk fields (`findings` = raw, `findings_deduped` = derived, plus both counts). Implement after the merge tests exist. Replay skip-50 raw vs derived so 184 stays auditable. Prod path: SGS batch runner writes raw first; squash and Stage 3 run after (see [[2026-08-16: Skip bake-off, ship SGS on the full prod set]]).
+
+---
+
+## 2026-08-16: Skip bake-off, ship SGS on the full prod set
+
+**Decision:** Do **not** run the 3-arch bake-off. **SGS** is the production Stage 2 architecture for the full P4+P5 set (`crunchbase_data/stage2_input_dataset_p4_p5.jsonl`, 9,420 companies). Package defaults stay: `scout_preset=low`, digs Luna `max_steps=50` / `web_search_depth=medium` / `reasoning_effort=high`. Workflow is three sequential jobs: (1) SGS production runner writes raw findings to disk, (2) syndication squash as a derived view, (3) Stage 3 verification. Stage 3 does not have to be production-complete before (1) starts.
+
+**Why:** User lock 2026-08-16. Hill-climb and skip-rate already showed SGS at or above PCS high on findings. Waiting for a disjoint bake-off panel delays the dataset. Dedup and verification can run on saved findings, so they are not blockers for paid search.
+
+**Evidence:** User said bake-off is skipped and SGS is the ship choice. Closest SGS batch scripts are panel smokes (`outputs/stage2/test_runs/sgs_skip_50/run_fifty.py`, `sgs_hillclimb_20_matched/run_twenty.py`), not a full-set runner. Per-company API is `signal_gated_search.run()`. March-era scale runner `src/stage_2/production_agent_runner.py` still talks to the old Perplexity `deep-research` preset, not SGS. Cost band from paid SGS: mean **$0.171** on the hill-climb 20, **$0.157** on the skip 50. Full-set planning should use ~$0.16/co (~$1.5k), not the old $0.10 / ~$945 target.
+
+**Alternatives rejected:** Running the disjoint 3-arch bake-off first. Reusing the March `production_agent_runner.py` as the prod path. Blocking the full-set run on syndication squash or a finished Stage 3 verifier.
+
+**Open follow-ups:** Build the SGS production batch runner on branch `prod_runner` after `retire-legacy` merges (resume, concurrency, budget cap, incremental raw persist). Then derived squash ([[2026-08-16: Save raw findings, dedupe as a derived view]]). Stage 3 can keep landing in parallel (WS9 still gated).
+
+---
+
+## 2026-08-16: March agent retired to legacy_agent_march_2026
+
+**Decision:** Move the March 2026 production system into a root-level runnable snapshot, `legacy_agent_march_2026/`. Copy shared Stage 1 (live Stage 1 stays). Move March-only Stage 2 (runner, A/B scripts, dashboard). Live code must not import that folder. Panel rebuilds read a frozen copy at `evals/references/march_2026_production.jsonl` (local, ~69MB, not in git). `prompts/stage_2_perplexity_prompt.txt` stays in the live tree because UAS still loads it. PR1 branch is `retire-legacy`. PR2 (`prod_runner`) starts only after this merges to `main`.
+
+**Why:** The old batch runner still talks to Perplexity `deep-research`. Mixing it with the v2 SGS/PCS/UAS production path would make the wrong CLI easy to run on 9,420 companies. A standalone snapshot keeps March reproducible without being on the live import path.
+
+**Evidence:** User lock 2026-08-16 (plan-mode spec). Snapshot README `legacy_agent_march_2026/README.md`. Live `MARCH_STAGE2_JSONL` in `evals/paths.py`. Master path constants removed from live `src/config.py`.
+
+**Alternatives rejected:** Parking only `production_results.*` under `outputs/legacy/`. Letting live panel builders read `legacy_agent_march_2026/outputs/`. Moving the UAS prompt into the snapshot (would break live UAS). Committing the 69MB JSONL.
+
+**Open follow-ups:** PR2 `prod_runner` after this merges.

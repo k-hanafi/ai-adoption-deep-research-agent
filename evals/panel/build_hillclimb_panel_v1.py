@@ -11,10 +11,10 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+from evals.paths import MARCH_STAGE2_JSONL
 from evals.panel.build_tuning_panel_v2 import _row_from_march, _stratum
 
-ROOT = Path(__file__).resolve().parents[2]
-MARCH_JSONL = ROOT / "outputs" / "stage2" / "production_results.jsonl"
+MARCH_JSONL = MARCH_STAGE2_JSONL
 TUNING_PATH = Path(__file__).resolve().parent / "tuning_panel.json"
 OUT_PATH = Path(__file__).resolve().parent / "hillclimb_panel.json"
 
@@ -116,7 +116,7 @@ def build() -> dict[str, Any]:
             "(jobs vs owned vs third_party from source_type)."
         ),
         "source": {
-            "march_run": "outputs/stage2/production_results.jsonl",
+            "march_run": "evals/references/march_2026_production.jsonl",
             "selection_axis": "march_findings_count_plus_channel_failure_modes",
             "population": "Stage 2 companies excluding tuning_panel_v2 holdout",
             "strata_cutpoints": {

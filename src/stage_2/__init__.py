@@ -1,25 +1,11 @@
-"""Stage 2: Deep research via Perplexity Agent API.
+"""March Stage 2 batch runner was moved. This package is a pointer only."""
 
-Migration note (Phase 1 scaffolding):
-- New eval-facing home for the status-quo single-call shape is
-  `unified_adaptive_search` (CLI: unified-adaptive-search).
-- March batch production remains on
-  `python -m src.stage_2.production_agent_runner`.
-- Prefer `python -m evals …` for architecture experiments going forward.
-"""
-
-from __future__ import annotations
-
-from typing import Any
-
-__all__ = ["unified_adaptive_search_run"]
+MOVED_TO = "legacy_agent_march_2026"
 
 
-def __getattr__(name: str) -> Any:
-    # Lazy re-export so `python -m src.stage_2.production_agent_runner`
-    # does not import the new packages unless callers ask for the shim.
-    if name == "unified_adaptive_search_run":
-        from unified_adaptive_search.runner import run as unified_adaptive_search_run
-
-        return unified_adaptive_search_run
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+def moved_message() -> str:
+    return (
+        "The March 2026 production runner is no longer on the live import path. "
+        f"cd {MOVED_TO} and run: "
+        "PYTHONPATH=. python -m src.stage_2.production_agent_runner --dry-run"
+    )

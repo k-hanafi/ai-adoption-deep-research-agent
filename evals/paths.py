@@ -24,8 +24,11 @@ PCS_CONFIRM_PANEL_PATH = PANEL_DIR / "pcs_confirm_panel.json"
 # SGS skip-rate set: March none/low only. Disjoint from the three panels above. Not bake-off.
 SGS_SKIP_PANEL_PATH = PANEL_DIR / "sgs_skip_panel.json"
 TUNING_CONFIGS_DIR = CONFIGS_DIR / "tuning"
-# March Stage 2 production dump (panel / cost-diagnose selection source).
-MARCH_STAGE2_JSONL = PROJECT_ROOT / "outputs" / "stage2" / "production_results.jsonl"
+# Frozen March Stage 2 dump for panel rebuilds (local copy, not in git).
+# Do not point this at legacy_agent_march_2026/.
+MARCH_STAGE2_JSONL = (
+    EVALS_PACKAGE_DIR / "references" / "march_2026_production.jsonl"
+)
 
 # Mean $/company feasibility cutoff for tuning (drop arms above this).
 COST_CONSTRAINT_USD = 0.105

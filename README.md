@@ -8,9 +8,9 @@
 ![Findings](https://img.shields.io/badge/verified%20findings-2%2C062-blue)
 ![Cost](https://img.shields.io/badge/avg%20cost%20per%20startup-%241%20%E2%86%92%20%240.08-brightgreen)
 
-**[View Production Dashboard →](presentation/production_results.html)**
-
-Other HTML decks in `presentation/` are earlier proposal / stage-result slides kept as portfolio artifacts. The production dashboard above is the source of truth for final results.
+The March 2026 findings dashboard lives with the frozen first production
+run in [`legacy_agent_march_2026/presentation/production_results.html`](legacy_agent_march_2026/presentation/production_results.html).
+Other HTML decks in `presentation/` are earlier proposal / stage-result slides.
 
 ## Research Context & The Problem
 
@@ -44,7 +44,7 @@ flowchart LR
 
 **1. Hyperparameter Tuning**
 
-Before the production run, the Perplexity Agent API parameters were systematically tuned using a structured async A/B test framework (`src/tests/stage_2/run_preset_test.py`). Parameters evaluated:
+Before the March production run, the Perplexity Agent API parameters were systematically tuned using a structured async A/B test framework (now frozen at `legacy_agent_march_2026/src/tests/stage_2/run_preset_test.py`). Parameters evaluated:
 
 - `preset` — selects the underlying model and reasoning configuration (`deep-research` vs `advanced-deep-research`, each backed by a different frontier model)
 - `max_steps` 
@@ -106,7 +106,7 @@ Every agent response conforms to a strict JSON Schema enforced via Perplexity's 
 | Async runtime | Python `asyncio`, `httpx`, custom `AsyncRateLimiter` |
 | Schema | JSON Schema via Perplexity `response_format` |
 | Data layer | Incremental JSONL, EDA-ready CSV |
-| Tuning | Async A/B hyperparameter scripts under `src/tests/stage_2/` |
+| Tuning | Live: `evals/`. March A/B scripts: `legacy_agent_march_2026/src/tests/stage_2/` |
 
 ---
 
@@ -122,7 +122,7 @@ GenAI is not just an engineering tool. Marketing and Operations together account
 
 `Company blogs 36.1%` · `Job postings 25.3%` · `Podcasts/video 12.9%` · `Website content 7.9%` · `Press coverage 7.6%`
 
-[**View the full interactive dashboard →**](presentation/production_results.html)
+[**View the March 2026 dashboard →**](legacy_agent_march_2026/presentation/production_results.html)
 
 
 
@@ -139,38 +139,32 @@ Integrated ChatGPT into clinical systems for biomarker analysis. Evidence source
 
 ## Repo Structure
 
-The Stage 2 research line is migrating off a `src/`-centric layout into
-standalone architecture packages plus an eval harness. March production
-outputs under `outputs/stage2/` stay readable. `src/` remains as the Stage 1
-pipeline home and a temporary Stage 2 compatibility shim.
+Live Stage 2 is the architecture packages plus the eval harness. The March 2026
+batch runner, its prompt, and its results dashboard are a frozen snapshot in
+`legacy_agent_march_2026/` (runnable on its own, not imported by live code).
+`src/` is Stage 1 only. `prompts/stage_2_perplexity_prompt.txt` stays in the
+live tree because Unified Adaptive Search still loads it.
 
 ```
-├── parallel_channel_search/       # PCS — 3 equal-depth channel agents (Phase 1 stub)
-├── signal_gated_search/           # SGS — scouts → ranked dig (+ rescue) (Phase 1 stub)
-├── unified_adaptive_search/       # UAS — single medium call (extracted from Stage 2 patterns)
-├── evals/                         # Standalone harness + instance archive
-│   ├── instances/                 # Categorized archive (tuning / benchmark / verification)
-│   ├── runs/                      # Per-arm run bundles (gitignored)
-│   └── ...                        # CLI, panel, configs, dashboard renderers
-├── contracts/                     # Shared Finding + component cost ledger types
-├── prompts/
-│   ├── stage_1_classifier.txt
-│   ├── stage_2_perplexity_prompt.txt
-│   ├── shared/                    # Shared prompt blocks (growing)
-│   └── <architecture>/            # Optional per-system overrides
-├── src/                           # Stage 1 + legacy Stage 2 production runner (shim during migration)
-│   ├── stage_1/                   # Filter pipeline (Tavily + GPT scorer)
-│   ├── stage_2/                   # production_agent_runner.py (March batch path)
-│   ├── tests/stage_2/             # Prior hyperparameter tuning scripts
+├── parallel_channel_search/       # PCS: 3 equal-depth channel agents
+├── signal_gated_search/           # SGS: scouts, then gated digs
+├── unified_adaptive_search/       # UAS: one adaptive Agent API call
+├── citation_verification/         # Stage 3 judge (production package)
+├── evals/                         # Harness + panels + instance archive
+│   ├── references/                # Frozen March dump for panel rebuilds (local)
+│   └── ...
+├── contracts/                     # Shared Finding + cost ledger types
+├── prompts/                       # Stage 1, UAS lineage, PCS/SGS/Stage 3
+├── src/                           # Stage 1 filter pipeline only
+│   ├── stage_1/
 │   ├── common/
 │   └── config.py
+├── legacy_agent_march_2026/       # Frozen March agent (do not import)
 ├── credentials/                   # *.txt.template tracked; real keys gitignored
 ├── crunchbase_data/               # Input CSV + Stage 2 P4–P5 JSONL
-├── outputs/                       # gitignored — Stage 1/2 pipeline artifacts
-│   ├── stage1/
-│   └── stage2/                    # March master JSONL/CSV (keep readable)
-└── presentation/
-    └── production_results.html    # March production dashboard
+└── outputs/                       # gitignored pipeline artifacts
+    ├── stage1/
+    └── stage2/test_runs/          # v2 eval smokes (not March masters)
 ```
 
 ### Eval CLI (architecture playground)
