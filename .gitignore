@@ -75,6 +75,11 @@ evals/references/*.csv
 # March 2026 snapshot outputs (local only)
 legacy_agent_march_2026/outputs/**
 !legacy_agent_march_2026/outputs/.gitkeep
+# Snapshot secrets + runtime files (its PROJECT_ROOT is this folder)
+legacy_agent_march_2026/credentials/*.txt
+!legacy_agent_march_2026/credentials/*.txt.template
+legacy_agent_march_2026/logs/**
+legacy_agent_march_2026/checkpoints/**
 # Upcoming v2 production writes (PR2)
 outputs/prod/**
 

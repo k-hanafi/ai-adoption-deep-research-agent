@@ -1,5 +1,6 @@
 """Live March refs stay under evals/, never the snapshot folder."""
 
+import subprocess
 from pathlib import Path
 
 from evals.paths import EVALS_PACKAGE_DIR, MARCH_STAGE2_JSONL, PROJECT_ROOT
@@ -35,3 +36,22 @@ def test_live_python_does_not_import_march_snapshot() -> None:
         if any(needle in text for needle in _FORBIDDEN_IMPORTS):
             hits.append(str(path.relative_to(PROJECT_ROOT)))
     assert hits == []
+
+
+def _git_ignores(rel_path: str) -> bool:
+    """True when `git check-ignore` would skip this path (file need not exist)."""
+    result = subprocess.run(
+        ["git", "check-ignore", "-q", "--", rel_path],
+        cwd=PROJECT_ROOT,
+        check=False,
+    )
+    return result.returncode == 0
+
+
+def test_snapshot_secrets_and_runtime_files_are_gitignored() -> None:
+    assert _git_ignores("legacy_agent_march_2026/credentials/perplexity_api_key.txt")
+    assert _git_ignores("legacy_agent_march_2026/logs/run.log")
+    assert _git_ignores("legacy_agent_march_2026/checkpoints/progress.json")
+    assert not _git_ignores(
+        "legacy_agent_march_2026/credentials/perplexity_api_key.txt.template"
+    )
