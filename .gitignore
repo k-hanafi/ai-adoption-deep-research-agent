@@ -67,6 +67,16 @@ evals/instances/**
 !evals/instances/.gitkeep
 evals/runs/**
 !evals/runs/.gitkeep
+# Frozen March dump for panel rebuilds (~69MB). README says how to copy it.
+evals/references/*.jsonl
+evals/references/*.csv
+!evals/references/.gitkeep
+!evals/references/README.md
+# March 2026 snapshot outputs (local only)
+legacy_agent_march_2026/outputs/**
+!legacy_agent_march_2026/outputs/.gitkeep
+# Upcoming v2 production writes (PR2)
+outputs/prod/**
 
 # ─────────────────────────────────────────────────────────────────────────────
 # OS

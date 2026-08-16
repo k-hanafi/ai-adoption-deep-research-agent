@@ -12,10 +12,10 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Callable
 
+from evals.paths import MARCH_STAGE2_JSONL
 from evals.panel.build_tuning_panel_v2 import _row_from_march, _stratum
 
-ROOT = Path(__file__).resolve().parents[2]
-MARCH_JSONL = ROOT / "outputs" / "stage2" / "production_results.jsonl"
+MARCH_JSONL = MARCH_STAGE2_JSONL
 PANEL_DIR = Path(__file__).resolve().parent
 TUNING_PATH = PANEL_DIR / "tuning_panel.json"
 HILLCLIMB_PATH = PANEL_DIR / "hillclimb_panel.json"
@@ -179,7 +179,7 @@ def build() -> dict[str, Any]:
             "still needs a later disjoint set."
         ),
         "source": {
-            "march_run": "outputs/stage2/production_results.jsonl",
+            "march_run": "evals/references/march_2026_production.jsonl",
             "selection_axis": "march_findings_count_plus_channel_mix",
             "selection_seed": SEED,
             "population": (

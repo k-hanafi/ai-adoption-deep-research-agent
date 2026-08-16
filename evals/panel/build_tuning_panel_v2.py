@@ -12,8 +12,9 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, Optional
 
-ROOT = Path(__file__).resolve().parents[2]
-MARCH_JSONL = ROOT / "outputs" / "stage2" / "production_results.jsonl"
+from evals.paths import MARCH_STAGE2_JSONL
+
+MARCH_JSONL = MARCH_STAGE2_JSONL
 OUT_PATH = Path(__file__).resolve().parent / "tuning_panel.json"
 
 # Target: 50 total. Keep v1 15; fill to these counts.
@@ -176,7 +177,7 @@ def build() -> dict[str, Any]:
             "Phase 3 paired evals."
         ),
         "source": {
-            "march_run": "outputs/stage2/production_results.jsonl",
+            "march_run": "evals/references/march_2026_production.jsonl",
             "selection_axis": "march_findings_count",
             "population": "Stage 2 companies (positives + zeros)",
             "population_size_positives": 1251,
