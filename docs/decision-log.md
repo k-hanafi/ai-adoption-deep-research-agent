@@ -55,6 +55,9 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 - Frozen March dump for panel rebuilds (local, not in git): `evals/references/march_2026_production.jsonl`
 - Production batch runner: `production/` (`python -m production {run,dry-run,status,dedupe,verify}`)
 - Production writes (local, gitignored): `outputs/prod/{sgs,pcs,uas}/`
+- Production verify branch: `prod-verifier` (worktree `deep-research-AI-agent-verifier`)
+- Verify adaptive limiters: `citation_verification/limits.py`
+- Production derived squash: `production/dedupe.py` (`findings_deduplicated.csv`)
 
 ---
 
@@ -1230,8 +1233,8 @@ Second fetch order: **superseded by [[2026-08-15: Tavily Extract is the only pai
 - [x] Park March agent in `legacy_agent_march_2026/` (see [[2026-08-16: March agent retired to legacy_agent_march_2026]])
 - [x] SGS production batch runner on branch `prod_runner` after this PR merges (see [[2026-08-16: Skip bake-off, ship SGS on the full prod set]] and [[2026-08-16: PR2 production runner landed]])
 - [x] Re-land the production runner on `main` by reverting the accidental-merge revert (see [[2026-08-16: Re-land production runner on main]])
-- [ ] Persist raw findings, then write a derived syndication squash (keep duty splits) on its own branch. See [[2026-08-16: Save raw findings, dedupe as a derived view]]
-- [ ] Production `verify` implementation on its own branch (thin wrap already exists)
+- [x] Persist raw findings, then write a derived syndication squash (keep duty splits) on its own branch. See [[2026-08-16: Save raw findings, dedupe as a derived view]] and [[2026-08-16: Production dedupe is a derived CSV]]
+- [x] Production `verify` implementation on its own branch (thin wrap already exists) (see [[2026-08-16: Production verify is a resume-safe finding batch]])
 - [x] Stage 3 spike: Perplexity logprobs? (**No** usable logprobs; see [[2026-08-13: Perplexity APIs do not expose usable logprobs]])
 - [x] Stage 3 packaging: top-level production `citation_verification/` (see [[2026-08-13: Stage 3 is a production top-level package]])
 - [x] Stage 3 stack: Perplexity `fetch_url` + OpenAI logprob judge (see [[2026-08-13: Stage 3 stack = Perplexity fetch_url + OpenAI logprob judge]])
@@ -1250,6 +1253,7 @@ Second fetch order: **superseded by [[2026-08-15: Tavily Extract is the only pai
 - [x] Re-run 14-row e2e5_bp after the lenient-judge change (14×`1`, $0.491; see `outputs/stage3/smokes/20260815_2245_e2e5_bp_lenient/`)
 - [ ] WS9 live expanded gold re-score (paid, Khaled spend approval). Do not start Phase B 221+124 first.
 - [ ] Later (separate plan): evals `run-verification` consumer + eval-set quality gates
+- [x] Paid verify `--limit 20` smoke after adaptive finding-level concurrency (see [[2026-08-17: Verify is finding-level with adaptive API caps]])
 
 ---
 
@@ -1407,4 +1411,68 @@ Second fetch order: **superseded by [[2026-08-15: Tavily Extract is the only pai
 
 **Alternatives rejected:** Opening a PR from `prod_runner` (empty diff). Starting `--all`. Implementing `dedupe` or `verify` on the same branch as the live run.
 
-**Open follow-ups:** Merge the restore PR. Start `--limit 1000 --concurrency 10` from `main` after merge. Implement `dedupe` and fuller `verify` on separate branches. Do not start `--all` until Khaled asks.
+**Open follow-ups:** Merge the restore PR. Start `--limit 1000 --concurrency 10` from `main` after merge. Implement `dedupe` on its own branch. Fuller `verify` landed on `prod-verifier` (see [[2026-08-16: Production verify is a resume-safe finding batch]]). Do not start `--all` until Khaled asks.
+
+---
+
+## 2026-08-16: Production verify is a resume-safe finding batch
+
+**Status:** superseded by [[2026-08-17: Verify is finding-level with adaptive API caps]] for pool shape, default concurrency, and per-finding CSV rebuild. Deduped-only input, `--limit` as findings, resume, unread→null, and Ctrl+C still stand.
+
+**Decision:** `python -m production verify` is no longer an in-memory overwrite. It reads only `findings_deduplicated.csv` (raw `findings.csv` is refused). Live and dry-run require `--limit N` or `--all`. `--limit` is **findings**, not companies. Default concurrency is 4 companies in flight, findings sequential inside a company. Each finished finding is appended to `findings_verified.jsonl` and `findings_verified.csv` is rebuilt so the spreadsheet can be watched mid-run. Resume skips complete `0`/`1`/permanent-null rows. 429/timeout rows are requeued and do not count as done. `verify --status` prints done / remaining / parked / retryable / spend. Ctrl+C finishes in-flight companies and starts no new ones.
+
+Wrong or thin fetches stay `verification=null`, not `0`: a LinkedIn/Indeed listings rail (`fetch_listings_rail`) and a YouTube watch page with almost no body after chrome (`thin_page_snippet`). The judge does not run on those pages.
+
+**Why:** The old verify loop paid every finding, then wrote the CSV once. A crash threw away the night. Phase B also stamped a K1x LinkedIn rail and thin Tern YouTube intros as hallucinations. Those are unread pages. Folding them into `0` poisons the Stage 2 lie rate.
+
+**Evidence:** User lock 2026-08-16 (limit, append, runner robustness, deduplicated input). Phase B rows: K1x LinkedIn job `4424441175`, Tern `watch?v=2dUAlrrSnSg`. Code: `production/verify.py`, `production/persist.py` verified jsonl helpers, `citation_verification/text.py` `unread_reason`. Tests: `tests/test_production_runner.py` (`test_verify_limit_resumes_and_appends`, `test_verify_requeues_429_and_does_not_repay_complete`), `tests/test_citation_verification_text.py`, `tests/test_citation_verification_live_rules.py`. Offline: `PYTHONPATH=. python3 -m pytest tests/test_citation_verification_*.py tests/test_production_runner.py -q` (88 passed).
+
+**Alternatives rejected:** Keeping the one-shot in-memory verify. Silently falling back to raw `findings.csv`. Treating listings rails or thin YouTube as `verification=0`. Bringing back the literal-anchor package veto.
+
+**Open follow-ups:** `dedupe` must write `findings_deduplicated.csv` before a real verify can start. Paid `--limit 20` smoke after a slice exists. WS9 gold re-score still gated. When invoking from this worktree, pass `--output-root` at the main-tree `outputs/prod` so verify reads the live run.
+
+---
+
+## 2026-08-16: Production dedupe is a derived CSV
+
+**Decision:** `python -m production dedupe` reads `findings.csv` and writes `findings_deduplicated.csv`. Raw is untouched. `run` still writes the exact-key merge only. No LLM. First row in file order wins. `finding_id` stays the raw id. Dropped rows vanish from the derived file. The CLI prints `in` / `out` / `dropped`. `findings_count` on kept rows is the post-squash count for that company.
+
+Squash when the same company has similar tool + similar use, and either (1) the same URL (use-case reword or tool alias), or (2) a different URL with similar evidence that is **not** two primary job postings. ChatGPT vs Copilot on one page stays. Duty splits stay. Cloaked-style iOS vs Android (Wellfound / Ashby / LinkedIn jobs) stay. Jobright / Vaia / ListenNotes mirrors squash. xAI vs VentureBeat stays when evidence overlap is low.
+
+**Why:** Verify should not pay to judge the same CareAsOne sentence twice. File-size gain is tiny (~1%). A derived file is the undo button if the overlap cut is hungry. Different role postings are separate attestations, not one flyer on two boards.
+
+**Evidence:** User lock 2026-08-16 (five product calls). Code: `production/dedupe.py`. Tests: `tests/test_production_dedupe.py`, `test_dedupe_writes_derived_csv_and_leaves_raw`. Copied onto `prod-verifier` 2026-08-17 so one PR can ship `run → dedupe → verify`.
+
+**Alternatives rejected:** Changing `merge_findings` / what `run` writes. An LLM judge. Renumbering `finding_id`. Extra `also_source_urls` or dropped-rows audit file. Squashing Cloaked role clusters. Dropping URL from the key.
+
+**Open follow-ups:** Live slice already has `outputs/prod/sgs/findings_deduplicated.csv` (~31k). Rebuild after the Stage 2 job adds more raw rows. Tune `USE_SIMILAR` / `EVIDENCE_SIMILAR` only if spot-checks look hungry.
+
+---
+
+## 2026-08-17: Verify is finding-level with adaptive API caps
+
+**Decision:** `python -m production verify --concurrency N` is a **finding** thread pool (default **32**), not a company pool. Findings from the same company run in parallel. Under that pool, Perplexity `fetch_url`, OpenAI judge, and Tavily Extract each have an AIMD in-flight cap: start below the ceiling, +1 after 12 successes, halve on 429, sleep `Retry-After` or exponential backoff, retry in-call up to 5 times, then surface a retryable error for batch resume. Browser last-resort stays hard-capped at 2 and off unless `CITATION_VERIFICATION_BROWSER=1`. CSV appends one row per finding; rebuild from jsonl at start and end (last-write-wins). Release the fetch slot before the judge runs so the two APIs do not share one door.
+
+Starting caps: fetch 12 (max 48), judge 20 (max 64), Tavily 8 (max 24).
+
+**Why:** Phase B at 5 companies wide had 0 HTTP 429s. Mean worker time was ~51s because fetch/page-read is slow, not because OpenAI Luna is slow. The old 4-company cap was borrowed from Stage 2 Agent-API 429s. A company with 30 findings then occupied one slot for ~25 minutes. Sitting near Perplexity and OpenAI limits needs finding-level fan-out plus a door that closes on 429 instead of a guessed company width.
+
+**Evidence:** User lock 2026-08-17 (dedupe done; build a verifier that works close to Perplexity and OpenAI rate limits). Phase B wall-clock diagnosis: fetch/Tavily/page-read, not Luna. Code: `citation_verification/limits.py`, `citation_verification/{fetch,judge,backup_fetch}.py`, `production/verify.py`, `production/persist.py` `append_verified_csv`. Tests: `tests/test_citation_verification_limits.py`, `tests/test_citation_verification_judge.py` `test_execute_judge_retries_429_then_succeeds`, `tests/test_production_runner.py` `test_verify_runs_findings_in_parallel`.
+
+**Alternatives rejected:** Keeping company-sequential verify and only raising `--concurrency`. One shared limiter for fetch+judge (would idle OpenAI while Perplexity is the bottleneck). Rebuilding the full CSV after every finding (O(n²) at tens of thousands of rows). Guessing a fixed 48-wide fetch with no backoff.
+
+**Open follow-ups:** Paid smoke landed 2026-08-17: 40 findings (first 20 plus a resume `--limit 20` that correctly took the next 20), 38×`1` / 2×`0` / 0 null, $0.249, 0 HTTP 429s, wall ~2.6 min for the first 20. Two `0`s cited truncated snippets (Legion Health). Do not start `--all` until Khaled asks. WS9 gold still gated.
+
+---
+
+## 2026-08-17: Dedupe CLI lives on the verifier worktree too
+
+**Decision:** Copy `production/dedupe.py` and its tests onto `prod-verifier` so one branch can `run → dedupe → verify`. The squash rules are unchanged from [[2026-08-16: Production dedupe is a derived CSV]] (locked on the live tree). This worktree still refuses to verify raw `findings.csv`.
+
+**Why:** The live checkout (`prod-retry-connection`) has the working dedupe and the derived CSV. This worktree had the real verify and a stub `dedupe`. A PR to `main` needs both commands.
+
+**Evidence:** `production/dedupe.py`, `tests/test_production_dedupe.py`, `test_dedupe_writes_derived_csv_and_leaves_raw`. Live slice: `outputs/prod/sgs/findings.csv` ~32.5k rows, `findings_deduplicated.csv` ~31.1k.
+
+**Alternatives rejected:** Two PRs (verify-only then dedupe-only) while both sides edit `__main__.py`. Running verify from the live tree (still the old thin wrap).
+
+**Open follow-ups:** Paid `--limit 20` smoke. Do not `git checkout` the live folder.

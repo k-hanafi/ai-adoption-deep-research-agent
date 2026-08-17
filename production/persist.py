@@ -77,6 +77,7 @@ VERIFIED_EXTRA_COLUMNS: tuple[str, ...] = (
     "fetch_source",
     "fetch_attempts",
     "model_judge",
+    "verification_cost_usd",
 )
 
 VERIFIED_COLUMNS: tuple[str, ...] = RESEARCH_COLUMNS + VERIFIED_EXTRA_COLUMNS
@@ -108,6 +109,10 @@ class ProdPaths:
     @property
     def findings_verified_csv(self) -> Path:
         return self.root / "findings_verified.csv"
+
+    @property
+    def findings_verified_jsonl(self) -> Path:
+        return self.root / "findings_verified.jsonl"
 
     def company_json(self, rcid: int) -> Path:
         return self.companies / f"{int(rcid)}.json"
@@ -480,3 +485,104 @@ def backup_retryable(path: Path, kind: str) -> Path:
     backup = copy_retryable_backup(path, kind)
     path.unlink()
     return backup
+
+
+def verified_finding_key(row: dict[str, Any]) -> tuple[Optional[int], Optional[int]]:
+    rcid = row.get("rcid")
+    finding_id = row.get("finding_id")
+    try:
+        rcid_i = int(rcid) if rcid not in (None, "") else None
+    except (TypeError, ValueError):
+        rcid_i = None
+    try:
+        fid_i = int(finding_id) if finding_id not in (None, "") else None
+    except (TypeError, ValueError):
+        fid_i = None
+    return rcid_i, fid_i
+
+
+def is_verified_retryable(row: dict[str, Any]) -> bool:
+    return is_retryable(str(row.get("verification_error") or row.get("error") or ""))
+
+
+def is_verified_complete(row: dict[str, Any]) -> bool:
+    """Finished stamp: 0/1, or a non-retryable null/error. Missing rows are not complete."""
+    if is_verified_retryable(row):
+        return False
+    verification = row.get("verification")
+    if verification in (0, 1, "0", "1"):
+        return True
+    error = str(row.get("verification_error") or "").strip()
+    return bool(error)
+
+
+def records_from_verified_jsonl(path: Path) -> list[dict[str, Any]]:
+    """Last write per (rcid, finding_id) wins so a retry can replace a 429 row."""
+    if not path.exists():
+        return []
+    by_key: dict[tuple[Optional[int], Optional[int]], dict[str, Any]] = {}
+    order: list[tuple[Optional[int], Optional[int]]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        text = line.strip()
+        if not text:
+            continue
+        record = json.loads(text)
+        if not isinstance(record, dict):
+            continue
+        key = verified_finding_key(record)
+        if key not in by_key:
+            order.append(key)
+        by_key[key] = record
+    return [by_key[key] for key in order]
+
+
+def append_verified_jsonl(paths: ProdPaths, row: dict[str, Any]) -> None:
+    paths.root.mkdir(parents=True, exist_ok=True)
+    with paths.findings_verified_jsonl.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+
+def write_verified_csv(path: Path, rows: Iterable[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(
+            handle,
+            fieldnames=list(VERIFIED_COLUMNS),
+            extrasaction="ignore",
+        )
+        writer.writeheader()
+        for row in rows:
+            writer.writerow({key: csv_cell(row.get(key)) for key in VERIFIED_COLUMNS})
+
+
+def append_verified_csv(paths: ProdPaths, row: dict[str, Any]) -> None:
+    """Append one verified row. Create the header if the file is new."""
+    path = paths.findings_verified_csv
+    path.parent.mkdir(parents=True, exist_ok=True)
+    write_header = not path.exists() or path.stat().st_size == 0
+    with path.open("a", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(
+            handle,
+            fieldnames=list(VERIFIED_COLUMNS),
+            extrasaction="ignore",
+        )
+        if write_header:
+            writer.writeheader()
+        writer.writerow({key: csv_cell(row.get(key)) for key in VERIFIED_COLUMNS})
+
+
+def rebuild_verified_csv(paths: ProdPaths) -> None:
+    write_verified_csv(paths.findings_verified_csv, records_from_verified_jsonl(paths.findings_verified_jsonl))
+
+
+def sum_verified_spend(paths: ProdPaths) -> float:
+    total = 0.0
+    for row in records_from_verified_jsonl(paths.findings_verified_jsonl):
+        raw = row.get("verification_cost_usd")
+        if raw in (None, ""):
+            continue
+        try:
+            total += float(raw)
+        except (TypeError, ValueError):
+            continue
+    return total

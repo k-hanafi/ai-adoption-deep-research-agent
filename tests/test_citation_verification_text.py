@@ -9,9 +9,12 @@ from citation_verification.text import (
     combine_chunk_verdicts,
     extract_anchors,
     looks_document_mismatch,
+    looks_job_listings_rail,
+    looks_thin_watch_page,
     missing_anchors,
     select_windows,
     strip_chrome,
+    unread_reason,
 )
 
 
@@ -114,3 +117,34 @@ def test_strip_chrome_drops_cookie_and_skip_nav() -> None:
     text = "Skip to main content\nAccept all cookies\nWe use Copilot for pull requests every day."
     assert "Copilot" in strip_chrome(text)
     assert "Accept all cookies" not in strip_chrome(text)
+
+
+def test_linkedin_listings_rail_is_unread() -> None:
+    url = (
+        "https://www.linkedin.com/jobs/view/"
+        "sales-development-representative-at-k1x-inc-4424441175"
+    )
+    snippet = (
+        "Similar jobs\n"
+        "### Data Scientist Intern\n#### Tinder\n"
+        "### ML Engineer\n#### Netflix\n"
+        "People also viewed\n"
+        "Get notified about new Artificial Intelligence Engineer jobs\n"
+    )
+    assert looks_job_listings_rail(url, snippet, company_name="K1x")
+    assert unread_reason(url, "Sales Development Representative", snippet, company_name="K1x") == (
+        config.ERROR_LISTINGS_RAIL
+    )
+    real_job = "K1x is hiring a Sales Development Representative to use Clay and Gong."
+    assert not looks_job_listings_rail(url, real_job, company_name="K1x")
+
+
+def test_thin_youtube_intro_is_unread() -> None:
+    url = "https://www.youtube.com/watch?v=2dUAlrrSnSg"
+    snippet = "How We Actually Use AI at Tern\nWelcome everyone. Related videos\nComments\n"
+    assert looks_thin_watch_page(url, snippet)
+    assert unread_reason(url, "How We Actually Use AI at Tern", snippet) == (
+        config.ERROR_THIN_SNIPPET
+    )
+    transcript = "Claude turns Zoom recordings into case studies. " * 40
+    assert not looks_thin_watch_page(url, transcript)

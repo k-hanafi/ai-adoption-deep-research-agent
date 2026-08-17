@@ -97,6 +97,26 @@ def test_execute_fetch_sums_retry_costs(
     assert result.cost_usd == pytest.approx(0.003)
 
 
+def test_execute_fetch_does_not_empty_retry_429(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from citation_verification.fetch import execute_fetch
+
+    calls = {"n": 0}
+
+    class _RateLimit(Exception):
+        status_code = 429
+
+    def _once(url: str, **_kwargs: object) -> None:
+        calls["n"] += 1
+        raise _RateLimit("http 429")
+
+    monkeypatch.setattr("citation_verification.fetch._execute_fetch_once", _once)
+    with pytest.raises(_RateLimit):
+        execute_fetch("https://www.python.org/about/")
+    assert calls["n"] == 1
+
+
 def test_empty_fetch_error_is_retryable() -> None:
     from citation_verification.fetch import FetchResult, _is_retryable_fetch
 

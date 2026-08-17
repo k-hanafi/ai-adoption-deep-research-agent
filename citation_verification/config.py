@@ -62,8 +62,28 @@ ERROR_DOCUMENT_MISMATCH: str = "fetch_document_mismatch"
 ERROR_URL_ROW_MISMATCH: str = "fetch_url_row_mismatch"
 ERROR_NO_PAGE_CONTENT: str = "fetch_url returned no page content"
 ERROR_SOFT_404: str = "soft_404"
+ERROR_LISTINGS_RAIL: str = "fetch_listings_rail"
+ERROR_THIN_SNIPPET: str = "thin_page_snippet"
 
 FETCH_SOURCE_PERPLEXITY: str = "perplexity_fetch_url"
 FETCH_SOURCE_TAVILY: str = "tavily_extract"
 FETCH_SOURCE_HTTPX: str = "httpx"
 FETCH_SOURCE_BROWSER: str = "browser"
+
+# Adaptive in-flight caps. --concurrency is the thread pool (findings),
+# not the company-wide Stage 2 429 lesson. Each API climbs on success
+# and halves on 429.
+VERIFY_POOL_DEFAULT: int = 32
+FETCH_LIMIT_START: int = 12
+FETCH_LIMIT_MIN: int = 2
+FETCH_LIMIT_MAX: int = 48
+JUDGE_LIMIT_START: int = 20
+JUDGE_LIMIT_MIN: int = 4
+JUDGE_LIMIT_MAX: int = 64
+TAVILY_LIMIT_START: int = 8
+TAVILY_LIMIT_MIN: int = 2
+TAVILY_LIMIT_MAX: int = 24
+BROWSER_LIMIT: int = 2
+LIMIT_CLIMB_EVERY: int = 12
+RATE_LIMIT_RETRIES: int = 5
+RATE_LIMIT_SLEEP_CAP_SEC: float = 30.0

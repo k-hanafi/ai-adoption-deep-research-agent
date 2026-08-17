@@ -23,6 +23,7 @@ from citation_verification.text import (
     looks_document_mismatch,
     missing_anchors,
     select_windows,
+    unread_reason,
 )
 from citation_verification.types import (
     FINDING_PASSTHROUGH_FIELDS,
@@ -197,6 +198,21 @@ def _verify_live(
                 fetch_cost=fetch_cost,
                 fetch_attempts=fetch_attempts,
             )
+
+    thin = unread_reason(
+        source_url,
+        page.title or "",
+        page.snippet or "",
+        company_name=str(identity.get("company_name") or "") or None,
+    )
+    if thin:
+        return _unreadable(
+            identity,
+            page=page,
+            reason=thin,
+            fetch_cost=fetch_cost,
+            fetch_attempts=fetch_attempts,
+        )
 
     windows = select_windows(page.snippet, claim)
     if not windows:

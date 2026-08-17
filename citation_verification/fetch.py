@@ -8,6 +8,11 @@ from typing import Any, Mapping, Optional, Sequence
 from urllib.parse import urlparse, urlunparse
 
 from citation_verification import config
+from citation_verification.limits import (
+    call_with_429_retry,
+    fetch_limiter,
+    is_rate_limit_error,
+)
 from citation_verification.text import cap_snippet, looks_soft_404
 
 
@@ -149,7 +154,7 @@ def execute_fetch(
             )
         except Exception as exc:  # noqa: BLE001 - retry transport timeout, then raise
             last_exc = exc
-            if attempt == attempts - 1:
+            if is_rate_limit_error(exc) or attempt == attempts - 1:
                 raise
             continue
         spent += float(result.cost_usd)
@@ -191,12 +196,16 @@ def _execute_fetch_once(
     client = Perplexity(api_key=key, max_retries=0)
     kwargs = build_fetch_request(url, extract_for=extract_for)
     kwargs["timeout"] = timeout
-    response = client.responses.create(**kwargs)
-    if hasattr(response, "model_dump"):
-        payload = response.model_dump()
-    else:
-        payload = response
-    return parse_fetch_response(payload, requested_url=url)
+
+    def _call() -> FetchResult:
+        response = client.responses.create(**kwargs)
+        if hasattr(response, "model_dump"):
+            payload = response.model_dump()
+        else:
+            payload = response
+        return parse_fetch_response(payload, requested_url=url)
+
+    return call_with_429_retry(_call, limiter=fetch_limiter())
 
 
 def _is_retryable_fetch(result: FetchResult) -> bool:

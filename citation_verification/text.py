@@ -119,6 +119,18 @@ _POISON_MOT = re.compile(
     r"\b(mot status|vehicle mot|road safety standards)\b",
     re.IGNORECASE,
 )
+_LISTINGS_RAIL = re.compile(
+    r"(similar jobs|people also viewed|similar searches|"
+    r"get notified about new|explore collaborative articles)",
+    re.IGNORECASE,
+)
+_YOUTUBE_CHROME = re.compile(
+    r"(related videos?|people also watched|show more|"
+    r"^comments\s*$|join this channel)",
+    re.IGNORECASE,
+)
+_JOB_HEADING = re.compile(r"^#{1,3}\s+\S+", re.MULTILINE)
+MIN_YOUTUBE_BODY_CHARS: int = 800
 
 
 def strip_chrome(text: str) -> str:
@@ -269,6 +281,58 @@ def looks_document_mismatch(url: str, title: str, snippet: str) -> bool:
         if len(words) >= 4 and "example" not in title.lower():
             return True
     return False
+
+
+def looks_job_listings_rail(
+    url: str,
+    snippet: str,
+    *,
+    company_name: Optional[str] = None,
+) -> bool:
+    """True when a job URL came back as a feed of other listings."""
+    host = _host(url)
+    path = (urlparse(url).path or "").lower()
+    is_job = ("linkedin.com" in host and "/jobs" in path) or "indeed.com" in host
+    if not is_job:
+        return False
+    text = snippet or ""
+    if not _LISTINGS_RAIL.search(text):
+        return False
+    name = (company_name or "").strip().lower()
+    if name and name not in text.lower():
+        return True
+    return len(_JOB_HEADING.findall(text)) >= 8
+
+
+def looks_thin_watch_page(url: str, snippet: str) -> bool:
+    """True when a YouTube watch page has no usable body after chrome."""
+    host = _host(url)
+    if "youtube.com" not in host and host != "youtu.be":
+        return False
+    kept: list[str] = []
+    for line in (snippet or "").splitlines():
+        stripped = line.strip()
+        if _YOUTUBE_CHROME.search(stripped) and len(stripped) < 80:
+            continue
+        kept.append(line)
+    return len("\n".join(kept).strip()) < MIN_YOUTUBE_BODY_CHARS
+
+
+def unread_reason(
+    url: str,
+    title: str,
+    snippet: str,
+    *,
+    company_name: Optional[str] = None,
+) -> Optional[str]:
+    """Package null reason when the fetched text is the wrong or thin page."""
+    if looks_document_mismatch(url, title, snippet):
+        return config.ERROR_DOCUMENT_MISMATCH
+    if looks_job_listings_rail(url, snippet, company_name=company_name):
+        return config.ERROR_LISTINGS_RAIL
+    if looks_thin_watch_page(url, snippet):
+        return config.ERROR_THIN_SNIPPET
+    return None
 
 
 def looks_soft_404(snippet: str) -> bool:

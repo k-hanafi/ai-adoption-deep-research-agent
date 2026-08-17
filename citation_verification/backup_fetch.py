@@ -11,6 +11,7 @@ import httpx
 
 from citation_verification import config
 from citation_verification.fetch import FetchResult
+from citation_verification.limits import browser_slots, call_with_429_retry, tavily_limiter
 from citation_verification.text import cap_snippet
 
 _SCRIPT_STYLE = re.compile(r"<(script|style)[^>]*>.*?</\1>", re.IGNORECASE | re.DOTALL)
@@ -79,7 +80,7 @@ def execute_tavily_extract(
         if joined:
             payload["query"] = joined
             payload["chunks_per_source"] = 5
-    try:
+    def _call() -> Any:
         with httpx.Client(timeout=config.HTTPX_TIMEOUT_SEC) as client:
             response = client.post(
                 config.TAVILY_EXTRACT_URL,
@@ -90,7 +91,10 @@ def execute_tavily_extract(
                 json=payload,
             )
             response.raise_for_status()
-            body = response.json()
+            return response.json()
+
+    try:
+        body = call_with_429_retry(_call, limiter=tavily_limiter())
     except Exception as exc:  # noqa: BLE001 - backup must not raise into judge
         return FetchResult(
             url=url,
@@ -180,23 +184,28 @@ def execute_browser_fetch(url: str) -> FetchResult:
             error="playwright not installed",
             source=config.FETCH_SOURCE_BROWSER,
         )
+    slots = browser_slots()
+    slots.acquire()
     try:
-        with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(headless=True)
-            page = browser.new_page()
-            page.goto(url, wait_until="domcontentloaded", timeout=60_000)
-            title = page.title()
-            html = page.content()
-            browser.close()
-    except Exception as exc:  # noqa: BLE001 - last resort must not raise
-        return FetchResult(
-            url=url,
-            title="",
-            snippet="",
-            cost_usd=0.0,
-            error=f"browser fetch failed: {exc}",
-            source=config.FETCH_SOURCE_BROWSER,
-        )
+        try:
+            with sync_playwright() as playwright:
+                browser = playwright.chromium.launch(headless=True)
+                page = browser.new_page()
+                page.goto(url, wait_until="domcontentloaded", timeout=60_000)
+                title = page.title()
+                html = page.content()
+                browser.close()
+        except Exception as exc:  # noqa: BLE001 - last resort must not raise
+            return FetchResult(
+                url=url,
+                title="",
+                snippet="",
+                cost_usd=0.0,
+                error=f"browser fetch failed: {exc}",
+                source=config.FETCH_SOURCE_BROWSER,
+            )
+    finally:
+        slots.release()
     snippet, truncated = cap_snippet(_html_to_text(html))
     if len(snippet) < config.MIN_SNIPPET_CHARS:
         return FetchResult(
