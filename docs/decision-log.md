@@ -58,6 +58,7 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 - Production verify branch: `prod-verifier` (worktree `deep-research-AI-agent-verifier`)
 - Verify adaptive limiters: `citation_verification/limits.py`
 - Production derived squash: `production/dedupe.py` (`findings_deduplicated.csv`)
+- Production page cache: `production/pages.py` (`outputs/prod/{arch}/pages.jsonl`)
 
 ---
 
@@ -1476,3 +1477,17 @@ Starting caps: fetch 12 (max 48), judge 20 (max 64), Tavily 8 (max 24).
 **Alternatives rejected:** Two PRs (verify-only then dedupe-only) while both sides edit `__main__.py`. Running verify from the live tree (still the old thin wrap).
 
 **Open follow-ups:** Paid `--limit 20` smoke. Do not `git checkout` the live folder.
+
+---
+
+## 2026-08-17: Persist page extracts so the judge can re-run without a second scrape
+
+**Decision:** Live `python -m production verify` writes every page extract (success, empty, listings rail, 429) to `outputs/prod/{arch}/pages.jsonl` before the verdict stamp. Last write per **source URL** wins. The operator CSV is unchanged (no snippet column). Default live uses a reusable cache hit and fetches on miss. `--from-cache` never calls Perplexity/Tavily/httpx: it re-runs Luna on findings that already have a page (including complete stamps) and skips the rest without consuming `--limit`. 429/timeout cache rows are audit-only and do not block a refetch. A `0` from a short extract stays a `0`. Unread stays null.
+
+**Why:** The scrape is the slow, paid step. The judge prompt can change. Without a sidecar, every Luna re-run re-pays Perplexity. Putting 32k-character pages on `findings_verified.csv` would wreck the spreadsheet Khaled opens in Excel.
+
+**Evidence:** Code: `production/pages.py`, `production/verify.py`, `citation_verification/runner.py` `cached_page` / `persist_page`. Tests: `tests/test_production_pages.py` (cache write, fetch-explodes still judges from disk, CSV columns unchanged, 429 cache not reused). Offline: `PYTHONPATH=. python3 -m pytest tests/test_citation_verification_*.py tests/test_production_runner.py tests/test_production_dedupe.py tests/test_production_pages.py -q` (116 passed). Paid `--limit 5` from this worktree onto live `outputs/prod/sgs`: rcid 6631 fids 3-7, 4×`1` / 1×`0`, ~81s, 0 HTTP 429s, 8 `pages.jsonl` lines (first fetch plus targeted refetch, last write per URL wins). `--from-cache --limit 5` replay: all `cache=hit`, ~8s, judge-only ~$0.0002-$0.0005/finding.
+
+**Alternatives rejected:** Snippet column on the Excel CSV. Cache key `(rcid, finding_id)` (would re-scrape the same job post for every claim). Folding unread into `0`. Judge-said-truncated → N/A (reverted earlier). Replaying complete stamps on default `--limit` (that flag stays "next N not-done").
+
+**Open follow-ups:** Do not start `--all`. Do not merge until Khaled says so. After merge, run verify from the live folder only once that folder is on a commit that contains this code (merge `main` into `prod-retry-connection` when Stage 2 is in a safe state, or wait until it finishes). Until then, keep verifying from this worktree with `--output-root` at live `outputs/prod`. Rebuild `findings_deduplicated.csv` if raw `findings.csv` has grown. Leave the Legion Health and Entendre `0`s unless Khaled asks to requeue.

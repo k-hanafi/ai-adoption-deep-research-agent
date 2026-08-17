@@ -103,6 +103,51 @@ def test_live_fetch_fail_is_unverifiable(monkeypatch: pytest.MonkeyPatch) -> Non
     assert "snippet too short" in (result.error or "")
 
 
+def test_live_fetch_persists_failure_before_return(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from citation_verification.fetch import FetchResult
+    from citation_verification import runner as runner_mod
+
+    saved: list[FetchResult] = []
+
+    monkeypatch.setattr(
+        runner_mod,
+        "execute_fetch",
+        lambda url, **_: FetchResult(
+            url=url,
+            title="",
+            snippet="",
+            cost_usd=0.0001,
+            error="snippet too short (0 chars; min 40)",
+        ),
+    )
+    monkeypatch.setattr(
+        runner_mod,
+        "execute_backup_chain",
+        lambda url, **_: FetchResult(
+            url=url,
+            title="",
+            snippet="",
+            cost_usd=0.0,
+            error="snippet too short (0 chars; min 40)",
+        ),
+    )
+    result = verify_finding(
+        {
+            "finding_id": 4,
+            "source_url": "https://example.com/x",
+            "evidence_description": "Uses Claude for coding",
+        },
+        dry_run=False,
+        persist_page=lambda url, page, cost, attempts: saved.append(page),
+    )
+    assert result.unverifiable is True
+    assert len(saved) == 1
+    assert saved[0].ok is False
+    assert "snippet too short" in (saved[0].error or "")
+
+
 def test_live_happy_path_wires_confidence(monkeypatch: pytest.MonkeyPatch) -> None:
     from citation_verification.fetch import FetchResult
     from citation_verification.judge import JudgeResult

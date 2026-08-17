@@ -769,7 +769,7 @@ def test_verify_runs_findings_in_parallel(
     state = {"n": 0, "max": 0}
     lock = Lock()
 
-    def _fake_verify(row, dry_run=True):  # noqa: ARG001
+    def _fake_verify(row, dry_run=True, **_kwargs):  # noqa: ARG001
         with lock:
             state["n"] += 1
             state["max"] = max(state["max"], state["n"])

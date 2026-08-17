@@ -21,6 +21,14 @@ from typing import Any, Optional
 from citation_verification import config
 from citation_verification.limits import limiter_status
 from citation_verification.runner import verify_finding
+from production.pages import (
+    append_page_record,
+    fetch_from_record,
+    load_pages_by_url,
+    page_cache_key,
+    page_cache_reusable,
+    record_from_fetch,
+)
 from production.persist import (
     VERIFIED_COLUMNS,
     append_verified_csv,
@@ -99,19 +107,36 @@ def prepare_verify_todo(
     existing: dict[tuple[Optional[int], Optional[int]], dict[str, Any]],
     *,
     limit: Optional[int],
-) -> tuple[list[dict[str, Any]], int]:
-    """Return (todo, skipped_complete). Complete rows do not consume --limit."""
+    from_cache: bool = False,
+    pages: Optional[dict[str, dict[str, Any]]] = None,
+) -> tuple[list[dict[str, Any]], int, int]:
+    """Return (todo, skipped_complete, skipped_no_cache).
+
+    Default: complete rows do not consume --limit. ``from_cache`` never
+    fetches. It re-judges rows that already have a reusable page (including
+    complete stamps) and skips the rest without consuming --limit.
+    """
+    cached = pages or {}
     todo: list[dict[str, Any]] = []
     skipped = 0
+    skipped_no_cache = 0
     for row in source_findings(source_rows):
         prior = existing.get(verified_finding_key(row))
-        if prior is not None and is_verified_complete(prior):
+        complete = prior is not None and is_verified_complete(prior)
+        has_page = page_cache_reusable(
+            cached.get(page_cache_key(str(row.get("source_url") or "")))
+        )
+        if from_cache:
+            if not has_page:
+                skipped_no_cache += 1
+                continue
+        elif complete:
             skipped += 1
             continue
         todo.append(row)
         if limit is not None and len(todo) >= limit:
             break
-    return todo, skipped
+    return todo, skipped, skipped_no_cache
 
 
 def _persist_verdict(
@@ -128,21 +153,70 @@ def _persist_verdict(
     return merged
 
 
+def _cached_page_for(row: dict[str, Any], pages: dict[str, dict[str, Any]]):
+    record = pages.get(page_cache_key(str(row.get("source_url") or "")))
+    if not page_cache_reusable(record):
+        return None
+    return fetch_from_record(record)
+
+
+def _write_page(
+    source_url: str,
+    page,
+    fetch_cost: float,
+    fetch_attempts: int,
+    *,
+    paths,
+    pages: dict[str, dict[str, Any]],
+    write_lock: Lock,
+) -> None:
+    record = record_from_fetch(
+        source_url,
+        page,
+        fetch_cost=fetch_cost,
+        fetch_attempts=fetch_attempts,
+    )
+    with write_lock:
+        append_page_record(paths.pages_jsonl, record)
+        pages[page_cache_key(source_url)] = record
+
+
 def _run_finding(
     row: dict[str, Any],
     *,
     dry_run: bool,
+    from_cache: bool,
     paths,
+    pages: dict[str, dict[str, Any]],
     write_lock: Lock,
 ) -> dict[str, Any]:
     rcid, fid = verified_finding_key(row)
-    verdict = verify_finding(row, dry_run=dry_run)
+    cached = None if dry_run else _cached_page_for(row, pages)
+
+    def persist(source_url: str, page, cost: float, attempts: int) -> None:
+        _write_page(
+            source_url,
+            page,
+            cost,
+            attempts,
+            paths=paths,
+            pages=pages,
+            write_lock=write_lock,
+        )
+    verdict = verify_finding(
+        row,
+        dry_run=dry_run,
+        cached_page=cached,
+        persist_page=None if dry_run or cached is not None else persist,
+        cache_only=from_cache,
+    )
     merged = _persist_verdict(row, verdict, paths=paths, write_lock=write_lock)
     err = merged.get("verification_error") or None
+    cache_state = "hit" if cached is not None else ("miss" if from_cache else "fetch")
     print(
         f"FINDING_DONE rcid={rcid} finding_id={fid} "
         f"v={merged.get('verification')!r} ${merged.get('verification_cost_usd') or 0} "
-        f"err={err!r}",
+        f"cache={cache_state} err={err!r}",
         flush=True,
     )
     return merged
@@ -152,8 +226,10 @@ def _execute_verify(
     todo: list[dict[str, Any]],
     *,
     paths,
+    pages: dict[str, dict[str, Any]],
     workers: int,
     dry_run: bool,
+    from_cache: bool,
     write_lock: Lock,
     stop_event: Event,
 ) -> tuple[int, int]:
@@ -170,7 +246,9 @@ def _execute_verify(
             _run_finding,
             row,
             dry_run=dry_run,
+            from_cache=from_cache,
             paths=paths,
+            pages=pages,
             write_lock=write_lock,
         )
         in_flight[future] = row
@@ -273,8 +351,11 @@ def run_verify(
     dry_run: bool = True,
     limit: Optional[int] = None,
     concurrency: int = DEFAULT_VERIFY_CONCURRENCY,
+    from_cache: bool = False,
     stop_event: Optional[Event] = None,
 ) -> Path:
+    if from_cache and dry_run:
+        raise ValueError("--from-cache requires --live (Luna still runs on the saved page)")
     paths = prod_paths(output_root, architecture)
     source = verification_source(paths)
     rows = _read_csv(source)
@@ -284,9 +365,17 @@ def run_verify(
         raise ValueError(f"{source}: no findings with evidence_description + source_url")
 
     existing = load_verified_by_key(paths)
-    todo, skipped = prepare_verify_todo(rows, existing, limit=limit)
+    pages = load_pages_by_url(paths.pages_jsonl)
+    todo, skipped, skipped_no_cache = prepare_verify_todo(
+        rows,
+        existing,
+        limit=limit,
+        from_cache=from_cache,
+        pages=pages,
+    )
     print(
         f"VERIFY source={source.name} todo={len(todo)} skip_complete={skipped} "
+        f"skip_no_cache={skipped_no_cache} from_cache={from_cache} "
         f"dry_run={dry_run} pool={concurrency} limits={limiter_status()}",
         flush=True,
     )
@@ -312,8 +401,10 @@ def run_verify(
         ran, failed = _execute_verify(
             todo,
             paths=paths,
+            pages=pages,
             workers=concurrency,
             dry_run=dry_run,
+            from_cache=from_cache,
             write_lock=write_lock,
             stop_event=stop,
         )

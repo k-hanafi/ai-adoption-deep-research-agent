@@ -114,6 +114,10 @@ class ProdPaths:
     def findings_verified_jsonl(self) -> Path:
         return self.root / "findings_verified.jsonl"
 
+    @property
+    def pages_jsonl(self) -> Path:
+        return self.root / "pages.jsonl"
+
     def company_json(self, rcid: int) -> Path:
         return self.companies / f"{int(rcid)}.json"
 

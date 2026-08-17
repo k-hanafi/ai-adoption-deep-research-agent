@@ -113,6 +113,16 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Print verify done / remaining / spend and exit",
     )
+    verify_p.add_argument(
+        "--from-cache",
+        action="store_true",
+        dest="from_cache",
+        help=(
+            "Judge saved pages only (no Perplexity/Tavily). "
+            "Re-runs Luna on cached URLs, including complete stamps. "
+            "Requires --live. Findings with no page are skipped."
+        ),
+    )
     return parser
 
 
@@ -163,6 +173,8 @@ def main(argv: list[str] | None = None) -> int:
         _require_limit_or_all(args)
         if args.concurrency < 1:
             raise SystemExit("--concurrency must be >= 1")
+        if args.from_cache and not args.live:
+            raise SystemExit("--from-cache requires --live (Luna still runs on the saved page)")
         try:
             run_verify(
                 architecture=args.architecture,
@@ -170,6 +182,7 @@ def main(argv: list[str] | None = None) -> int:
                 dry_run=not args.live,
                 limit=None if args.all else args.limit,
                 concurrency=args.concurrency,
+                from_cache=args.from_cache,
             )
         except (FileNotFoundError, ValueError) as exc:
             raise SystemExit(str(exc)) from exc
