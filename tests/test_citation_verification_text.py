@@ -137,6 +137,22 @@ def test_linkedin_listings_rail_is_unread() -> None:
     )
     real_job = "K1x is hiring a Sales Development Representative to use Clay and Gong."
     assert not looks_job_listings_rail(url, real_job, company_name="K1x")
+    short_rail_with_name = (
+        "K1x Inc\nSimilar jobs\n"
+        "### Data Scientist Intern\n#### Tinder\n"
+        "### ML Engineer\n#### Netflix\n"
+        "### Product Designer\n#### Stripe\n"
+        "### Backend Engineer\n#### Airbnb\n"
+        "People also viewed\n"
+    )
+    assert looks_job_listings_rail(url, short_rail_with_name, company_name="K1x")
+    real_plus_sidebar = (
+        "K1x is hiring a Sales Development Representative to use Clay and Gong. "
+        * 8
+        + "\nSimilar jobs\n### Data Scientist Intern\n#### Tinder\n"
+        "### ML Engineer\n#### Netflix\n"
+    )
+    assert not looks_job_listings_rail(url, real_plus_sidebar, company_name="K1x")
 
 
 def test_thin_youtube_intro_is_unread() -> None:

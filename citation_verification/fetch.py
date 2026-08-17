@@ -208,15 +208,20 @@ def _execute_fetch_once(
     return call_with_429_retry(_call, limiter=fetch_limiter())
 
 
+def is_flaky_fetch_error(error: Optional[str]) -> bool:
+    """Empty / short / soft-404 extracts can succeed on a second Perplexity call."""
+    text = (error or "").lower()
+    return (
+        "no fetch_url_results contents" in text
+        or "fetch_url returned no page content" in text
+        or text.startswith("snippet too short")
+        or text == config.ERROR_SOFT_404
+    )
+
+
 def _is_retryable_fetch(result: FetchResult) -> bool:
     """Empty or tool-error output can flake. Wrong-page content is not retryable."""
-    error = (result.error or "").lower()
-    return (
-        "no fetch_url_results contents" in error
-        or "fetch_url returned no page content" in error
-        or error.startswith("snippet too short")
-        or error == config.ERROR_SOFT_404
-    )
+    return is_flaky_fetch_error(result.error)
 
 
 def _as_mapping(response: Mapping[str, Any] | Any) -> Mapping[str, Any]:

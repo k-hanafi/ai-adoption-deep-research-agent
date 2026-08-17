@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Optional
 
-from citation_verification.fetch import FetchResult
+from citation_verification.fetch import FetchResult, is_flaky_fetch_error
 from production.persist import is_retryable
 
 PAGE_RECORD_FIELDS: tuple[str, ...] = (
@@ -35,10 +35,11 @@ def page_cache_key(url: str) -> str:
 
 
 def page_cache_reusable(record: Optional[Mapping[str, Any]]) -> bool:
-    """429/timeout rows are kept for audit but must not block a refetch."""
+    """429/timeout and flaky empty extracts must not block a refetch."""
     if not record:
         return False
-    return not is_retryable(str(record.get("error") or ""))
+    error = str(record.get("error") or "")
+    return not is_retryable(error) and not is_flaky_fetch_error(error)
 
 
 def record_from_fetch(

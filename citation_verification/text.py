@@ -296,12 +296,16 @@ def looks_job_listings_rail(
     if not is_job:
         return False
     text = snippet or ""
-    if not _LISTINGS_RAIL.search(text):
+    rail = _LISTINGS_RAIL.search(text)
+    if not rail:
         return False
     name = (company_name or "").strip().lower()
-    if name and name not in text.lower():
-        return True
-    return len(_JOB_HEADING.findall(text)) >= 8
+    name_missing = bool(name) and name not in text.lower()
+    headings = len(_JOB_HEADING.findall(text))
+    prefix_len = rail.start()
+    return name_missing or headings >= 8 or (
+        headings >= 3 and prefix_len < 200
+    )
 
 
 def looks_thin_watch_page(url: str, snippet: str) -> bool:

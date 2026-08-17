@@ -308,6 +308,43 @@ def test_retryable_page_cache_is_not_reused(
     assert "Copilot" in pages[url]["snippet"]
 
 
+def test_empty_fetch_cache_does_not_block_refetch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A flaky empty Perplexity extract must not poison later findings on that URL."""
+    output_root = tmp_path / "prod"
+    url = "https://co1.example/careers"
+    _one_finding(output_root / "sgs" / "findings_deduplicated.csv", url=url)
+    paths = prod_paths(output_root, "sgs")
+    append_page_record(
+        paths.pages_jsonl,
+        record_from_fetch(
+            url,
+            FetchResult(
+                url=url,
+                title="",
+                snippet="",
+                cost_usd=0.0001,
+                error="snippet too short (0 chars; min 40)",
+            ),
+            fetch_cost=0.0001,
+            fetch_attempts=2,
+        ),
+    )
+    state = _install_live(monkeypatch)
+    run_verify(
+        architecture="sgs",
+        output_root=output_root,
+        dry_run=False,
+        limit=1,
+        concurrency=1,
+    )
+    assert state["fetch"] >= 1
+    pages = load_pages_by_url(paths.pages_jsonl)
+    assert pages[url]["fetch_ok"] is True
+    assert "Copilot" in pages[url]["snippet"]
+
+
 def test_from_cache_requires_live(tmp_path: Path) -> None:
     _one_finding(tmp_path / "prod" / "sgs" / "findings_deduplicated.csv")
     with pytest.raises(SystemExit, match="--from-cache requires --live"):

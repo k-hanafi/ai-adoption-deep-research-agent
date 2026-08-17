@@ -1514,3 +1514,17 @@ Paid `--limit 400 --concurrency 400` from this worktree onto live `outputs/prod`
 **Alternatives rejected:** Default pool 900 (laptop thread risk). Starting the climb at 12 and only raising MAX. Rewriting fetch/judge to asyncio. Letting Tavily follow the 800-wide fetch door. `--all`.
 
 **Open follow-ups:** Do not start `--all`. Do not merge until Khaled says so. Do not run `--limit 2000` until a paced probe shows rare 429s. Next useful probe is `--limit 400 --concurrency 400` with the 900/min start pacer on. Keep verifying from this worktree with `--output-root` at live `outputs/prod`.
+
+---
+
+## 2026-08-17: Do not reuse flaky empty pages, and unread short job rails
+
+**Decision:** A cached page is reusable only if it is not a 429/timeout **and** not a flaky empty extract (`snippet too short`, no page content, `soft_404`). Those rows stay on `pages.jsonl` for audit. The next finding with that URL refetches. A LinkedIn/Indeed page with Similar-jobs chrome is unread if the company name is missing, or there are 8+ job headings, or there are 3+ headings and almost no body before the rail (`prefix < 200` chars). A real posting with a long body plus a small sidebar still goes to Luna. Unread stays null, not `0`.
+
+**Why:** One empty Perplexity flake was being reused for every later claim on that URL, so a 30k run could stamp many false unread rows without retrying. A listings feed that mentions the company name in a short header was reaching Luna, which can turn a sidebar into a fake `0`.
+
+**Evidence:** Local Bugbot on `prod-verifier`. Runtime: empty-cache test `fetch == 0` then `cache=hit` before the fix, `reusable: false` / `cache_hit: false` after. Short rail with name: `headings: 4`, `prefix_len: 8`, `unread: false` then `true`. Code: `production/pages.py` `page_cache_reusable`, `citation_verification/fetch.py` `is_flaky_fetch_error`, `citation_verification/text.py` `looks_job_listings_rail`. Tests: `test_empty_fetch_cache_does_not_block_refetch`, `test_linkedin_listings_rail_is_unread`.
+
+**Alternatives rejected:** Reusing every non-429 failure (would skip retries on flakes). Treating any Similar-jobs footer as unread (would null real postings). Folding unread into `0`.
+
+**Open follow-ups:** Same as [[2026-08-17: Open fetch doors toward Perplexity Tier 3]]. Do not merge until Khaled says so.
