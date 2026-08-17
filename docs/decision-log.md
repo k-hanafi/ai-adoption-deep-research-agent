@@ -59,6 +59,7 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 - Verify adaptive limiters: `citation_verification/limits.py`
 - Production derived squash: `production/dedupe.py` (`findings_deduplicated.csv`)
 - Production page cache: `production/pages.py` (`outputs/prod/{arch}/pages.jsonl`)
+- Verify fetch doors: `citation_verification/config.py` (`FETCH_LIMIT_*`, `FETCH_STARTS_PER_MIN`)
 
 ---
 
@@ -1452,6 +1453,8 @@ Squash when the same company has similar tool + similar use, and either (1) the 
 
 ## 2026-08-17: Verify is finding-level with adaptive API caps
 
+**Status:** superseded for start/max/default pool by [[2026-08-17: Open fetch doors toward Perplexity Tier 3]]. Finding-level pool, AIMD, unread→null, and Ctrl+C still stand.
+
 **Decision:** `python -m production verify --concurrency N` is a **finding** thread pool (default **32**), not a company pool. Findings from the same company run in parallel. Under that pool, Perplexity `fetch_url`, OpenAI judge, and Tavily Extract each have an AIMD in-flight cap: start below the ceiling, +1 after 12 successes, halve on 429, sleep `Retry-After` or exponential backoff, retry in-call up to 5 times, then surface a retryable error for batch resume. Browser last-resort stays hard-capped at 2 and off unless `CITATION_VERIFICATION_BROWSER=1`. CSV appends one row per finding; rebuild from jsonl at start and end (last-write-wins). Release the fetch slot before the judge runs so the two APIs do not share one door.
 
 Starting caps: fetch 12 (max 48), judge 20 (max 64), Tavily 8 (max 24).
@@ -1491,3 +1494,23 @@ Starting caps: fetch 12 (max 48), judge 20 (max 64), Tavily 8 (max 24).
 **Alternatives rejected:** Snippet column on the Excel CSV. Cache key `(rcid, finding_id)` (would re-scrape the same job post for every claim). Folding unread into `0`. Judge-said-truncated → N/A (reverted earlier). Replaying complete stamps on default `--limit` (that flag stays "next N not-done").
 
 **Open follow-ups:** Do not start `--all`. Do not merge until Khaled says so. After merge, run verify from the live folder only once that folder is on a commit that contains this code (merge `main` into `prod-retry-connection` when Stage 2 is in a safe state, or wait until it finishes). Until then, keep verifying from this worktree with `--output-root` at live `outputs/prod`. Rebuild `findings_deduplicated.csv` if raw `findings.csv` has grown. Leave the Legion Health and Entendre `0`s unless Khaled asks to requeue.
+
+---
+
+## 2026-08-17: Open fetch doors toward Perplexity Tier 3
+
+**Decision:** Live verify fetch doors are now start **200** / max **800**, climb +1 every **2** successes. Default finding pool is **256** (`--concurrency` can go higher, not 900 by default). Judge start **80** / max **256**. Tavily and browser stay conservative (max 24 / 2) so backup cannot become a second flood. Fetch starts are paced at **900/min** (15 QPS). AIMD still halves on 429.
+
+Raising MAX alone is not enough. The old climb (+1 after 12 oks from 12 to 800) needed ~9.5k successes, so a 2k probe would never leave the old pace.
+
+**Why:** Perplexity Tier 3 is 1000 RPM / 17 QPS. The target is ~900 **API starts** per minute, not 900 findings finished per minute. Little's Law: findings/min ≈ in_flight / duration_seconds × 60. A typical `fetch_url` takes 50–80s, so 900 completions/min would need ~900 scrapes open at once. 200 in-flight at 60s is ~200 findings/min, and 200 starts/min if each finding is one call. Empty-fetch retries and targeted refetches count against the 1000 RPM (this probe was 700 starts / 400 findings ≈ 1.75).
+
+In-flight width is not start rate. 200 threads calling at t=0 is a burst, not 200 RPM.
+
+**Evidence:** Code: `citation_verification/config.py`, `citation_verification/limits.py` (`pace_per_sec`, `n_calls`), `production/verify.py` `LIMITS` ticks. Tests: `tests/test_citation_verification_limits.py` (`test_fetch_reaches_high_cap_without_9k_successes`, `test_start_pacer_spaces_acquires`). Offline: 120 passed.
+
+Paid `--limit 400 --concurrency 400` from this worktree onto live `outputs/prod` (pacer not yet in that process): wall **314s** (5.2 min), **76 findings/min**, **700** Perplexity starts (**134 starts/min**), **71** HTTP 429s (66 in the first seconds, 5 later), peak fetch cap **201** then **88**, end cap **157**, peak in_flight **93**, RSS ~0.5 GB, 0 judge 429s. 400 new stamps: listings-rail nulls stayed null (12 failed = 11 `fetch_listings_rail` + 1 empty page). CSV still 41 columns, no snippet. Spend +~$2.08 to $2.33. Done 445 / remaining 28,175.
+
+**Alternatives rejected:** Default pool 900 (laptop thread risk). Starting the climb at 12 and only raising MAX. Rewriting fetch/judge to asyncio. Letting Tavily follow the 800-wide fetch door. `--all`.
+
+**Open follow-ups:** Do not start `--all`. Do not merge until Khaled says so. Do not run `--limit 2000` until a paced probe shows rare 429s. Next useful probe is `--limit 400 --concurrency 400` with the 900/min start pacer on. Keep verifying from this worktree with `--output-root` at live `outputs/prod`.

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import csv
 import signal
+import time
 from collections import deque
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from dataclasses import dataclass
@@ -253,9 +254,17 @@ def _execute_verify(
         )
         in_flight[future] = row
 
+    last_limits = 0.0
+    last_ran_mark = 0
+
+    def _log_limits(reason: str) -> None:
+        print(f"LIMITS {reason} pool={len(in_flight)} {limiter_status()}", flush=True)
+
     with ThreadPoolExecutor(max_workers=worker_count) as pool:
         while pending and len(in_flight) < worker_count and not stop_event.is_set():
             _submit(pool, pending.popleft())
+        _log_limits("wave")
+        last_limits = time.monotonic()
         while in_flight:
             try:
                 done, _ = wait(in_flight, return_when=FIRST_COMPLETED, timeout=1.0)
@@ -266,6 +275,10 @@ def _execute_verify(
                     flush=True,
                 )
                 done = set()
+            now = time.monotonic()
+            if now - last_limits >= 15:
+                _log_limits("tick")
+                last_limits = now
             for future in done:
                 row = in_flight.pop(future)
                 rcid, fid = verified_finding_key(row)
@@ -283,6 +296,10 @@ def _execute_verify(
                     and merged.get("verification") in ("", None)
                 ):
                     failed += 1
+                if ran - last_ran_mark >= 25:
+                    _log_limits(f"ran={ran}")
+                    last_ran_mark = ran
+                    last_limits = time.monotonic()
             while pending and len(in_flight) < worker_count and not stop_event.is_set():
                 _submit(pool, pending.popleft())
     return ran, failed

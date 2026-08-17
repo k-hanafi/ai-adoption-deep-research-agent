@@ -70,16 +70,22 @@ FETCH_SOURCE_TAVILY: str = "tavily_extract"
 FETCH_SOURCE_HTTPX: str = "httpx"
 FETCH_SOURCE_BROWSER: str = "browser"
 
-# Adaptive in-flight caps. --concurrency is the thread pool (findings),
-# not the company-wide Stage 2 429 lesson. Each API climbs on success
-# and halves on 429.
-VERIFY_POOL_DEFAULT: int = 32
-FETCH_LIMIT_START: int = 12
+# Adaptive in-flight caps. --concurrency is the thread pool (findings).
+# Fetch starts near Perplexity Tier 3 (1000 RPM / 17 QPS). Raising MAX
+# alone is not enough: +1 after 12 oks from 12 to 800 needs ~9.5k
+# successes. Start high, climb fetch faster, still halve on 429.
+# Tavily/browser stay narrow so backup cannot become a second flood.
+VERIFY_POOL_DEFAULT: int = 256
+FETCH_LIMIT_START: int = 200
 FETCH_LIMIT_MIN: int = 2
-FETCH_LIMIT_MAX: int = 48
-JUDGE_LIMIT_START: int = 20
+FETCH_LIMIT_MAX: int = 800
+FETCH_LIMIT_CLIMB_EVERY: int = 2
+# In-flight cap is not start rate. 200 threads calling at t=0 is a
+# burst, not 200 RPM. Pace fetch starts toward Tier 3 (1000 RPM / 17 QPS).
+FETCH_STARTS_PER_MIN: int = 900
+JUDGE_LIMIT_START: int = 80
 JUDGE_LIMIT_MIN: int = 4
-JUDGE_LIMIT_MAX: int = 64
+JUDGE_LIMIT_MAX: int = 256
 TAVILY_LIMIT_START: int = 8
 TAVILY_LIMIT_MIN: int = 2
 TAVILY_LIMIT_MAX: int = 24

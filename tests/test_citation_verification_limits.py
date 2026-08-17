@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import time
+
 import pytest
 
+from citation_verification import config
 from citation_verification.limits import (
     AdaptiveLimiter,
     call_with_429_retry,
+    fetch_limiter,
     is_rate_limit_error,
     reset_limiters,
     retry_after_seconds,
@@ -116,3 +120,57 @@ def test_non_429_raises_immediately(monkeypatch: pytest.MonkeyPatch) -> None:
     assert slept == []
     assert limiter.n_429 == 0
     assert limiter.cap == 4
+
+
+def test_fetch_doors_start_near_tier3_not_at_twelve() -> None:
+    assert config.VERIFY_POOL_DEFAULT == 256
+    assert config.FETCH_LIMIT_START == 200
+    assert config.FETCH_LIMIT_MAX == 800
+    assert config.FETCH_LIMIT_CLIMB_EVERY == 2
+    assert config.JUDGE_LIMIT_START == 80
+    assert config.JUDGE_LIMIT_MAX == 256
+    assert config.TAVILY_LIMIT_MAX == 24
+    assert config.FETCH_STARTS_PER_MIN == 900
+
+
+def test_fetch_reaches_high_cap_without_9k_successes() -> None:
+    """A 2k probe must be able to sit at hundreds in-flight, not climb from 12."""
+    reset_limiters()
+    limiter = fetch_limiter()
+    assert limiter.cap == config.FETCH_LIMIT_START
+    target = min(config.FETCH_LIMIT_START + 40, config.FETCH_LIMIT_MAX)
+    steps = target - limiter.cap
+    for _ in range(steps * config.FETCH_LIMIT_CLIMB_EVERY):
+        limiter.record_ok()
+    assert limiter.cap == target
+    assert steps * config.FETCH_LIMIT_CLIMB_EVERY < 200
+    reset_limiters()
+
+
+def test_start_pacer_spaces_acquires() -> None:
+    limiter = AdaptiveLimiter(
+        "test",
+        start=8,
+        min_cap=1,
+        max_cap=8,
+        climb_every=99,
+        pace_per_sec=40,
+    )
+    t0 = time.monotonic()
+    for _ in range(5):
+        limiter.acquire()
+    elapsed = time.monotonic() - t0
+    assert elapsed >= 0.08
+    for _ in range(5):
+        limiter.release()
+
+
+def test_acquire_counts_starts_for_rpm_logs() -> None:
+    limiter = AdaptiveLimiter("test", start=2, min_cap=1, max_cap=4, climb_every=99)
+    limiter.acquire()
+    limiter.acquire()
+    snap = limiter.snapshot()
+    assert snap["n_calls"] == 2
+    assert snap["in_flight"] == 2
+    limiter.release()
+    limiter.release()

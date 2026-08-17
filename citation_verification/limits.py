@@ -58,6 +58,7 @@ class AdaptiveLimiter:
         min_cap: int,
         max_cap: int,
         climb_every: int = config.LIMIT_CLIMB_EVERY,
+        pace_per_sec: float = 0.0,
     ) -> None:
         if min_cap < 1 or max_cap < min_cap or start < min_cap or start > max_cap:
             raise ValueError(f"bad limiter bounds for {name}")
@@ -69,7 +70,11 @@ class AdaptiveLimiter:
         self._in_flight = 0
         self._ok_streak = 0
         self._n_429 = 0
+        self._n_calls = 0
         self._cond = Condition()
+        self._pace_lock = Lock()
+        self._min_interval = (1.0 / pace_per_sec) if pace_per_sec > 0 else 0.0
+        self._next_start = 0.0
 
     @property
     def cap(self) -> int:
@@ -91,6 +96,20 @@ class AdaptiveLimiter:
             while self._in_flight >= self._cap:
                 self._cond.wait(timeout=0.25)
             self._in_flight += 1
+            self._n_calls += 1
+        self._pace()
+
+    def _pace(self) -> None:
+        """Space API starts so in-flight width is not a t=0 burst."""
+        if self._min_interval <= 0:
+            return
+        with self._pace_lock:
+            now = time.monotonic()
+            when = max(now, self._next_start)
+            self._next_start = when + self._min_interval
+            delay = when - now
+        if delay > 0:
+            time.sleep(delay)
 
     def release(self) -> None:
         with self._cond:
@@ -126,6 +145,7 @@ class AdaptiveLimiter:
                 "cap": self._cap,
                 "in_flight": self._in_flight,
                 "n_429": self._n_429,
+                "n_calls": self._n_calls,
             }
 
 
@@ -155,6 +175,8 @@ def fetch_limiter() -> AdaptiveLimiter:
                 start=config.FETCH_LIMIT_START,
                 min_cap=config.FETCH_LIMIT_MIN,
                 max_cap=config.FETCH_LIMIT_MAX,
+                climb_every=config.FETCH_LIMIT_CLIMB_EVERY,
+                pace_per_sec=config.FETCH_STARTS_PER_MIN / 60.0,
             )
         return _FETCH
 
