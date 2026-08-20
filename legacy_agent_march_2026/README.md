@@ -15,7 +15,7 @@ cross-imports in either direction.
 | `src/stage_2/production_agent_runner.py` | March full-set runner (resume, budget cap, pause/stop) |
 | `src/tests/stage_2/` | March hyperparameter A/B scripts |
 | `prompts/stage_2_perplexity_prompt.txt` | March deep-research prompt |
-| `crunchbase_data/` | Same Stage 1 inputs the live repo uses (copied, not linked) |
+| `crunchbase_data/` | Licensed dumps local-only (see `crunchbase_data/README.md`) |
 | `outputs/production_results.jsonl` | March master results (local only, not in git, ~69MB) |
 | `presentation/production_results.html` | March findings dashboard |
 
