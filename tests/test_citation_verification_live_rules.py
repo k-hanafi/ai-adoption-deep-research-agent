@@ -393,3 +393,81 @@ def test_vendor_disagreement_unresolved_is_null(
     assert result.verification is None
     assert result.unverifiable is True
     assert result.error == config.ERROR_DOCUMENT_MISMATCH
+
+
+def test_linkedin_listings_rail_is_not_judged(monkeypatch: pytest.MonkeyPatch) -> None:
+    from citation_verification import runner as runner_mod
+
+    page = FetchResult(
+        url=(
+            "https://www.linkedin.com/jobs/view/"
+            "sales-development-representative-at-k1x-inc-4424441175"
+        ),
+        title="Sales Development Representative - K1X, Inc.",
+        snippet=(
+            "Similar jobs\n### Data Scientist Intern\n#### Tinder\n"
+            "### ML Engineer\n#### Netflix\nPeople also viewed\n"
+            "Get notified about new Artificial Intelligence Engineer jobs\n"
+        ),
+        cost_usd=0.001,
+    )
+    monkeypatch.setattr(runner_mod, "execute_fetch", lambda url, **_: page)
+    monkeypatch.setattr(runner_mod, "execute_backup_chain", lambda url, **_: page)
+    called = {"judge": 0}
+
+    def _no_judge(**_kwargs: object) -> JudgeResult:
+        called["judge"] += 1
+        raise AssertionError("judge must not run on a listings rail")
+
+    monkeypatch.setattr(runner_mod, "execute_judge", _no_judge)
+    result = verify_finding(
+        {
+            "finding_id": 1,
+            "source_url": page.url,
+            "evidence_description": (
+                "K1x's Sales Development Representative posting instructs "
+                "the employee to conduct deep account research using Clay."
+            ),
+            "company_name": "K1x",
+        },
+        dry_run=False,
+    )
+    assert result.verification is None
+    assert result.unverifiable is True
+    assert result.error == config.ERROR_LISTINGS_RAIL
+    assert called["judge"] == 0
+
+
+def test_thin_youtube_is_not_judged(monkeypatch: pytest.MonkeyPatch) -> None:
+    from citation_verification import runner as runner_mod
+
+    page = FetchResult(
+        url="https://www.youtube.com/watch?v=2dUAlrrSnSg",
+        title="How We Actually Use AI at Tern",
+        snippet="Welcome everyone to the workshop. Related videos\nComments\n",
+        cost_usd=0.001,
+    )
+    monkeypatch.setattr(runner_mod, "execute_fetch", lambda url, **_: page)
+    monkeypatch.setattr(runner_mod, "execute_backup_chain", lambda url, **_: page)
+    called = {"judge": 0}
+
+    def _no_judge(**_kwargs: object) -> JudgeResult:
+        called["judge"] += 1
+        raise AssertionError("judge must not run on a thin watch page")
+
+    monkeypatch.setattr(runner_mod, "execute_judge", _no_judge)
+    result = verify_finding(
+        {
+            "finding_id": 2,
+            "source_url": page.url,
+            "evidence_description": (
+                "Tern uses Claude to turn Zoom recordings into case studies."
+            ),
+            "company_name": "Tern Travel",
+        },
+        dry_run=False,
+    )
+    assert result.verification is None
+    assert result.unverifiable is True
+    assert result.error == config.ERROR_THIN_SNIPPET
+    assert called["judge"] == 0

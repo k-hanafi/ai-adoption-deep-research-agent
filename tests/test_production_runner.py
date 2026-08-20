@@ -401,24 +401,75 @@ def test_dry_run_writes_no_paid_artifacts(tmp_path: Path) -> None:
     assert not (output_root / "sgs" / "findings.jsonl").exists()
 
 
-def test_dedupe_not_implemented(tmp_path: Path) -> None:
-    dataset = _dataset(tmp_path / "companies.jsonl", n=1)
-    with pytest.raises(SystemExit, match="not implemented"):
-        _cli(
-            [
-                "dedupe",
-                "--architecture",
-                "sgs",
-                "--dataset",
-                str(dataset),
-                "--output-root",
-                str(tmp_path / "prod"),
-            ]
-        )
-    assert not (tmp_path / "prod" / "sgs" / "findings_deduplicated.csv").exists()
+def _deduped_csv(path: Path, rows: list[dict[str, object]]) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = [
+        "rcid",
+        "company_name",
+        "finding_id",
+        "evidence_description",
+        "source_url",
+        "AI_tool_used",
+        "channel",
+        "error",
+    ]
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames, extrasaction="ignore")
+        writer.writeheader()
+        for row in rows:
+            writer.writerow({key: row.get(key, "") for key in fieldnames})
+    return path
 
 
-def test_verify_uses_findings_csv_and_renames_error(
+def test_dedupe_writes_derived_csv_and_leaves_raw(tmp_path: Path) -> None:
+    output_root = tmp_path / "prod"
+    sgs = output_root / "sgs"
+    sgs.mkdir(parents=True)
+    raw = (
+        "rcid,company_name,homepage_url,short_description,research_priority_score,"
+        "architecture,finding_id,AI_tool_used,use_case,business_function,"
+        "evidence_description,source_url,source_type,channel,genai_adoption_found,"
+        "findings_count,no_finding_reason,error,duration_seconds,scout_jobs,"
+        "scout_owned,scout_third_party,dig_count,dig_channels,cost_usd,"
+        "scout_cost_usd,dig_cost_usd\n"
+        "1,Co1,https://co1.example,desc,5,sgs,1,Claude Code,"
+        "AI-assisted software development,Engineering,"
+        "The Head of Engineering posting names Claude Code,"
+        "https://www.linkedin.com/jobs/view/head-of-engineering,jobs,jobs,true,2,"
+        ",,1,none,none,none,1,jobs,0.1,0.02,0.08\n"
+        "1,Co1,https://co1.example,desc,5,sgs,2,Claude Code,"
+        "AI-assisted software development,Engineering,"
+        "A third-party mirror of the Head of Engineering posting names Claude Code,"
+        "https://jobright.ai/jobs/info/abc123,jobs,third_party,true,2,"
+        ",,1,none,none,none,1,jobs,0.1,0.02,0.08\n"
+    )
+    findings = sgs / "findings.csv"
+    findings.write_text(raw, encoding="utf-8")
+    code, out = _capture_cli(
+        [
+            "dedupe",
+            "--architecture",
+            "sgs",
+            "--dataset",
+            str(_dataset(tmp_path / "companies.jsonl", n=1)),
+            "--output-root",
+            str(output_root),
+        ]
+    )
+    assert code == 0
+    assert "dropped=1" in out
+    derived = sgs / "findings_deduplicated.csv"
+    assert derived.exists()
+    assert findings.read_text(encoding="utf-8") == raw
+    with derived.open(encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    assert len(rows) == 1
+    assert rows[0]["finding_id"] == "1"
+    assert rows[0]["source_url"].startswith("https://www.linkedin.com/")
+    assert rows[0]["findings_count"] == "1"
+
+
+def test_verify_uses_deduplicated_csv_and_renames_error(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     dataset = _dataset(tmp_path / "companies.jsonl", n=1)
@@ -440,6 +491,9 @@ def test_verify_uses_findings_csv_and_renames_error(
         )
         == 0
     )
+    findings = output_root / "sgs" / "findings.csv"
+    deduped = output_root / "sgs" / "findings_deduplicated.csv"
+    deduped.write_text(findings.read_text(encoding="utf-8"), encoding="utf-8")
     assert (
         _cli(
             [
@@ -450,6 +504,7 @@ def test_verify_uses_findings_csv_and_renames_error(
                 str(dataset),
                 "--output-root",
                 str(output_root),
+                "--all",
             ]
         )
         == 0
@@ -467,14 +522,201 @@ def test_verify_uses_findings_csv_and_renames_error(
     assert row["error"] == ""
 
 
-def test_verify_prefers_deduplicated_csv(tmp_path: Path) -> None:
+def test_verify_requires_deduplicated_csv(tmp_path: Path) -> None:
     output_root = tmp_path / "prod"
     sgs = output_root / "sgs"
     sgs.mkdir(parents=True)
-    (sgs / "findings.csv").write_text("rcid,source_url\n1,https://raw.example\n", encoding="utf-8")
-    (sgs / "findings_deduplicated.csv").write_text(
-        "rcid,company_name,finding_id,evidence_description,source_url\n"
-        "9,DedupedCo,3,Uses Claude,https://deduped.example\n",
+    (sgs / "findings.csv").write_text(
+        "rcid,source_url,evidence_description\n1,https://raw.example,Uses Claude\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(SystemExit, match="findings_deduplicated.csv"):
+        _cli(
+            [
+                "verify",
+                "--architecture",
+                "sgs",
+                "--dataset",
+                str(_dataset(tmp_path / "companies.jsonl", n=1)),
+                "--output-root",
+                str(output_root),
+                "--all",
+            ]
+        )
+
+
+def test_verify_requires_limit_or_all(tmp_path: Path) -> None:
+    output_root = tmp_path / "prod"
+    _deduped_csv(
+        output_root / "sgs" / "findings_deduplicated.csv",
+        [
+            {
+                "rcid": 1,
+                "company_name": "Co1",
+                "finding_id": 1,
+                "evidence_description": "Uses Claude",
+                "source_url": "https://co1.example",
+            }
+        ],
+    )
+    with pytest.raises(SystemExit, match="--limit N or --all"):
+        _cli(
+            [
+                "verify",
+                "--architecture",
+                "sgs",
+                "--dataset",
+                str(_dataset(tmp_path / "companies.jsonl", n=1)),
+                "--output-root",
+                str(output_root),
+            ]
+        )
+
+
+def test_verify_limit_resumes_and_appends(tmp_path: Path) -> None:
+    output_root = tmp_path / "prod"
+    dataset = _dataset(tmp_path / "companies.jsonl", n=1)
+    _deduped_csv(
+        output_root / "sgs" / "findings_deduplicated.csv",
+        [
+            {
+                "rcid": 1,
+                "company_name": "Co1",
+                "finding_id": 1,
+                "evidence_description": "Uses Claude",
+                "source_url": "https://co1.example/one",
+            },
+            {
+                "rcid": 1,
+                "company_name": "Co1",
+                "finding_id": 2,
+                "evidence_description": "Uses Copilot",
+                "source_url": "https://co1.example/two",
+            },
+            {
+                "rcid": 2,
+                "company_name": "Co2",
+                "finding_id": 1,
+                "evidence_description": "Uses Cursor",
+                "source_url": "https://co2.example/one",
+            },
+        ],
+    )
+    common = [
+        "verify",
+        "--architecture",
+        "sgs",
+        "--dataset",
+        str(dataset),
+        "--output-root",
+        str(output_root),
+        "--limit",
+        "1",
+    ]
+    assert _cli(common) == 0
+    verified = output_root / "sgs" / "findings_verified.csv"
+    first = list(csv.DictReader(verified.open(encoding="utf-8", newline="")))
+    assert len(first) == 1
+    assert first[0]["finding_id"] == "1"
+    assert first[0]["source_url"] == "https://co1.example/one"
+    assert first[0]["verification_error"] == "dry_run_no_api"
+    assert _cli(common) == 0
+    second = list(csv.DictReader(verified.open(encoding="utf-8", newline="")))
+    assert len(second) == 2
+    assert [row["source_url"] for row in second] == [
+        "https://co1.example/one",
+        "https://co1.example/two",
+    ]
+
+
+def test_verify_status_counts_remaining(tmp_path: Path) -> None:
+    output_root = tmp_path / "prod"
+    _deduped_csv(
+        output_root / "sgs" / "findings_deduplicated.csv",
+        [
+            {
+                "rcid": 1,
+                "company_name": "Co1",
+                "finding_id": 1,
+                "evidence_description": "Uses Claude",
+                "source_url": "https://co1.example/one",
+            },
+            {
+                "rcid": 1,
+                "company_name": "Co1",
+                "finding_id": 2,
+                "evidence_description": "Uses Copilot",
+                "source_url": "https://co1.example/two",
+            },
+        ],
+    )
+    assert (
+        _cli(
+            [
+                "verify",
+                "--architecture",
+                "sgs",
+                "--dataset",
+                str(_dataset(tmp_path / "companies.jsonl", n=1)),
+                "--output-root",
+                str(output_root),
+                "--limit",
+                "1",
+            ]
+        )
+        == 0
+    )
+    code, text = _capture_cli(
+        [
+            "verify",
+            "--architecture",
+            "sgs",
+            "--dataset",
+            str(_dataset(tmp_path / "companies.jsonl", n=1)),
+            "--output-root",
+            str(output_root),
+            "--status",
+        ]
+    )
+    assert code == 0
+    assert "verified done: 1" in text
+    assert "verified remaining: 1" in text
+
+
+def test_verify_requeues_429_and_does_not_repay_complete(tmp_path: Path) -> None:
+    output_root = tmp_path / "prod"
+    sgs = output_root / "sgs"
+    _deduped_csv(
+        sgs / "findings_deduplicated.csv",
+        [
+            {
+                "rcid": 1,
+                "company_name": "Co1",
+                "finding_id": 1,
+                "evidence_description": "Uses Claude",
+                "source_url": "https://co1.example/one",
+            },
+            {
+                "rcid": 1,
+                "company_name": "Co1",
+                "finding_id": 2,
+                "evidence_description": "Uses Copilot",
+                "source_url": "https://co1.example/two",
+            },
+        ],
+    )
+    (sgs / "findings_verified.jsonl").write_text(
+        json.dumps(
+            {
+                "rcid": 1,
+                "finding_id": 1,
+                "source_url": "https://co1.example/one",
+                "evidence_description": "Uses Claude",
+                "verification": "",
+                "verification_error": "429 rate limit",
+            }
+        )
+        + "\n",
         encoding="utf-8",
     )
     assert (
@@ -487,15 +729,85 @@ def test_verify_prefers_deduplicated_csv(tmp_path: Path) -> None:
                 str(_dataset(tmp_path / "companies.jsonl", n=1)),
                 "--output-root",
                 str(output_root),
+                "--limit",
+                "1",
             ]
         )
         == 0
     )
-    with (sgs / "findings_verified.csv").open(encoding="utf-8", newline="") as handle:
-        row = list(csv.DictReader(handle))[0]
-    assert row["rcid"] == "9"
-    assert row["source_url"] == "https://deduped.example"
-    assert row["verification_error"] == "dry_run_no_api"
+    rows = list(
+        csv.DictReader((sgs / "findings_verified.csv").open(encoding="utf-8", newline=""))
+    )
+    assert len(rows) == 1
+    assert rows[0]["finding_id"] == "1"
+    assert rows[0]["verification_error"] == "dry_run_no_api"
+
+
+def test_verify_runs_findings_in_parallel(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import time
+    from threading import Lock
+
+    from citation_verification.types import VerdictResult
+    from production.verify import run_verify
+
+    output_root = tmp_path / "prod"
+    _deduped_csv(
+        output_root / "sgs" / "findings_deduplicated.csv",
+        [
+            {
+                "rcid": 1,
+                "company_name": "Co1",
+                "finding_id": i,
+                "evidence_description": f"Uses tool {i}",
+                "source_url": f"https://co1.example/{i}",
+            }
+            for i in range(1, 4)
+        ],
+    )
+    state = {"n": 0, "max": 0}
+    lock = Lock()
+
+    def _fake_verify(row, dry_run=True, **_kwargs):  # noqa: ARG001
+        with lock:
+            state["n"] += 1
+            state["max"] = max(state["max"], state["n"])
+        time.sleep(0.2)
+        with lock:
+            state["n"] -= 1
+        return VerdictResult(
+            finding_id=int(row["finding_id"]),
+            source_url=str(row["source_url"]),
+            verification=1,
+            dry_run=True,
+            error="dry_run_no_api",
+        )
+
+    monkeypatch.setattr("production.verify.verify_finding", _fake_verify)
+    run_verify(
+        architecture="sgs",
+        output_root=output_root,
+        dry_run=True,
+        limit=3,
+        concurrency=3,
+    )
+    assert state["max"] >= 2
+    rows = list(
+        csv.DictReader(
+            (output_root / "sgs" / "findings_verified.csv").open(
+                encoding="utf-8", newline=""
+            )
+        )
+    )
+    assert len(rows) == 3
+
+
+def test_verify_help_says_findings_not_companies() -> None:
+    code, text = _capture_cli(["verify", "--help"])
+    assert code == 0
+    assert "Max findings in flight" in text
+    assert "Companies in flight" not in text
 
 
 def test_status_lists_next_rcids(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

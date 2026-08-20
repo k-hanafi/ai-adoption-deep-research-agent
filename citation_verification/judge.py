@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Mapping, Optional
 
 from citation_verification import config
+from citation_verification.limits import call_with_429_retry, judge_limiter
 from citation_verification.schema import judge_text_format
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -159,17 +160,21 @@ def execute_judge(
     kwargs = build_judge_request(
         claim=claim, source_url=source_url, snippet=snippet
     )
-    with httpx.Client(timeout=timeout) as client:
-        response = client.post(
-            OPENAI_RESPONSES_URL,
-            headers={
-                "Authorization": f"Bearer {key}",
-                "Content-Type": "application/json",
-            },
-            json=kwargs,
-        )
-        response.raise_for_status()
-        payload = response.json()
+
+    def _call() -> dict[str, Any]:
+        with httpx.Client(timeout=timeout) as client:
+            response = client.post(
+                OPENAI_RESPONSES_URL,
+                headers={
+                    "Authorization": f"Bearer {key}",
+                    "Content-Type": "application/json",
+                },
+                json=kwargs,
+            )
+            response.raise_for_status()
+            return response.json()
+
+    payload = call_with_429_retry(_call, limiter=judge_limiter())
     return parse_judge_response(payload)
 
 

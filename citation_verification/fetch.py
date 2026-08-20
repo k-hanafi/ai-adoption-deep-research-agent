@@ -8,6 +8,11 @@ from typing import Any, Mapping, Optional, Sequence
 from urllib.parse import urlparse, urlunparse
 
 from citation_verification import config
+from citation_verification.limits import (
+    call_with_429_retry,
+    fetch_limiter,
+    is_rate_limit_error,
+)
 from citation_verification.text import cap_snippet, looks_soft_404
 
 
@@ -149,7 +154,7 @@ def execute_fetch(
             )
         except Exception as exc:  # noqa: BLE001 - retry transport timeout, then raise
             last_exc = exc
-            if attempt == attempts - 1:
+            if is_rate_limit_error(exc) or attempt == attempts - 1:
                 raise
             continue
         spent += float(result.cost_usd)
@@ -191,23 +196,32 @@ def _execute_fetch_once(
     client = Perplexity(api_key=key, max_retries=0)
     kwargs = build_fetch_request(url, extract_for=extract_for)
     kwargs["timeout"] = timeout
-    response = client.responses.create(**kwargs)
-    if hasattr(response, "model_dump"):
-        payload = response.model_dump()
-    else:
-        payload = response
-    return parse_fetch_response(payload, requested_url=url)
+
+    def _call() -> FetchResult:
+        response = client.responses.create(**kwargs)
+        if hasattr(response, "model_dump"):
+            payload = response.model_dump()
+        else:
+            payload = response
+        return parse_fetch_response(payload, requested_url=url)
+
+    return call_with_429_retry(_call, limiter=fetch_limiter())
+
+
+def is_flaky_fetch_error(error: Optional[str]) -> bool:
+    """Empty / short / soft-404 extracts can succeed on a second Perplexity call."""
+    text = (error or "").lower()
+    return (
+        "no fetch_url_results contents" in text
+        or "fetch_url returned no page content" in text
+        or text.startswith("snippet too short")
+        or text == config.ERROR_SOFT_404
+    )
 
 
 def _is_retryable_fetch(result: FetchResult) -> bool:
     """Empty or tool-error output can flake. Wrong-page content is not retryable."""
-    error = (result.error or "").lower()
-    return (
-        "no fetch_url_results contents" in error
-        or "fetch_url returned no page content" in error
-        or error.startswith("snippet too short")
-        or error == config.ERROR_SOFT_404
-    )
+    return is_flaky_fetch_error(result.error)
 
 
 def _as_mapping(response: Mapping[str, Any] | Any) -> Mapping[str, Any]:

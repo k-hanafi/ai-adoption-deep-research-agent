@@ -140,3 +140,66 @@ def test_parse_rejects_bad_verification() -> None:
         parse_judge_response(payload)
     # 100*$0.20/M + 50*$1.20/M = 0.00002 + 0.00006
     assert caught.value.cost_usd == pytest.approx(0.00008)
+
+
+def test_execute_judge_retries_429_then_succeeds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import httpx
+
+    from citation_verification.judge import execute_judge
+    from citation_verification.limits import reset_limiters
+
+    reset_limiters()
+    monkeypatch.setattr("citation_verification.limits.time.sleep", lambda _s: None)
+    monkeypatch.setattr(
+        "citation_verification.judge.require_openai_api_key",
+        lambda _key=None: "sk-test",
+    )
+    payload = json.loads(
+        (FIXTURES / "citation_judge_ok.json").read_text(encoding="utf-8")
+    )
+    calls = {"n": 0}
+
+    class _Resp:
+        def __init__(self, status_code: int, body: dict | None = None) -> None:
+            self.status_code = status_code
+            self.headers = {"retry-after": "0.1"}
+            self._body = body or {}
+            self.request = httpx.Request("POST", "https://api.openai.com/v1/responses")
+
+        def raise_for_status(self) -> None:
+            if self.status_code >= 400:
+                raise httpx.HTTPStatusError(
+                    "Client error '429 Too Many Requests'",
+                    request=self.request,
+                    response=httpx.Response(self.status_code, request=self.request),
+                )
+
+        def json(self) -> dict:
+            return self._body
+
+    class _Client:
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            pass
+
+        def __enter__(self) -> "_Client":
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def post(self, *args: object, **kwargs: object) -> _Resp:
+            calls["n"] += 1
+            if calls["n"] == 1:
+                return _Resp(429)
+            return _Resp(200, payload)
+
+    monkeypatch.setattr("httpx.Client", _Client)
+    result = execute_judge(
+        claim="Uses Copilot for PR review",
+        source_url="https://example.com/careers",
+        snippet="Our engineers use GitHub Copilot when reviewing pull requests.",
+    )
+    assert calls["n"] == 2
+    assert result.verification == 1

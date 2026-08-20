@@ -9,10 +9,11 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from production.dedupe import run_dedupe
 from production.persist import ARCH_KEYS, DEFAULT_DATASET, DEFAULT_OUTPUT_ROOT, load_dataset
 from production.run import DEFAULT_CONCURRENCY, run_dry, run_live
 from production.status import collect_status
-from production.verify import run_verify
+from production.verify import DEFAULT_VERIFY_CONCURRENCY, collect_verify_status, run_verify
 
 
 def _add_common(parser: argparse.ArgumentParser) -> None:
@@ -55,7 +56,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="python -m production",
         description=(
             "Production batch runner. run writes raw findings. "
-            "dedupe (later) writes findings_deduplicated.csv. "
+            "dedupe writes findings_deduplicated.csv. "
             "verify writes findings_verified.csv."
         ),
     )
@@ -84,15 +85,43 @@ def build_parser() -> argparse.ArgumentParser:
         help="How many next rcids to preview (default: 10)",
     )
 
-    dedupe_p = sub.add_parser("dedupe", help="Derived syndication squash (not implemented yet)")
+    dedupe_p = sub.add_parser("dedupe", help="Write findings_deduplicated.csv from findings.csv")
     _add_common(dedupe_p)
 
-    verify_p = sub.add_parser("verify", help="Thin-wrap citation_verification/ onto findings CSV")
+    verify_p = sub.add_parser(
+        "verify",
+        help="Verify findings_deduplicated.csv (requires --limit N or --all, or --status)",
+    )
     _add_common(verify_p)
+    _add_limit(verify_p, required_note=True)
     verify_p.add_argument(
         "--live",
         action="store_true",
         help="Paid fetch+judge (default is dry-run, no APIs)",
+    )
+    verify_p.add_argument(
+        "--concurrency",
+        type=int,
+        default=DEFAULT_VERIFY_CONCURRENCY,
+        help=(
+            f"Max findings in flight (default: {DEFAULT_VERIFY_CONCURRENCY}). "
+            "Per-API caps adapt under this pool."
+        ),
+    )
+    verify_p.add_argument(
+        "--status",
+        action="store_true",
+        help="Print verify done / remaining / spend and exit",
+    )
+    verify_p.add_argument(
+        "--from-cache",
+        action="store_true",
+        dest="from_cache",
+        help=(
+            "Judge saved pages only (no Perplexity/Tavily). "
+            "Re-runs Luna on cached URLs, including complete stamps. "
+            "Requires --live. Findings with no page are skipped."
+        ),
     )
     return parser
 
@@ -118,18 +147,46 @@ def _load(args: argparse.Namespace) -> list[dict]:
         raise SystemExit(str(exc)) from exc
 
 
-def cmd_dedupe() -> int:
-    raise SystemExit(
-        "dedupe is not implemented yet. "
-        "This command will write findings_deduplicated.csv after syndication squash. "
-        "Raw findings stay in findings.csv. Do not pretend squash is done."
-    )
-
-
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.command == "dedupe":
-        return cmd_dedupe()
+        try:
+            run_dedupe(
+                architecture=args.architecture,
+                output_root=args.output_root,
+            )
+        except (FileNotFoundError, ValueError) as exc:
+            raise SystemExit(str(exc)) from exc
+        return 0
+
+    if args.command == "verify":
+        if args.status:
+            try:
+                report = collect_verify_status(
+                    architecture=args.architecture,
+                    output_root=args.output_root,
+                )
+            except (FileNotFoundError, ValueError) as exc:
+                raise SystemExit(str(exc)) from exc
+            print(report.format(), end="")
+            return 0
+        _require_limit_or_all(args)
+        if args.concurrency < 1:
+            raise SystemExit("--concurrency must be >= 1")
+        if args.from_cache and not args.live:
+            raise SystemExit("--from-cache requires --live (Luna still runs on the saved page)")
+        try:
+            run_verify(
+                architecture=args.architecture,
+                output_root=args.output_root,
+                dry_run=not args.live,
+                limit=None if args.all else args.limit,
+                concurrency=args.concurrency,
+                from_cache=args.from_cache,
+            )
+        except (FileNotFoundError, ValueError) as exc:
+            raise SystemExit(str(exc)) from exc
+        return 0
 
     companies = _load(args)
     if args.command == "status":
@@ -141,17 +198,6 @@ def main(argv: list[str] | None = None) -> int:
             limit=args.limit,
         )
         print(report.format(), end="")
-        return 0
-
-    if args.command == "verify":
-        try:
-            run_verify(
-                architecture=args.architecture,
-                output_root=args.output_root,
-                dry_run=not args.live,
-            )
-        except (FileNotFoundError, ValueError) as exc:
-            raise SystemExit(str(exc)) from exc
         return 0
 
     if args.command == "dry-run":

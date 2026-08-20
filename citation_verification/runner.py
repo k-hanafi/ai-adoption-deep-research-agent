@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Mapping, Optional, Sequence, Union
+from typing import Any, Callable, Mapping, Optional, Sequence, Union
 
 from contracts.types import Finding
 
@@ -23,6 +23,7 @@ from citation_verification.text import (
     looks_document_mismatch,
     missing_anchors,
     select_windows,
+    unread_reason,
 )
 from citation_verification.types import (
     FINDING_PASSTHROUGH_FIELDS,
@@ -35,6 +36,7 @@ from citation_verification.types import (
 )
 
 FindingLike = Union[Finding, Mapping[str, Any]]
+PersistPage = Callable[[str, FetchResult, float, int], None]
 
 
 def _as_mapping(finding: FindingLike) -> Mapping[str, Any]:
@@ -100,8 +102,16 @@ def verify_finding(
     finding: FindingLike,
     *,
     dry_run: bool = True,
+    cached_page: Optional[FetchResult] = None,
+    persist_page: Optional[PersistPage] = None,
+    cache_only: bool = False,
 ) -> VerdictResult:
-    """Verify one finding. Dry-run skips APIs; live runs fetch → judge → confidence."""
+    """Verify one finding. Dry-run skips APIs; live runs fetch → judge → confidence.
+
+    ``cached_page`` skips Perplexity/Tavily/httpx and judges the saved snippet.
+    ``persist_page`` is called after every live fetch (including failures) so a
+    crash cannot drop a paid scrape. ``cache_only`` refuses to fetch.
+    """
     row = _as_mapping(finding)
     claim = _claim_text(row)
     source_url = _source_url(row)
@@ -132,6 +142,9 @@ def verify_finding(
         source_url=source_url,
         claim=claim,
         context=context,
+        cached_page=cached_page,
+        persist_page=persist_page,
+        cache_only=cache_only,
     )
 
 
@@ -141,6 +154,9 @@ def _verify_live(
     source_url: str,
     claim: str,
     context: Mapping[str, Any],
+    cached_page: Optional[FetchResult] = None,
+    persist_page: Optional[PersistPage] = None,
+    cache_only: bool = False,
 ) -> VerdictResult:
     identity = _identity(
         finding_id=finding_id,
@@ -148,17 +164,43 @@ def _verify_live(
         claim=claim,
         context=context,
     )
-    try:
-        page, fetch_cost, fetch_attempts = _resolve_page(source_url)
-    except Exception as exc:  # noqa: BLE001 - surface any fetch transport failure
+    from_cache = cached_page is not None
+    if from_cache:
+        page = cached_page
+        fetch_cost = 0.0
+        fetch_attempts = max(1, page.attempts)
+    elif cache_only:
         return unverifiable_result(
             finding_id=finding_id,
             source_url=source_url,
             claim=claim,
-            reason=f"fetch failed: {exc}",
+            reason="page cache miss",
             dry_run=False,
             **context,
         )
+    else:
+        try:
+            page, fetch_cost, fetch_attempts = _resolve_page(source_url)
+        except Exception as exc:  # noqa: BLE001 - surface any fetch transport failure
+            fail = FetchResult(
+                url=source_url,
+                title="",
+                snippet="",
+                cost_usd=0.0,
+                error=f"fetch failed: {exc}",
+            )
+            if persist_page is not None:
+                persist_page(source_url, fail, 0.0, 1)
+            return unverifiable_result(
+                finding_id=finding_id,
+                source_url=source_url,
+                claim=claim,
+                reason=f"fetch failed: {exc}",
+                dry_run=False,
+                **context,
+            )
+        if persist_page is not None:
+            persist_page(source_url, page, fetch_cost, fetch_attempts)
 
     if not page.ok:
         result = unverifiable_result(
@@ -178,25 +220,43 @@ def _verify_live(
         result.cost_usd = float(fetch_cost)
         return result
 
-    anchors = extract_anchors(claim)
-    missing = missing_anchors(page.snippet, anchors)
-    if missing:
-        page, fetch_cost, fetch_attempts = _recover_missing_anchors(
-            source_url,
-            claim,
-            page=page,
-            missing=missing,
-            fetch_cost=fetch_cost,
-            fetch_attempts=fetch_attempts,
-        )
-        if not page.ok:
-            return _unreadable(
-                identity,
+    if not from_cache:
+        anchors = extract_anchors(claim)
+        missing = missing_anchors(page.snippet, anchors)
+        if missing:
+            page, fetch_cost, fetch_attempts = _recover_missing_anchors(
+                source_url,
+                claim,
                 page=page,
-                reason=page.error or "fetch failed",
+                missing=missing,
                 fetch_cost=fetch_cost,
                 fetch_attempts=fetch_attempts,
             )
+            if persist_page is not None:
+                persist_page(source_url, page, fetch_cost, fetch_attempts)
+            if not page.ok:
+                return _unreadable(
+                    identity,
+                    page=page,
+                    reason=page.error or "fetch failed",
+                    fetch_cost=fetch_cost,
+                    fetch_attempts=fetch_attempts,
+                )
+
+    thin = unread_reason(
+        source_url,
+        page.title or "",
+        page.snippet or "",
+        company_name=str(identity.get("company_name") or "") or None,
+    )
+    if thin:
+        return _unreadable(
+            identity,
+            page=page,
+            reason=thin,
+            fetch_cost=fetch_cost,
+            fetch_attempts=fetch_attempts,
+        )
 
     windows = select_windows(page.snippet, claim)
     if not windows:
