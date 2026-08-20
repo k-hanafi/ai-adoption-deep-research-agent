@@ -55,6 +55,10 @@ Human: skim this file when writing the paper/portfolio narrative. Agents: update
 - Frozen March dump for panel rebuilds (local, not in git): `evals/references/march_2026_production.jsonl`
 - Production batch runner: `production/` (`python -m production {run,dry-run,status,dedupe,verify}`)
 - Production writes (local, gitignored): `outputs/prod/{sgs,pcs,uas}/`
+- Public schema samples (fictional): `crunchbase_data/sample/`, `outputs/prod/sample/`
+- Data inventory: `docs/DATA.md`
+- Public schema samples (fictional): `crunchbase_data/sample/`, `outputs/prod/sample/`
+- Data inventory: `docs/DATA.md`
 - Production verify branch: `prod-verifier` (worktree `deep-research-AI-agent-verifier`)
 - Verify adaptive limiters: `citation_verification/limits.py`
 - Production derived squash: `production/dedupe.py` (`findings_deduplicated.csv`)
@@ -1256,6 +1260,7 @@ Second fetch order: **superseded by [[2026-08-15: Tavily Extract is the only pai
 - [ ] WS9 live expanded gold re-score (paid, Khaled spend approval). Do not start Phase B 221+124 first.
 - [ ] Later (separate plan): evals `run-verification` consumer + eval-set quality gates
 - [x] Paid verify `--limit 20` smoke after adaptive finding-level concurrency (see [[2026-08-17: Verify is finding-level with adaptive API caps]])
+- [x] Licensed Crunchbase dumps and production result files stay local (see [[2026-08-20: Licensed dumps stay local, samples stay in git]])
 
 ---
 
@@ -1528,3 +1533,17 @@ Paid `--limit 400 --concurrency 400` from this worktree onto live `outputs/prod`
 **Alternatives rejected:** Reusing every non-429 failure (would skip retries on flakes). Treating any Similar-jobs footer as unread (would null real postings). Folding unread into `0`.
 
 **Open follow-ups:** Same as [[2026-08-17: Open fetch doors toward Perplexity Tier 3]]. Do not merge until Khaled says so.
+
+---
+
+## 2026-08-20: Licensed dumps stay local, samples stay in git
+
+**Decision:** Stop tracking the Crunchbase input dumps and keep production / Stage 3 result files local. Ship fictional schema samples instead. Eval `summary.jsonl` scoreboards stay in git. No `CITATION.cff` in this pass. No history rewrite unless Crunchbase or the PI asks.
+
+**Why:** The public GitHub repo was hosting two copies of the ~27MB Crunchbase slice plus the 9,420-row Stage 2 queue. That is a license risk for portfolio viewers and for a paper data-availability statement. Clones still need to see the column layout.
+
+**Evidence:** Tracked files removed from the index: `crunchbase_data/44k_crunchbase_startups.csv`, `crunchbase_data/stage2_input_dataset_p4_p5.jsonl`, and the matching copies under `legacy_agent_march_2026/crunchbase_data/`. Samples: `crunchbase_data/sample/`, `outputs/prod/sample/findings.sample.csv`. Inventory: `docs/DATA.md`.
+
+**Alternatives rejected:** Copying 20 real Crunchbase rows into the sample (still republishes licensed records). Deleting `legacy_agent_march_2026/`. Gitignoring eval `summary.jsonl` (those are small measurement evidence, not the licensed dump). Rewriting git history in this pass.
+
+**Open follow-ups:** History still contains the old blobs. Ask Jan before any `git filter-repo`. README rewrite later.

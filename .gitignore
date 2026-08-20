@@ -82,8 +82,19 @@ legacy_agent_march_2026/credentials/*.txt
 !legacy_agent_march_2026/credentials/*.txt.template
 legacy_agent_march_2026/logs/**
 legacy_agent_march_2026/checkpoints/**
+# Licensed Crunchbase dumps (local only). Schema samples stay in git.
+crunchbase_data/*.csv
+crunchbase_data/*.jsonl
+!crunchbase_data/sample/
+!crunchbase_data/sample/**
+legacy_agent_march_2026/crunchbase_data/*.csv
+legacy_agent_march_2026/crunchbase_data/*.jsonl
+
 # Upcoming v2 production writes (PR2)
 outputs/prod/**
+!outputs/prod/sample/
+!outputs/prod/sample/**
+outputs/stage3/**
 
 # ─────────────────────────────────────────────────────────────────────────────
 # OS

@@ -161,10 +161,11 @@ live tree because Unified Adaptive Search still loads it.
 │   └── config.py
 ├── legacy_agent_march_2026/       # Frozen March agent (do not import)
 ├── credentials/                   # *.txt.template tracked; real keys gitignored
-├── crunchbase_data/               # Input CSV + Stage 2 P4–P5 JSONL
+├── crunchbase_data/               # Licensed dumps local-only; sample/ in git
 └── outputs/                       # gitignored pipeline artifacts
     ├── stage1/
-    └── stage2/test_runs/          # v2 eval smokes (not March masters)
+    ├── stage2/test_runs/          # runners + summary.jsonl (eval evidence)
+    └── prod/sample/               # fictional findings schema
 ```
 
 ### Eval CLI (architecture playground)
